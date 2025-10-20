@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:powerhouse/core/constants/app_colors.dart';
 import 'package:powerhouse/core/routes/app_routes.dart';
+import 'package:powerhouse/screens/home/main_navigation.dart';
 import 'package:powerhouse/screens/onboarding/onboard_screen.dart';
 import 'package:powerhouse/screens/onboarding/verification_screen.dart';
 import 'package:powerhouse/screens/splash/splash_screen.dart';
@@ -47,6 +48,7 @@ class MyApp extends StatelessWidget {
         AppRoutes.height: (context) => const HeightScreen(),
         AppRoutes.goal: (context) => const GoalScreen(),
         AppRoutes.congratulations: (context) => const CongratulationsScreen(),
+        AppRoutes.MainNavigation: (context) => const MainNavigation(),
       },
     );
   }

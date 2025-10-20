@@ -11,5 +11,5 @@ class AppRoutes {
   static const String height = '/height';
   static const String goal = '/goal';
   static const String congratulations = '/congratulations';
-  static const String home = '/home';
+  static const String MainNavigation = '/home';
 }

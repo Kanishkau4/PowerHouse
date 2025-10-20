@@ -157,12 +157,12 @@ class _GoalScreenState extends State<GoalScreen> {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: isSelected 
-              ? const Color(0xFF1DAB87).withOpacity(0.1)
+              ? const Color(0xFFF97316).withOpacity(0.1)
               : const Color(0xFFF3F3F3),
           borderRadius: BorderRadius.circular(19),
           border: Border.all(
             color: isSelected 
-                ? const Color(0xFF1DAB87) 
+                ? const Color(0xFFF97316) 
                 : Colors.transparent,
             width: 2,
           ),
@@ -175,7 +175,7 @@ class _GoalScreenState extends State<GoalScreen> {
               height: 48,
               decoration: BoxDecoration(
                 color: isSelected 
-                    ? const Color(0xFF1DAB87) 
+                    ? const Color(0xFFF97316) 
                     : goal.color.withOpacity(0.2),
                 shape: BoxShape.circle,
               ),
@@ -206,7 +206,7 @@ class _GoalScreenState extends State<GoalScreen> {
                 width: 28,
                 height: 28,
                 decoration: const BoxDecoration(
-                  color: Color(0xFF1DAB87),
+                  color: Color(0xFFF97316),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(

@@ -187,7 +187,7 @@ Widget build(BuildContext context) {
           Container(
             width: 4,
             height: 80,
-            color: const Color(0xFF1DAB87),
+            color: const Color(0xFFF97316),
           ),
           
           // Scrollable ruler
@@ -316,7 +316,7 @@ Widget build(BuildContext context) {
             ),
             child: const Center(
               child: Icon(
-                Icons.arrow_forward,
+                Icons.arrow_forward_ios,
                 color: Colors.white,
                 size: 32,
               ),

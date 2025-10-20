@@ -203,8 +203,8 @@ Widget build(BuildContext context) {
           // Center indicator line
           Container(
             width: 80,
-            height: 2,
-            color: const Color(0xFF1DAB87),
+            height: 4,
+            color: const Color(0xFFF97316),
           ),
           
           // Scrollable vertical ruler
@@ -325,7 +325,7 @@ Widget build(BuildContext context) {
             ),
             child: const Center(
               child: Icon(
-                Icons.arrow_forward,
+                Icons.arrow_forward_ios,
                 color: Colors.white,
                 size: 32,
               ),
