@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:powerhouse/screens/workouts/workout_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -625,15 +626,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onWorkoutTap(WorkoutItem workout) {
-    print('Workout tapped: ${workout.title}');
-    // Navigate to workout detail
-    // Navigator.push(
-    //   context,
-    //   MaterialPageRoute(
-    //     builder: (context) => WorkoutDetailScreen(workout: workout),
-    //   ),
-    // );
-  }
+  print('Workout tapped: ${workout.title}');
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => WorkoutDetailScreen(
+        workout: WorkoutDetail.sample(), // Replace with actual data
+      ),
+    ),
+  );
+}
 
   void _onExerciseTap(ExerciseItem exercise) {
     print('Exercise tapped: ${exercise.title}');

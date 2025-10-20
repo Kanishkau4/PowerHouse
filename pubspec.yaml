@@ -38,6 +38,8 @@ dependencies:
   animated_splash_screen: 
   fl_chart: ^0.68.0
   intl: ^0.19.0
+  flutter_tts: ^3.8.3
+  confetti: ^0.7.0
 
 dev_dependencies:
   flutter_test:

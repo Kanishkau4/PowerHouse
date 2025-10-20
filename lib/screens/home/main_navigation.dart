@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:powerhouse/screens/home/home_screen.dart';
 import 'package:powerhouse/screens/workouts/workouts_screen.dart';
 import 'package:powerhouse/screens/nutrition/nutrition_screen.dart';
-// import 'package:powerhouse/screens/challenges/challenges_screen.dart';
-// import 'package:powerhouse/screens/profile/profile_screen.dart';
+import 'package:powerhouse/screens/challenges/challenges_screen.dart';
+import 'package:powerhouse/screens/profile/profile_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({Key? key}) : super(key: key);
@@ -19,8 +19,8 @@ class _MainNavigationState extends State<MainNavigation> {
     const HomeScreen(),
     const WorkoutsScreen(),
     const NutritionScreen(),
-    // const ChallengesScreen(),
-    // const ProfileScreen(),
+    const ChallengesScreen(),
+    const ProfileScreen(),
   ];
 
   @override
@@ -87,7 +87,7 @@ class _MainNavigationState extends State<MainNavigation> {
           Text(
             label,
             style: TextStyle(
-              fontSize: 11,
+              fontSize: 12,
               color: isSelected ? const Color(0xFF1DAB87) : Colors.grey.shade400,
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
             ),
