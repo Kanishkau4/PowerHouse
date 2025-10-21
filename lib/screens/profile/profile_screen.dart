@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:powerhouse/screens/profile/edit_profile_screen.dart';
+import 'package:powerhouse/screens/profile/help_support_screen.dart';
+import 'package:powerhouse/screens/profile/notifications_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -631,12 +634,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // ==================== HANDLERS ====================
-  
-  void _onEditProfile() {
-    print('Edit Profile tapped');
-    // Navigate to edit profile screen
-    // Navigator.pushNamed(context, '/edit-profile');
-  }
 
   void _onAchievements() {
     print('Achievements tapped');
@@ -644,17 +641,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _showAchievementsDialog();
   }
 
-  void _onNotifications() {
-    print('Notifications tapped');
-    // Navigate to notifications settings
-    // Navigator.pushNamed(context, '/notifications-settings');
-  }
+  void _onEditProfile() {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => const EditProfileScreen(),
+    ),
+  );
+}
 
-  void _onHelpSupport() {
-    print('Help & Support tapped');
-    // Navigate to help & support screen
-    // Navigator.pushNamed(context, '/help-support');
-  }
+void _onNotifications() {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => const NotificationsScreen(),
+    ),
+  );
+}
+
+void _onHelpSupport() {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => const HelpSupportScreen(),
+    ),
+  );
+}
 
   void _onDarkModeToggle(bool value) {
     print('Dark mode: $value');

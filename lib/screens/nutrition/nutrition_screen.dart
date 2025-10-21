@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+import 'package:powerhouse/screens/nutrition/add_food_dialog.dart';
 
 class NutritionScreen extends StatefulWidget {
   const NutritionScreen({Key? key}) : super(key: key);
@@ -677,14 +678,29 @@ class _NutritionScreenState extends State<NutritionScreen> {
   }
 
   void _onAddFood() {
-    print('Add food tapped');
-    _showAddFoodDialog();
-  }
+  print('Add food tapped');
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (context) => const AddFoodDialog(
+      mealType: 'Breakfast', // Or dynamically pass the meal type
+    ),
+  );
+}
 
-  void _onAddFoodToMeal(String mealType) {
-    print('Add food to $mealType');
-    _showAddFoodDialog(mealType: mealType);
-  }
+// Update _onAddFoodToMeal method:
+void _onAddFoodToMeal(String mealType) {
+  print('Add food to $mealType');
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (context) => AddFoodDialog(
+      mealType: mealType,
+    ),
+  );
+}
 
   void _onSeeAllRecipes() {
     print('See all recipes');
@@ -694,110 +710,6 @@ class _NutritionScreenState extends State<NutritionScreen> {
   void _onRecipeTap() {
     print('Recipe tapped');
     // Navigate to recipe detail
-  }
-
-  void _showAddFoodDialog({String? mealType}) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(25),
-            topRight: Radius.circular(25),
-          ),
-        ),
-        child: Column(
-          children: [
-            const SizedBox(height: 12),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'Add Food',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 20),
-            
-            // Search Bar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: TextField(
-                decoration: InputDecoration(
-                  hintText: 'Search Sri Lankan food...',
-                  prefixIcon: const Icon(Icons.search),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            ),
-            
-            const SizedBox(height: 20),
-            
-            // Quick Actions
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _buildQuickAction(
-                      Icons.camera_alt,
-                      'Scan Meal',
-                      () => print('Scan meal'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildQuickAction(
-                      Icons.qr_code_scanner,
-                      'Barcode',
-                      () => print('Scan barcode'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            
-            const SizedBox(height: 20),
-            
-            // Popular Sri Lankan Foods
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                children: [
-                  const Text(
-                    'Popular Sri Lankan Foods',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildQuickFoodItem('Kottu Roti', '450 kcal'),
-                  _buildQuickFoodItem('String Hoppers', '180 kcal'),
-                  _buildQuickFoodItem('Pol Sambol', '120 kcal'),
-                  _buildQuickFoodItem('Chicken Curry', '280 kcal'),
-                  _buildQuickFoodItem('Dhal Curry', '150 kcal'),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   Widget _buildQuickAction(IconData icon, String label, VoidCallback onTap) {
