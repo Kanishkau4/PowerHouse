@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'package:powerhouse/services/auth_service.dart';
 
 class CongratulationsScreen extends StatefulWidget {
   const CongratulationsScreen({Key? key}) : super(key: key);
@@ -10,9 +11,14 @@ class CongratulationsScreen extends StatefulWidget {
 
 class _CongratulationsScreenState extends State<CongratulationsScreen>
     with SingleTickerProviderStateMixin {
+  final _authService = AuthService();
+  
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
+  
+  bool _isSaving = false;
+  bool _profileSaved = false;
 
   @override
   void initState() {
@@ -31,6 +37,11 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
     );
 
     _controller.forward();
+    
+    // Save profile automatically when screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _saveProfileToDatabase();
+    });
   }
 
   @override
@@ -56,12 +67,10 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
                 children: [
                   const SizedBox(height: 40),
                   
-                  // Outline Title
                   _buildOutlineTitle(),
                   
                   const Spacer(),
                   
-                  // Success Icon/Image
                   ScaleTransition(
                     scale: _scaleAnimation,
                     child: _buildSuccessIcon(),
@@ -69,7 +78,6 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
                   
                   const SizedBox(height: 40),
                   
-                  // Congratulations Text
                   FadeTransition(
                     opacity: _fadeAnimation,
                     child: _buildCongratulationsText(),
@@ -77,7 +85,6 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
                   
                   const SizedBox(height: 16),
                   
-                  // Subtitle
                   FadeTransition(
                     opacity: _fadeAnimation,
                     child: _buildSubtitle(),
@@ -85,13 +92,23 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
                   
                   const Spacer(),
                   
-                  // Let's Start Button
                   _buildStartButton(),
                   
                   const SizedBox(height: 60),
                 ],
               ),
             ),
+            
+            // Loading overlay
+            if (_isSaving)
+              Container(
+                color: Colors.black54,
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    color: Color(0xFF1DAB87),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -170,7 +187,7 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
 
   Widget _buildSubtitle() {
     return const Text(
-      'You completed your first challenge',
+      'Your profile is ready!',
       textAlign: TextAlign.center,
       style: TextStyle(
         color: Colors.black,
@@ -183,36 +200,38 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
   Widget _buildConfetti() {
     return Stack(
       children: List.generate(30, (index) {
-        return _ConfettiParticle(
-          index: index,
-        );
+        return _ConfettiParticle(index: index);
       }),
     );
   }
 
   Widget _buildStartButton() {
     return GestureDetector(
-      onTap: _handleStart,
+      onTap: _profileSaved ? _handleStart : null,
       child: Container(
         width: double.infinity,
         height: 60,
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF1DAB87), Color(0xFF2DD4A3)],
+          gradient: LinearGradient(
+            colors: _profileSaved
+                ? [const Color(0xFF1DAB87), const Color(0xFF2DD4A3)]
+                : [Colors.grey.shade400, Colors.grey.shade500],
           ),
           borderRadius: BorderRadius.circular(30),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF1DAB87).withOpacity(0.3),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-            ),
-          ],
+          boxShadow: _profileSaved
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF1DAB87).withOpacity(0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ]
+              : null,
         ),
-        child: const Center(
+        child: Center(
           child: Text(
-            "Let's Start!",
-            style: TextStyle(
+            _isSaving ? 'Saving...' : "Let's Start!",
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 20,
               fontWeight: FontWeight.w700,
@@ -223,21 +242,123 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
     );
   }
 
-  void _handleStart() {
-    // Get user data
-    final args = ModalRoute.of(context)?.settings.arguments as Map?;
-    print('User profile data: $args');
+  // ========== SAVE PROFILE TO DATABASE ==========
+  Future<void> _saveProfileToDatabase() async {
+    if (_isSaving || _profileSaved) return;
+    
+    setState(() {
+      _isSaving = true;
+    });
 
-    // Navigate to home screen
+    try {
+      // Get all profile data from navigation arguments
+      final args = ModalRoute.of(context)?.settings.arguments as Map?;
+      
+      if (args == null) {
+        throw Exception('Profile data missing');
+      }
+
+      print('📦 Profile data received: $args');
+
+      // Extract data
+      final gender = args['gender'] as String?;
+      final ageStr = args['age'] as String?;
+      final weightStr = args['weight'] as String?;
+      final heightStr = args['height'] as String?;
+      final goal = args['goal'] as String?;
+      final weightUnit = args['weightUnit'] as String?;
+      final heightUnit = args['heightUnit'] as String?;
+
+      // Validate required fields
+      if (gender == null || ageStr == null || weightStr == null || 
+          heightStr == null || goal == null) {
+        throw Exception('Missing required profile fields');
+      }
+
+      // Parse values
+      final age = int.parse(ageStr);
+      final weight = double.parse(weightStr);
+      final height = double.parse(heightStr);
+
+      print('💾 Saving profile to database...');
+
+      // Save to database
+      await _authService.completeProfileSetup(
+        gender: gender,
+        age: age,
+        weight: weight,
+        height: height,
+        goal: goal,
+        weightUnit: weightUnit ?? 'kg',
+        heightUnit: heightUnit ?? 'cm',
+      );
+
+      setState(() {
+        _isSaving = false;
+        _profileSaved = true;
+      });
+
+      print('✅ Profile saved successfully!');
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Profile created successfully!'),
+            backgroundColor: Color(0xFF1DAB87),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _isSaving = false;
+      });
+
+      print('❌ Error saving profile: $e');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to save profile: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(
+              label: 'Retry',
+              textColor: Colors.white,
+              onPressed: () {
+                _saveProfileToDatabase();
+              },
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  void _handleStart() {
+    if (!_profileSaved) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('⏳ Please wait while we save your profile...'),
+          backgroundColor: Color(0xFFF97316),
+        ),
+      );
+      return;
+    }
+
+    print('🚀 Navigating to home...');
+
+    // Navigate to home screen and remove all previous routes
     Navigator.pushNamedAndRemoveUntil(
       context,
       '/home',
-      (route) => false, // Remove all previous routes
+      (route) => false,
     );
   }
 }
 
-// Confetti Particle Widget
+// Confetti Particle Widget (same as before)
 class _ConfettiParticle extends StatefulWidget {
   final int index;
 

@@ -3,11 +3,11 @@ import 'dart:math' as math;
 import 'dart:async';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:powerhouse/screens/workouts/workout_completion_screen.dart';
-import 'package:powerhouse/screens/workouts/workout_detail_screen.dart';
-import 'rest_screen.dart'; 
+import 'package:powerhouse/screens/workouts/rest_screen.dart';
+import 'package:powerhouse/models/workout_model.dart';
 
 class WorkoutSessionScreen extends StatefulWidget {
-  final WorkoutDetail workout;
+  final WorkoutModel workout;
 
   const WorkoutSessionScreen({
     Key? key,
@@ -24,66 +24,94 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
   int _currentReps = 0;
   int _targetReps = 12;
   bool _isPaused = false;
-  bool _isVoiceEnabled = true; // ✅ Voice toggle
-  
+  bool _isVoiceEnabled = true;
+
   // Timer for timed exercises
   Timer? _exerciseTimer;
   int _secondsRemaining = 0;
-  
-  // ✅ Text-to-Speech
+
+  // Text-to-Speech
   final FlutterTts _tts = FlutterTts();
-  
+
   late AnimationController _repAnimationController;
   late Animation<double> _repScaleAnimation;
+
+  // Get exercises list
+  List<ExerciseWithDetails> get exercises => widget.workout.exercises ?? [];
 
   @override
   void initState() {
     super.initState();
+
+    if (exercises.isEmpty) {
+      // No exercises, go back
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No exercises available'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      });
+      return;
+    }
+
     _initializeExercise();
-    _configureTts(); // ✅ Configure voice
-    
+    _configureTts();
+
     // Animation for rep counter
     _repAnimationController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
-    
+
     _repScaleAnimation = Tween<double>(begin: 1.0, end: 1.2).animate(
-      CurvedAnimation(parent: _repAnimationController, curve: Curves.elasticOut),
+      CurvedAnimation(
+        parent: _repAnimationController,
+        curve: Curves.elasticOut,
+      ),
     );
-    
-    // ✅ Announce exercise start
+
+    // Announce exercise start
     _announceExerciseStart();
   }
 
-  // ✅ Configure Text-to-Speech
+  // Configure Text-to-Speech
   Future<void> _configureTts() async {
-    await _tts.setLanguage("en-US");
-    await _tts.setSpeechRate(0.5); // Slower for better clarity
-    await _tts.setVolume(1.0);
-    await _tts.setPitch(1.0);
+    try {
+      await _tts.setLanguage("en-US");
+      await _tts.setSpeechRate(0.5);
+      await _tts.setVolume(1.0);
+      await _tts.setPitch(1.0);
+    } catch (e) {
+      print('TTS configuration error: $e');
+    }
   }
 
-  // ✅ Announce exercise start
+  // Announce exercise start
   Future<void> _announceExerciseStart() async {
-    final exercise = widget.workout.exercises[_currentExerciseIndex];
+    final exercise = exercises[_currentExerciseIndex].exercise;
     await Future.delayed(const Duration(milliseconds: 500));
     if (_isVoiceEnabled) {
-      await _tts.speak("${exercise.name}. Let's go!");
+      await _tts.speak("${exercise.exerciseName}. Let's go!");
     }
   }
 
   void _initializeExercise() {
-    final currentExercise = widget.workout.exercises[_currentExerciseIndex];
-    // Parse duration (e.g., "02:00" or "00:30")
-    final duration = currentExercise.duration.split(':');
-    if (duration.length == 2) {
-      _secondsRemaining = 
-          int.parse(duration[0]) * 60 + int.parse(duration[1]);
+    final currentExercise = exercises[_currentExerciseIndex];
+
+    // Set target reps
+    _targetReps = currentExercise.reps ?? 12;
+    _currentReps = 0;
+
+    // Set duration if available
+    _secondsRemaining = currentExercise.duration ?? 0;
+
+    // Start timer if duration-based
+    if (_secondsRemaining > 0) {
+      _startExerciseTimer();
     }
-    
-    // Start timer for current exercise
-    _startExerciseTimer();
   }
 
   void _startExerciseTimer() {
@@ -93,9 +121,11 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
         setState(() {
           _secondsRemaining--;
         });
-        
-        // ✅ Voice countdown for last 5 seconds
-        if (_isVoiceEnabled && _secondsRemaining <= 5 && _secondsRemaining > 0) {
+
+        // Voice countdown for last 5 seconds
+        if (_isVoiceEnabled &&
+            _secondsRemaining <= 5 &&
+            _secondsRemaining > 0) {
           _tts.speak(_secondsRemaining.toString());
         }
       } else if (_secondsRemaining == 0) {
@@ -108,20 +138,20 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
     });
   }
 
-  // ✅ Enhanced rep increment with voice
+  // Enhanced rep increment with voice
   void _incrementReps() {
     if (_currentReps < _targetReps) {
       setState(() {
         _currentReps++;
       });
       _repAnimationController.forward(from: 0);
-      
-      // ✅ Speak rep number
+
+      // Speak rep number
       if (_isVoiceEnabled) {
         _tts.speak(_currentReps.toString());
       }
-      
-      // ✅ Motivational messages at milestones
+
+      // Motivational messages
       if (_isVoiceEnabled) {
         if (_currentReps == _targetReps ~/ 2) {
           Future.delayed(const Duration(milliseconds: 500), () {
@@ -133,7 +163,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
           });
         }
       }
-      
+
       if (_currentReps >= _targetReps) {
         if (_isVoiceEnabled) {
           _tts.speak("Exercise complete! Great job!");
@@ -156,19 +186,19 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
     }
   }
 
-  // ✅ Enhanced next exercise with rest screen
+  // Next exercise with rest screen
   void _nextExercise() {
     _exerciseTimer?.cancel();
     _tts.stop();
-    
-    if (_currentExerciseIndex < widget.workout.exercises.length - 1) {
+
+    if (_currentExerciseIndex < exercises.length - 1) {
       // Show rest screen before next exercise
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => RestScreen(
-            nextExercise: widget.workout.exercises[_currentExerciseIndex + 1],
-            restSeconds: 30, // 30 seconds rest
+            nextExercise: exercises[_currentExerciseIndex + 1],
+            restSeconds: 30,
             onRestComplete: () {
               setState(() {
                 _currentExerciseIndex++;
@@ -207,7 +237,6 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
     }
   }
 
-  // ✅ Toggle voice
   void _toggleVoice() {
     setState(() {
       _isVoiceEnabled = !_isVoiceEnabled;
@@ -220,7 +249,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
   }
 
   double get _progress {
-    return (_currentExerciseIndex + 1) / widget.workout.exercises.length;
+    return (_currentExerciseIndex + 1) / exercises.length;
   }
 
   double get _repProgress {
@@ -228,7 +257,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
   }
 
   String get _progressText {
-    return '${_currentExerciseIndex + 1}/${widget.workout.exercises.length} Done';
+    return '${_currentExerciseIndex + 1}/${exercises.length} Done';
   }
 
   String get _timeText {
@@ -241,64 +270,69 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
   void dispose() {
     _exerciseTimer?.cancel();
     _repAnimationController.dispose();
-    _tts.stop(); // ✅ Stop TTS
+    _tts.stop();
     super.dispose();
   }
 
   @override
-  @override
-Widget build(BuildContext context) {
-  final currentExercise = widget.workout.exercises[_currentExerciseIndex];
+  Widget build(BuildContext context) {
+    if (exercises.isEmpty) {
+      return const Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: CircularProgressIndicator(color: Color(0xFF1DAB87)),
+        ),
+      );
+    }
 
-  return Scaffold(
-    backgroundColor: Colors.white,
-    body: SafeArea(
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          // Total available height
-          final screenHeight = constraints.maxHeight;
+    final currentExercise = exercises[_currentExerciseIndex];
 
-          // Dynamically size the exercise card (max 40% of screen)
-          final cardHeight = screenHeight * 0.4; // Adjust as needed
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final screenHeight = constraints.maxHeight;
+            final cardHeight = screenHeight * 0.4;
 
-          return SingleChildScrollView(
-            child: Column(
-              children: [
-                // Progress Bar Section
-                _buildProgressBar(),
+            return SingleChildScrollView(
+              child: Column(
+                children: [
+                  // Progress Bar Section
+                  _buildProgressBar(),
 
-                // Exercise Illustration Card (with dynamic height)
-                _buildExerciseCard(currentExercise, cardHeight),
+                  // Exercise Illustration Card
+                  _buildExerciseCard(currentExercise, cardHeight),
 
-                const SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
-                // Exercise Name
-                _buildExerciseName(currentExercise),
+                  // Exercise Name
+                  _buildExerciseName(currentExercise),
 
-                const SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
-                // Rep Counter / Timer Circle
-                _buildRepCounter(),
+                  // Rep Counter / Timer Circle
+                  _buildRepCounter(),
 
-                const SizedBox(height: 32),
+                  const SizedBox(height: 32),
 
-                // Control Buttons
-                _buildControlButtons(),
+                  // Control Buttons
+                  _buildControlButtons(),
 
-                const SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
-                // Navigation Buttons
-                _buildNavigationButtons(),
+                  // Navigation Buttons
+                  _buildNavigationButtons(),
 
-                const SizedBox(height: 20),
-              ],
-            ),
-          );
-        },
+                  const SizedBox(height: 20),
+                ],
+              ),
+            );
+          },
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   // ==================== PROGRESS BAR ====================
   Widget _buildProgressBar() {
@@ -332,7 +366,9 @@ Widget build(BuildContext context) {
   }
 
   // ==================== EXERCISE CARD ====================
-  Widget _buildExerciseCard(Exercise exercise, double cardHeight) {
+  Widget _buildExerciseCard(ExerciseWithDetails exerciseDetails, double cardHeight) {
+    final exercise = exerciseDetails.exercise;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
       child: Container(
@@ -370,7 +406,7 @@ Widget build(BuildContext context) {
                 ),
               ),
             ),
-            
+
             // Pause/Play Button
             Positioned(
               top: 20,
@@ -389,14 +425,14 @@ Widget build(BuildContext context) {
                 ),
               ),
             ),
-            
-            // ✅ Voice Toggle Button
+
+            // Voice Toggle Button
             Positioned(
               top: 20,
               right: 20,
               child: Container(
                 decoration: BoxDecoration(
-                  color: _isVoiceEnabled 
+                  color: _isVoiceEnabled
                       ? const Color(0xFF1DAB87).withOpacity(0.7)
                       : Colors.white.withOpacity(0.7),
                   shape: BoxShape.circle,
@@ -411,14 +447,15 @@ Widget build(BuildContext context) {
                 ),
               ),
             ),
-            
+
             // Exercise Illustration or Image
             Center(
-              child: exercise.imageUrl.isNotEmpty
+              child: exercise.animationUrl != null &&
+                      exercise.animationUrl!.isNotEmpty
                   ? ClipRRect(
                       borderRadius: BorderRadius.circular(20),
                       child: Image.network(
-                        exercise.imageUrl,
+                        exercise.animationUrl!,
                         width: 200,
                         height: 280,
                         fit: BoxFit.cover,
@@ -435,7 +472,7 @@ Widget build(BuildContext context) {
                       painter: ExercisePersonPainter(),
                     ),
             ),
-            
+
             // Timer Display (if timed exercise)
             if (_secondsRemaining > 0)
               Positioned(
@@ -470,12 +507,16 @@ Widget build(BuildContext context) {
   }
 
   // ==================== EXERCISE NAME ====================
-  Widget _buildExerciseName(Exercise exercise) {
-    return Text(
-      exercise.name,
-      style: const TextStyle(
-        fontSize: 32,
-        fontWeight: FontWeight.w800,
+  Widget _buildExerciseName(ExerciseWithDetails exerciseDetails) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Text(
+        exerciseDetails.exercise.exerciseName,
+        style: const TextStyle(
+          fontSize: 32,
+          fontWeight: FontWeight.w800,
+        ),
+        textAlign: TextAlign.center,
       ),
     );
   }
@@ -549,9 +590,9 @@ Widget build(BuildContext context) {
               ),
             ),
           ),
-          
+
           const SizedBox(width: 20),
-          
+
           // Tap to Count Text
           Text(
             'Tap circle to count',
@@ -560,9 +601,9 @@ Widget build(BuildContext context) {
               color: Colors.grey.shade600,
             ),
           ),
-          
+
           const SizedBox(width: 20),
-          
+
           // Increase Reps
           IconButton(
             onPressed: _incrementReps,
@@ -595,7 +636,8 @@ Widget build(BuildContext context) {
             child: SizedBox(
               height: 56,
               child: ElevatedButton(
-                onPressed: _currentExerciseIndex > 0 ? _previousExercise : null,
+                onPressed:
+                    _currentExerciseIndex > 0 ? _previousExercise : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFB2E5D8),
                   foregroundColor: const Color(0xFF1DAB87),
@@ -623,9 +665,9 @@ Widget build(BuildContext context) {
               ),
             ),
           ),
-          
+
           const SizedBox(width: 16),
-          
+
           // Next Button
           Expanded(
             child: SizedBox(
@@ -663,7 +705,7 @@ Widget build(BuildContext context) {
   }
 
   // ==================== DIALOGS ====================
-  
+
   void _showExerciseCompleteDialog() {
     showDialog(
       context: context,
@@ -689,18 +731,18 @@ Widget build(BuildContext context) {
             ),
             const SizedBox(height: 16),
             Text(
-              'Great job on ${widget.workout.exercises[_currentExerciseIndex].name}!',
+              'Great job on ${exercises[_currentExerciseIndex].exercise.exerciseName}!',
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 16),
             ),
           ],
         ),
         actions: [
-          if (_currentExerciseIndex < widget.workout.exercises.length - 1)
+          if (_currentExerciseIndex < exercises.length - 1)
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
-                _nextExercise(); // This will show rest screen
+                _nextExercise();
               },
               child: const Text(
                 'Next Exercise',
@@ -732,36 +774,30 @@ Widget build(BuildContext context) {
   }
 
   void _showWorkoutCompleteDialog() {
-  if (_isVoiceEnabled) {
-    _tts.speak("Workout complete! Congratulations!");
-  }
+    if (_isVoiceEnabled) {
+      _tts.speak("Workout complete! Congratulations!");
+    }
 
-  // Calculate workout duration
-  final workoutDuration = Duration(
-    seconds: widget.workout.exercises.fold<int>(
-      0,
-      (sum, exercise) {
-        final parts = exercise.duration.split(':');
-        return sum + int.parse(parts[0]) * 60 + int.parse(parts[1]);
-      },
-    ),
-  );
-
-  // Navigate to completion screen
-  Future.delayed(const Duration(milliseconds: 500), () {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => WorkoutCompletionScreen(
-          workout: widget.workout,
-          workoutsCompleted: widget.workout.exercises.length,
-          caloriesBurned: 320,
-          workoutDuration: workoutDuration,
-        ),
-      ),
+    // Calculate workout duration
+    final workoutDuration = Duration(
+      minutes: widget.workout.estimatedDuration ?? 30,
     );
-  });
-}
+
+    // Navigate to completion screen
+    Future.delayed(const Duration(milliseconds: 500), () {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => WorkoutCompletionScreen(
+            workout: widget.workout,
+            workoutsCompleted: exercises.length,
+            caloriesBurned: widget.workout.estimatedCaloriesBurned ?? 320,
+            workoutDuration: workoutDuration,
+          ),
+        ),
+      );
+    });
+  }
 
   void _showExitConfirmation() {
     showDialog(
@@ -771,7 +807,8 @@ Widget build(BuildContext context) {
           borderRadius: BorderRadius.circular(20),
         ),
         title: const Text('Exit Workout?'),
-        content: const Text('Are you sure you want to exit? Your progress will be lost.'),
+        content: const Text(
+            'Are you sure you want to exit? Your progress will be lost.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -822,7 +859,8 @@ class RepCounterPainter extends CustomPainter {
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;
 
-    final rect = Rect.fromCircle(center: center, radius: radius - strokeWidth / 2);
+    final rect =
+        Rect.fromCircle(center: center, radius: radius - strokeWidth / 2);
     canvas.drawArc(
       rect,
       -math.pi / 2,

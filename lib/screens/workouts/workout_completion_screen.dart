@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:confetti/confetti.dart';
 import 'dart:async';
-import 'package:powerhouse/screens/workouts/workout_detail_screen.dart';
+import 'package:powerhouse/models/workout_model.dart';
+import 'package:powerhouse/services/workout_service.dart';
 
 class WorkoutCompletionScreen extends StatefulWidget {
-  final WorkoutDetail workout;
+  final WorkoutModel workout;
   final int workoutsCompleted;
   final int caloriesBurned;
   final Duration workoutDuration;
@@ -30,19 +31,21 @@ class _WorkoutCompletionScreenState extends State<WorkoutCompletionScreen>
   late Animation<double> _scaleAnimation;
   late Animation<double> _xpAnimation;
 
-  final int earnedXP = 250;
-  final int maxXP = 500; // XP needed for next level
+  final _workoutService = WorkoutService();
+
+  int earnedXP = 0;
+  int maxXP = 100; // XP needed for next level
+  bool _isSaving = false;
+  bool _dataSaved = false;
 
   @override
   void initState() {
     super.initState();
 
-    // Confetti animation
     _confettiController = ConfettiController(
       duration: const Duration(seconds: 3),
     );
 
-    // Scale animation for trophy
     _scaleController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
@@ -52,22 +55,151 @@ class _WorkoutCompletionScreenState extends State<WorkoutCompletionScreen>
       curve: Curves.elasticOut,
     );
 
-    // XP bar animation
     _xpController = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
     );
     _xpAnimation = Tween<double>(
       begin: 0.0,
-      end: earnedXP / maxXP,
+      end: 0.5,
     ).animate(CurvedAnimation(parent: _xpController, curve: Curves.easeOut));
+
+    // Save workout and award XP
+    _saveWorkoutCompletion();
 
     // Start animations
     Timer(const Duration(milliseconds: 300), () {
       _confettiController.play();
       _scaleController.forward();
-      _xpController.forward();
     });
+  }
+
+  // ========== SAVE WORKOUT TO DATABASE ==========
+  Future<void> _saveWorkoutCompletion() async {
+    if (_dataSaved) return;
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      print('💾 Saving workout completion...');
+
+      final result = await _workoutService.logWorkoutCompletion(
+        workoutId: widget.workout.workoutId,
+        duration: widget.workoutDuration.inMinutes,
+        caloriesBurned: widget.caloriesBurned,
+      );
+
+      setState(() {
+        earnedXP = result['xp_added'] ?? 0;
+        maxXP = 100; // Fixed for now
+        _dataSaved = true;
+      });
+
+      // Update XP animation
+      _xpAnimation = Tween<double>(
+        begin: 0.0,
+        end: (earnedXP / maxXP).clamp(0.0, 1.0),
+      ).animate(CurvedAnimation(parent: _xpController, curve: Curves.easeOut));
+
+      _xpController.forward();
+
+      print('✅ Workout saved! Earned $earnedXP XP');
+
+      // Check for level up
+      if (result['leveled_up'] == true) {
+        Future.delayed(const Duration(seconds: 2), () {
+          _showLevelUpDialog(result['current_level']);
+        });
+      }
+    } catch (e) {
+      print('❌ Error saving workout: $e');
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to save workout: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isSaving = false;
+      });
+    }
+  }
+
+  void _showLevelUpDialog(int newLevel) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+        child: Container(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1DAB87).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.star,
+                  size: 60,
+                  color: Color(0xFFF97316),
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                '🎉 LEVEL UP! 🎉',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF1DAB87),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'You are now Level $newLevel!',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1DAB87),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 16,
+                  ),
+                ),
+                child: const Text(
+                  'Awesome!',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override

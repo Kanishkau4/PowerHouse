@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:powerhouse/services/auth_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({Key? key}) : super(key: key);
@@ -7,7 +9,9 @@ class SignUpScreen extends StatefulWidget {
   State<SignUpScreen> createState() => _SignUpScreenState();
 }
 
+
 class _SignUpScreenState extends State<SignUpScreen> {
+  final _authService = AuthService();
   // Form key for validation
   final _formKey = GlobalKey<FormState>();
   
@@ -386,30 +390,77 @@ Widget _buildTopBar(BuildContext context) {
   }
 
   // Handle Sign Up
-  void _handleSignUp() {
+  void _handleSignUp() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
         _isLoading = true;
       });
 
-      // Simulate API call
-      Future.delayed(const Duration(seconds: 2), () {
+      try {
+        final response = await _authService.signUpWithEmail(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+          username: _nameController.text.trim(),
+        );
+
         setState(() {
           _isLoading = false;
         });
 
-        // Navigate to verification screen
-        Navigator.pushNamed(
-          context,
-          '/verification',
-          arguments: _emailController.text,
-        );
-      });
+        if (response.user != null) {
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✅ Verification code sent to your email!'),
+              backgroundColor: Color(0xFF1DAB87),
+              duration: Duration(seconds: 3),
+            ),
+          );
 
-      // TODO: Implement actual sign-up logic
-      print('Name: ${_nameController.text}');
-      print('Email: ${_emailController.text}');
-      print('Password: ${_passwordController.text}');
+          // Navigate to verification screen with email
+          Navigator.pushNamed(
+            context,
+            '/verification',
+            arguments: _emailController.text.trim(),
+          );
+        }
+      } on AuthException catch (e) {
+        setState(() {
+          _isLoading = false;
+        });
+
+        String errorMessage = 'Sign up failed';
+        
+        // Handle specific error cases
+        if (e.message.contains('already registered')) {
+          errorMessage = 'This email is already registered. Please sign in.';
+        } else if (e.message.contains('Invalid email')) {
+          errorMessage = 'Please enter a valid email address.';
+        } else if (e.message.contains('Password')) {
+          errorMessage = 'Password must be at least 6 characters.';
+        } else {
+          errorMessage = e.message;
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      } catch (e) {
+        setState(() {
+          _isLoading = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:powerhouse/services/auth_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({Key? key}) : super(key: key);
@@ -8,17 +10,13 @@ class SignInScreen extends StatefulWidget {
 }
 
 class _SignInScreenState extends State<SignInScreen> {
-  // Form key for validation
+  final _authService = AuthService();
   final _formKey = GlobalKey<FormState>();
-  
-  // Text controllers
+
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  
-  // Password visibility
+
   bool _isPasswordVisible = false;
-  
-  // Loading state
   bool _isLoading = false;
 
   @override
@@ -41,12 +39,9 @@ class _SignInScreenState extends State<SignInScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Top Bar
                   _buildTopBar(context),
-                  
                   const SizedBox(height: 40),
-                  
-                  // Title
+
                   const Text(
                     'Sign In',
                     style: TextStyle(
@@ -55,10 +50,9 @@ class _SignInScreenState extends State<SignInScreen> {
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  
+
                   const SizedBox(height: 8),
-                  
-                  // Subtitle
+
                   const Text(
                     'Fill the details to sign in account',
                     style: TextStyle(
@@ -67,10 +61,9 @@ class _SignInScreenState extends State<SignInScreen> {
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  
+
                   const SizedBox(height: 50),
-                  
-                  // Email Field
+
                   _buildTextField(
                     label: 'Email',
                     controller: _emailController,
@@ -86,25 +79,21 @@ class _SignInScreenState extends State<SignInScreen> {
                       return null;
                     },
                   ),
-                  
+
                   const SizedBox(height: 24),
-                  
-                  // Password Field
+
                   _buildPasswordField(),
-                  
+
                   const SizedBox(height: 40),
-                  
-                  // Sign In Button
+
                   _buildSignInButton(),
-                  
+
                   const SizedBox(height: 30),
-                  
-                  // Forgot Password Link
+
                   _buildForgotPasswordLink(),
-                  
+
                   const SizedBox(height: 100),
-                  
-                  // Create Account Link
+
                   _buildCreateAccountLink(context),
                 ],
               ),
@@ -115,44 +104,43 @@ class _SignInScreenState extends State<SignInScreen> {
     );
   }
 
-  // Top Bar with Back Button and Help
   Widget _buildTopBar(BuildContext context) {
-  return Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    children: [
-      // Back Button with Custom Icon
-      GestureDetector(
-        onTap: () => Navigator.pop(context),
-        child: Container(
-          width: 40,
-          height: 40,
-          child: Image.asset(
-            'assets/icons/back_arrow.png', // Replace with your icon filename
-            width: 24,
-            height: 24,
-            fit: BoxFit.contain,
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: Container(
+            width: 40,
+            height: 40,
+            child: Image.asset(
+              'assets/icons/back_arrow.png',
+              width: 24,
+              height: 24,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) {
+                return const Icon(Icons.arrow_back, size: 24);
+              },
+            ),
           ),
         ),
-      ),
-      // Need Help
-      GestureDetector(
-        onTap: () {
-          _showHelpDialog();
-        },
-        child: const Text(
-          'Need Help?',
-          style: TextStyle(
-            color: Color(0xFF979797),
-            fontSize: 15,
-            fontWeight: FontWeight.w500,
+        GestureDetector(
+          onTap: () {
+            _showHelpDialog();
+          },
+          child: const Text(
+            'Need Help?',
+            style: TextStyle(
+              color: Color(0xFF979797),
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
-      ),
-    ],
-  );
-}
+      ],
+    );
+  }
 
-  // Text Field Widget
   Widget _buildTextField({
     required String label,
     required TextEditingController controller,
@@ -178,39 +166,24 @@ class _SignInScreenState extends State<SignInScreen> {
           validator: validator,
           decoration: InputDecoration(
             hintText: hintText,
-            hintStyle: const TextStyle(
-              color: Color(0xFFB0B0B0),
-              fontSize: 15,
-            ),
+            hintStyle: const TextStyle(color: Color(0xFFB0B0B0), fontSize: 15),
             filled: true,
             fillColor: Colors.white,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(
-                color: Color(0xFF979797),
-                width: 1,
-              ),
+              borderSide: const BorderSide(color: Color(0xFF979797), width: 1),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(
-                color: Color(0xFF979797),
-                width: 1,
-              ),
+              borderSide: const BorderSide(color: Color(0xFF979797), width: 1),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(
-                color: Color(0xFF1DAB87),
-                width: 2,
-              ),
+              borderSide: const BorderSide(color: Color(0xFF1DAB87), width: 2),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(
-                color: Colors.red,
-                width: 1,
-              ),
+              borderSide: const BorderSide(color: Colors.red, width: 1),
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 20,
@@ -222,7 +195,6 @@ class _SignInScreenState extends State<SignInScreen> {
     );
   }
 
-  // Password Field with Visibility Toggle
   Widget _buildPasswordField() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -250,10 +222,7 @@ class _SignInScreenState extends State<SignInScreen> {
           },
           decoration: InputDecoration(
             hintText: 'Enter your password',
-            hintStyle: const TextStyle(
-              color: Color(0xFFB0B0B0),
-              fontSize: 15,
-            ),
+            hintStyle: const TextStyle(color: Color(0xFFB0B0B0), fontSize: 15),
             filled: true,
             fillColor: Colors.white,
             suffixIcon: IconButton(
@@ -269,31 +238,19 @@ class _SignInScreenState extends State<SignInScreen> {
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(
-                color: Color(0xFF979797),
-                width: 1,
-              ),
+              borderSide: const BorderSide(color: Color(0xFF979797), width: 1),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(
-                color: Color(0xFF979797),
-                width: 1,
-              ),
+              borderSide: const BorderSide(color: Color(0xFF979797), width: 1),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(
-                color: Color(0xFF1DAB87),
-                width: 2,
-              ),
+              borderSide: const BorderSide(color: Color(0xFF1DAB87), width: 2),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(
-                color: Colors.red,
-                width: 1,
-              ),
+              borderSide: const BorderSide(color: Colors.red, width: 1),
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 20,
@@ -305,7 +262,6 @@ class _SignInScreenState extends State<SignInScreen> {
     );
   }
 
-  // Sign In Button
   Widget _buildSignInButton() {
     return GestureDetector(
       onTap: _isLoading ? null : _handleSignIn,
@@ -339,7 +295,6 @@ class _SignInScreenState extends State<SignInScreen> {
     );
   }
 
-  // Forgot Password Link
   Widget _buildForgotPasswordLink() {
     return Center(
       child: GestureDetector(
@@ -359,7 +314,6 @@ class _SignInScreenState extends State<SignInScreen> {
     );
   }
 
-  // Create Account Link
   Widget _buildCreateAccountLink(BuildContext context) {
     return Center(
       child: Row(
@@ -392,45 +346,106 @@ class _SignInScreenState extends State<SignInScreen> {
     );
   }
 
-  // Handle Sign In
-  void _handleSignIn() {
+  // ========== HANDLE SIGN IN (REAL SUPABASE) ==========
+  void _handleSignIn() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
         _isLoading = true;
       });
 
-      // Simulate API call
-      Future.delayed(const Duration(seconds: 2), () {
+      try {
+        final response = await _authService.signInWithEmail(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
+
         setState(() {
           _isLoading = false;
         });
 
-        // Show success message
+        if (response.user != null) {
+          // Check if user has completed profile setup
+          final hasProfile = await _authService.doesProfileExist();
+
+          if (!hasProfile) {
+            // Profile doesn't exist, go to profile setup
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('⚠️ Please complete your profile setup'),
+                backgroundColor: Color(0xFFF97316),
+              ),
+            );
+            Navigator.pushReplacementNamed(context, '/gender');
+          } else {
+            // Check if profile is complete (has height, weight, goal)
+            final profile = await _authService.getUserProfile();
+
+            if (profile != null &&
+                profile['height'] != null &&
+                profile['current_weight'] != null &&
+                profile['fitness_goal'] != null) {
+              // Profile is complete, go to home
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('✅ Welcome back!'),
+                  backgroundColor: Color(0xFF1DAB87),
+                ),
+              );
+              Navigator.pushReplacementNamed(context, '/home');
+            } else {
+              // Profile exists but incomplete, go to setup
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('⚠️ Please complete your profile setup'),
+                  backgroundColor: Color(0xFFF97316),
+                ),
+              );
+              Navigator.pushReplacementNamed(context, '/gender');
+            }
+          }
+        }
+      } on AuthException catch (e) {
+        setState(() {
+          _isLoading = false;
+        });
+
+        String errorMessage = 'Sign in failed';
+
+        if (e.message.contains('Invalid login credentials')) {
+          errorMessage = 'Invalid email or password. Please try again.';
+        } else if (e.message.contains('Email not confirmed')) {
+          errorMessage = 'Please verify your email first.';
+        } else {
+          errorMessage = e.message;
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Sign in successful!'),
-            backgroundColor: Color(0xFF1DAB87),
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
           ),
         );
+      } catch (e) {
+        setState(() {
+          _isLoading = false;
+        });
 
-        // Navigate to gender screen (first profile setup screen)
-        Navigator.pushNamed(context, '/gender');
-      });
-
-      // TODO: Implement actual sign-in logic
-      print('Email: ${_emailController.text}');
-      print('Password: ${_passwordController.text}');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
-  // Help Dialog
   void _showHelpDialog() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Need Help?'),
         content: const Text(
           'Contact us at:\nsupport@powerhouse.lk\n\nOr call: +94 77 123 4567',
@@ -438,26 +453,20 @@ class _SignInScreenState extends State<SignInScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'OK',
-              style: TextStyle(color: Color(0xFF1DAB87)),
-            ),
+            child: const Text('OK', style: TextStyle(color: Color(0xFF1DAB87))),
           ),
         ],
       ),
     );
   }
 
-  // Forgot Password Dialog
   void _showForgotPasswordDialog() {
     final emailController = TextEditingController();
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Forgot Password?'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -484,14 +493,25 @@ class _SignInScreenState extends State<SignInScreen> {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Password reset link sent to your email!'),
-                  backgroundColor: Color(0xFF1DAB87),
-                ),
-              );
+            onPressed: () async {
+              try {
+                await _authService.resetPassword(emailController.text.trim());
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Password reset link sent to your email!'),
+                    backgroundColor: Color(0xFF1DAB87),
+                  ),
+                );
+              } catch (e) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error: ${e.toString()}'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
             },
             child: const Text(
               'Send',

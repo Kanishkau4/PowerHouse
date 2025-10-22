@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:powerhouse/screens/workouts/workout_detail_screen.dart';
+import 'package:powerhouse/services/workout_service.dart';
+import 'package:powerhouse/services/user_service.dart';
+import 'package:powerhouse/models/workout_model.dart';
 
 class WorkoutsScreen extends StatefulWidget {
   const WorkoutsScreen({Key? key}) : super(key: key);
@@ -9,99 +12,86 @@ class WorkoutsScreen extends StatefulWidget {
 }
 
 class _WorkoutsScreenState extends State<WorkoutsScreen> {
+  final _workoutService = WorkoutService();
+  final _userService = UserService();
+
   // Selected category
   int selectedCategoryIndex = 0;
 
-  // Categories
+  // Categories (matching database)
   final List<String> categories = [
-    'Home Workouts',
-    'Yoga & Mobility',
-    'Strength Training',
-    'For Women',
+    'All',
+    'Home Workout',
+    'Gym',
     'Cardio',
+    'Strength',
+    'Yoga',
   ];
 
-  // Sample workout data
-  final Map<String, List<WorkoutProgram>> workoutsByCategory = {
-    'Home Workouts': [
-      WorkoutProgram(
-        title: '30-Day Weight Loss Challenge',
-        duration: '30 min',
-        calories: '300 kcal',
-        level: 'Beginner',
-        imageUrl: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800',
-        color: const Color(0xFF1DAB87),
-      ),
-      WorkoutProgram(
-        title: 'Morning Mobility Routine',
-        duration: '25 min',
-        calories: '250 kcal',
-        level: 'Intermediate',
-        imageUrl: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800',
-        color: const Color(0xFFFF844B),
-      ),
-      WorkoutProgram(
-        title: 'Core Strength Builder',
-        duration: '20 min',
-        calories: '200 kcal',
-        level: 'Advanced',
-        imageUrl: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800',
-        color: const Color(0xFF6C63FF),
-      ),
-    ],
-    'Yoga & Mobility': [
-      WorkoutProgram(
-        title: 'Morning Yoga Flow',
-        duration: '30 min',
-        calories: '150 kcal',
-        level: 'Beginner',
-        imageUrl: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800',
-        color: const Color(0xFFB19CD9),
-      ),
-      WorkoutProgram(
-        title: 'Flexibility & Stretch',
-        duration: '20 min',
-        calories: '100 kcal',
-        level: 'All Levels',
-        imageUrl: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=800',
-        color: const Color(0xFF95E1D3),
-      ),
-    ],
-    'Strength Training': [
-      WorkoutProgram(
-        title: 'Full Body Strength',
-        duration: '45 min',
-        calories: '400 kcal',
-        level: 'Intermediate',
-        imageUrl: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800',
-        color: const Color(0xFF1DAB87),
-      ),
-    ],
-    'For Women': [
-      WorkoutProgram(
-        title: 'Womens Fitness Program',
-        duration: '35 min',
-        calories: '280 kcal',
-        level: 'Beginner',
-        imageUrl: 'https://images.unsplash.com/photo-1518459031867-a89b944bffe4?w=800',
-        color: const Color(0xFFFF9ECD),
-      ),
-    ],
-    'Cardio': [
-      WorkoutProgram(
-        title: 'HIIT Cardio Blast',
-        duration: '25 min',
-        calories: '350 kcal',
-        level: 'Advanced',
-        imageUrl: 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=800',
-        color: const Color(0xFFFF6B6B),
-      ),
-    ],
-  };
+  // Data
+  List<WorkoutModel> allWorkouts = [];
+  List<WorkoutModel> filteredWorkouts = [];
+  String? profilePictureUrl;
 
-  List<WorkoutProgram> get currentWorkouts {
-    final category = categories[selectedCategoryIndex];
-    return workoutsByCategory[category] ?? [];
+  // Loading & search
+  bool _isLoading = true;
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Load user profile for picture
+      final profile = await _userService.getCurrentUserProfile();
+      profilePictureUrl = profile?.profilePictureUrl;
+
+      // Load all workouts
+      allWorkouts = await _workoutService.getAllWorkouts();
+      _filterWorkouts();
+    } catch (e) {
+      print('Error loading workouts: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error loading workouts: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _filterWorkouts() {
+    setState(() {
+      // Filter by category
+      if (selectedCategoryIndex == 0) {
+        // All
+        filteredWorkouts = allWorkouts;
+      } else {
+        final category = categories[selectedCategoryIndex];
+        filteredWorkouts = allWorkouts
+            .where((w) => w.category?.toLowerCase() == category.toLowerCase())
+            .toList();
+      }
+
+      // Filter by search query
+      if (_searchQuery.isNotEmpty) {
+        filteredWorkouts = filteredWorkouts.where((w) {
+          return w.workoutName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+              (w.description?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false);
+        }).toList();
+      }
+    });
   }
 
   @override
@@ -113,25 +103,31 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
           children: [
             // Header
             _buildHeader(),
-            
+
             // Search Bar
             _buildSearchBar(),
-            
+
             const SizedBox(height: 20),
-            
+
             // Category Tabs
             _buildCategoryTabs(),
-            
+
             const SizedBox(height: 20),
-            
-            // Section Title with Underline
+
+            // Section Title
             _buildSectionTitle(),
-            
+
             const SizedBox(height: 16),
-            
+
             // Workout List
             Expanded(
-              child: _buildWorkoutList(),
+              child: _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF1DAB87),
+                      ),
+                    )
+                  : _buildWorkoutList(),
             ),
           ],
         ),
@@ -167,23 +163,37 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
                 ),
               ),
               child: ClipOval(
-                child: Image.asset(
-                'assets/images/profile_male.png', // Path to your image
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  // Fallback to icon if image fails to load
-                  return const Icon(
-                    Icons.person,
-                    color: Colors.white,
-                    size: 30,
-                  );
-                },
-              ),
+                child: profilePictureUrl != null
+                    ? Image.network(
+                        profilePictureUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return _buildProfileFallback();
+                        },
+                      )
+                    : _buildProfileFallback(),
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildProfileFallback() {
+    return Image.asset(
+      'assets/images/profile_male.png',
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        return Container(
+          color: const Color(0xFF1DAB87),
+          child: const Icon(
+            Icons.person,
+            color: Colors.white,
+            size: 30,
+          ),
+        );
+      },
     );
   }
 
@@ -198,7 +208,12 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
           borderRadius: BorderRadius.circular(25),
         ),
         child: TextField(
-          onChanged: (value) => _onSearch(value),
+          onChanged: (value) {
+            setState(() {
+              _searchQuery = value;
+            });
+            _filterWorkouts();
+          },
           decoration: InputDecoration(
             hintText: 'Search',
             hintStyle: TextStyle(
@@ -240,6 +255,7 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
               setState(() {
                 selectedCategoryIndex = index;
               });
+              _filterWorkouts();
             },
           );
         },
@@ -247,7 +263,6 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
     );
   }
 
-  // ==================== CATEGORY TAB ====================
   Widget _buildCategoryTab(String title, bool isSelected, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
@@ -255,9 +270,7 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected
-              ? const Color(0xE01DAB87)
-              : const Color(0xD3D7D7D7),
+          color: isSelected ? const Color(0xE01DAB87) : const Color(0xD3D7D7D7),
           borderRadius: BorderRadius.circular(25),
           boxShadow: isSelected
               ? [
@@ -292,7 +305,9 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            categories[selectedCategoryIndex],
+            selectedCategoryIndex == 0
+                ? 'All Workouts'
+                : categories[selectedCategoryIndex],
             style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w800,
@@ -315,23 +330,27 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
 
   // ==================== WORKOUT LIST ====================
   Widget _buildWorkoutList() {
-    if (currentWorkouts.isEmpty) {
+    if (filteredWorkouts.isEmpty) {
       return _buildEmptyState();
     }
 
-    return ListView.separated(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      physics: const BouncingScrollPhysics(),
-      itemCount: currentWorkouts.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 16),
-      itemBuilder: (context, index) {
-        return _buildWorkoutCard(currentWorkouts[index]);
-      },
+    return RefreshIndicator(
+      onRefresh: _loadData,
+      color: const Color(0xFF1DAB87),
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        physics: const AlwaysScrollableScrollPhysics(),
+        itemCount: filteredWorkouts.length,
+        separatorBuilder: (context, index) => const SizedBox(height: 16),
+        itemBuilder: (context, index) {
+          return _buildWorkoutCard(filteredWorkouts[index]);
+        },
+      ),
     );
   }
 
   // ==================== WORKOUT CARD ====================
-  Widget _buildWorkoutCard(WorkoutProgram workout) {
+  Widget _buildWorkoutCard(WorkoutModel workout) {
     return GestureDetector(
       onTap: () => _onWorkoutTap(workout),
       child: Container(
@@ -354,24 +373,19 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
               child: Container(
                 width: double.infinity,
                 height: double.infinity,
-                color: workout.color.withOpacity(0.3),
-                child: Image.network(
-                  workout.imageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      color: workout.color.withOpacity(0.5),
-                      child: Icon(
-                        Icons.fitness_center,
-                        size: 60,
-                        color: Colors.white,
-                      ),
-                    );
-                  },
-                ),
+                color: workout.difficultyColor.withOpacity(0.3),
+                child: workout.imageUrl != null
+                    ? Image.network(
+                        workout.imageUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return _buildWorkoutFallback(workout);
+                        },
+                      )
+                    : _buildWorkoutFallback(workout),
               ),
             ),
-            
+
             // Gradient Overlay
             Container(
               decoration: BoxDecoration(
@@ -386,7 +400,7 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
                 ),
               ),
             ),
-            
+
             // Content
             Padding(
               padding: const EdgeInsets.all(16),
@@ -395,16 +409,18 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   Text(
-                    workout.title,
+                    workout.workoutName,
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
                       color: Colors.white,
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '⏱️ ${workout.duration} | 🔥 ${workout.calories} | 💪 ${workout.level}',
+                    '⏱️ ${workout.estimatedDuration ?? 30} min | 🔥 ${workout.estimatedCaloriesBurned ?? 200} kcal | 💪 ${workout.difficulty ?? 'All Levels'}',
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
@@ -414,7 +430,7 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
                 ],
               ),
             ),
-            
+
             // Play Button
             Positioned(
               bottom: 12,
@@ -423,11 +439,11 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
                 width: 45,
                 height: 45,
                 decoration: BoxDecoration(
-                  color: workout.color,
+                  color: workout.difficultyColor,
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: workout.color.withOpacity(0.5),
+                      color: workout.difficultyColor.withOpacity(0.5),
                       blurRadius: 8,
                       offset: const Offset(0, 3),
                     ),
@@ -446,6 +462,17 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
     );
   }
 
+  Widget _buildWorkoutFallback(WorkoutModel workout) {
+    return Container(
+      color: workout.difficultyColor.withOpacity(0.5),
+      child: Icon(
+        Icons.fitness_center,
+        size: 60,
+        color: Colors.white,
+      ),
+    );
+  }
+
   // ==================== EMPTY STATE ====================
   Widget _buildEmptyState() {
     return Center(
@@ -459,7 +486,9 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            'No workouts available',
+            _searchQuery.isNotEmpty
+                ? 'No workouts found for "$_searchQuery"'
+                : 'No workouts available',
             style: TextStyle(
               fontSize: 18,
               color: Colors.grey.shade600,
@@ -480,46 +509,60 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
   }
 
   // ==================== HANDLERS ====================
-  
+
   void _onProfileTap() {
     print('Profile tapped');
-    // Navigate to profile
   }
 
-  void _onSearch(String query) {
-    print('Search: $query');
-    // Implement search functionality
-  }
+  void _onWorkoutTap(WorkoutModel workout) async {
+    print('Workout tapped: ${workout.workoutName}');
+    print('Workout ID: ${workout.workoutId}');
 
-  void _onWorkoutTap(WorkoutProgram workout) {
-  print('Workout tapped: ${workout.title}');
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => WorkoutDetailScreen(
-        workout: WorkoutDetail.sample(), // Replace with actual data
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: Color(0xFF1DAB87)),
       ),
-    ),
-  );
-}
-}
+    );
 
-// ==================== DATA MODEL ====================
+    try {
+      // Fetch workout with exercises
+      print('Fetching workout with exercises...');
+      final fullWorkout = await _workoutService.getWorkoutWithExercises(workout.workoutId);
+      
+      Navigator.pop(context); // Close loading
 
-class WorkoutProgram {
-  final String title;
-  final String duration;
-  final String calories;
-  final String level;
-  final String imageUrl;
-  final Color color;
-
-  WorkoutProgram({
-    required this.title,
-    required this.duration,
-    required this.calories,
-    required this.level,
-    required this.imageUrl,
-    required this.color,
-  });
+      if (fullWorkout != null) {
+        print('Successfully fetched workout with ${fullWorkout.exercises?.length ?? 0} exercises');
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => WorkoutDetailScreen(
+              workout: fullWorkout,
+            ),
+          ),
+        );
+      } else {
+        print('Failed to fetch workout details');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to load workout details. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e, stackTrace) {
+      Navigator.pop(context); // Close loading
+      print('Error fetching workout: $e');
+      print('Stack trace: $stackTrace');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error loading workout: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 }

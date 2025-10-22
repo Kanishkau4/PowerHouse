@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:powerhouse/core/config/supabase_config.dart';
 import 'package:powerhouse/core/constants/app_colors.dart';
 import 'package:powerhouse/core/routes/app_routes.dart';
 import 'package:powerhouse/screens/home/main_navigation.dart';
@@ -16,7 +17,11 @@ import 'package:powerhouse/screens/profile_setup/goal_screen.dart';
 import 'package:powerhouse/screens/profile_setup/congratulations_screen.dart';
 // Import other screens as you create them
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Supabase
+  await SupabaseConfig.initialize();
   runApp(const MyApp());
 }
 

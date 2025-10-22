@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
-import 'add_food_dialog.dart';
+import 'package:powerhouse/models/food_item_model.dart';
+import 'package:powerhouse/services/nutrition_service.dart';
 
 class FoodDetailScreen extends StatefulWidget {
-  final FoodItemData food;
+  final FoodItemModel food;
   final String mealType;
 
-  const FoodDetailScreen({Key? key, required this.food, required this.mealType})
-    : super(key: key);
+  const FoodDetailScreen({
+    Key? key,
+    required this.food,
+    required this.mealType,
+  }) : super(key: key);
 
   @override
   State<FoodDetailScreen> createState() => _FoodDetailScreenState();
@@ -15,8 +19,11 @@ class FoodDetailScreen extends StatefulWidget {
 
 class _FoodDetailScreenState extends State<FoodDetailScreen>
     with SingleTickerProviderStateMixin {
+  final _nutritionService = NutritionService();
+  
   String _selectedServingSize = 'Spoon';
   int _quantity = 1;
+  bool _isSaving = false;
 
   final List<String> _servingSizes = ['Spoon', 'Cup', 'Plate'];
 
@@ -53,15 +60,15 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
   IconData _getNutritionIcon(String label) {
     switch (label) {
       case 'Kcal':
-        return Icons.local_fire_department; // Fire icon for calories
+        return Icons.local_fire_department;
       case 'Protein':
-        return Icons.eco; // Leaf icon for protein
+        return Icons.eco;
       case 'Fat':
-        return Icons.water_drop; // Water drop icon for fat
+        return Icons.water_drop;
       case 'Carbs':
-        return Icons.grain; // Grain icon for carbohydrates
+        return Icons.grain;
       default:
-        return Icons.info; // Default info icon
+        return Icons.info;
     }
   }
 
@@ -106,10 +113,7 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
                     height: 300,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      image: DecorationImage(
-                        image: NetworkImage(widget.food.imageUrl),
-                        fit: BoxFit.cover,
-                      ),
+                      color: const Color(0xFF1DAB87).withOpacity(0.2),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.1),
@@ -118,6 +122,25 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
                         ),
                       ],
                     ),
+                    child: widget.food.imageUrl != null
+                        ? ClipOval(
+                            child: Image.network(
+                              widget.food.imageUrl!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return const Icon(
+                                  Icons.restaurant,
+                                  size: 100,
+                                  color: Color(0xFF1DAB87),
+                                );
+                              },
+                            ),
+                          )
+                        : const Icon(
+                            Icons.restaurant,
+                            size: 100,
+                            color: Color(0xFF1DAB87),
+                          ),
                   ),
 
                   // Nutrition Bars
@@ -186,12 +209,11 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
   }) {
     return Column(
       children: [
-        // Bar Container
         Container(
           width: 74,
           height: height,
           decoration: BoxDecoration(
-            color: color.withOpacity(0.3), // Light background
+            color: color.withOpacity(0.3),
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(35),
               topRight: Radius.circular(35),
@@ -200,7 +222,6 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
           child: Stack(
             alignment: Alignment.topCenter,
             children: [
-              // Donut Chart at top
               Positioned(
                 top: 13,
                 child: AnimatedBuilder(
@@ -217,8 +238,6 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
                   },
                 ),
               ),
-
-              // Label
               Positioned(
                 top: 66,
                 child: Text(
@@ -230,15 +249,13 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
                   ),
                 ),
               ),
-
-              // Inner circle with icon
               Positioned(
                 top: 21,
                 child: Container(
                   width: 38,
                   height: 38,
                   decoration: BoxDecoration(
-                    color: color, // Solid color for inner circle
+                    color: color,
                     shape: BoxShape.circle,
                   ),
                   child: Center(
@@ -250,8 +267,6 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
                   ),
                 ),
               ),
-
-              // Value
               Positioned(
                 top: 86,
                 child: Text(
@@ -294,32 +309,24 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Food Name
             Text(
-              widget.food.name,
+              widget.food.foodName,
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
             ),
-
             const SizedBox(height: 8),
-
-            // Food Description
             Text(
-              widget.food.description,
+              widget.food.servingSizeDescription ?? 'Per serving',
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w500,
                 color: Color(0xFF7E7E7E),
               ),
             ),
-
             const SizedBox(height: 24),
-
-            // Serving Size Label
             const Text(
               'Serving Size',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
             ),
-
             const SizedBox(height: 16),
 
             // Serving Size Options
@@ -366,14 +373,12 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Decrease Button
                   GestureDetector(
                     onTap: () {
                       if (_quantity > 1) {
                         setState(() {
                           _quantity--;
                         });
-                        // Restart animation
                         _animationController.forward(from: 0);
                       }
                     },
@@ -387,10 +392,7 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
                       child: const Icon(Icons.remove, size: 24),
                     ),
                   ),
-
                   const SizedBox(width: 32),
-
-                  // Quantity Display
                   Container(
                     width: 120,
                     height: 120,
@@ -416,16 +418,12 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
                       ),
                     ),
                   ),
-
                   const SizedBox(width: 32),
-
-                  // Increase Button
                   GestureDetector(
                     onTap: () {
                       setState(() {
                         _quantity++;
                       });
-                      // Restart animation
                       _animationController.forward(from: 0);
                     },
                     child: Container(
@@ -453,7 +451,7 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
               width: double.infinity,
               height: 60,
               child: ElevatedButton(
-                onPressed: _onAddToMeal,
+                onPressed: _isSaving ? null : _onAddToMeal,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1DAB87),
                   shape: RoundedRectangleBorder(
@@ -461,14 +459,16 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
                   ),
                   elevation: 0,
                 ),
-                child: Text(
-                  'Add to ${widget.mealType}',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
+                child: _isSaving
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : Text(
+                        'Add to ${widget.mealType}',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
               ),
             ),
 
@@ -479,20 +479,139 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
     );
   }
 
-  // ==================== HANDLER ====================
-  void _onAddToMeal() {
-    // TODO: Save food to database/state management
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          '✅ Added $_quantity x ${widget.food.name} to ${widget.mealType}',
+  // ==================== SAVE TO DATABASE ====================
+  Future<void> _onAddToMeal() async {
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      print('💾 Logging food to database...');
+
+      // Save to database
+      final result = await _nutritionService.logFood(
+        foodId: widget.food.foodId,
+        mealType: widget.mealType,
+        quantity: _quantity.toDouble(),
+        servingUnit: _selectedServingSize,
+      );
+
+      print('✅ Food logged successfully');
+      print('🏆 XP gained: ${result['xp_added']}');
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle, color: Colors.white),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  '✅ Added $_quantity x ${widget.food.foodName} (+${result['xp_added']} XP)',
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xFF1DAB87),
+          duration: const Duration(seconds: 2),
         ),
-        backgroundColor: const Color(0xFF1DAB87),
+      );
+
+      // Check for level up
+      if (result['leveled_up'] == true) {
+        _showLevelUpDialog(result['current_level']);
+      }
+
+      // Navigate back to nutrition screen
+      await Future.delayed(const Duration(milliseconds: 500));
+      Navigator.popUntil(context, (route) => route.isFirst);
+    } catch (e) {
+      print('❌ Error saving food: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to log food: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isSaving = false;
+      });
+    }
+  }
+
+  void _showLevelUpDialog(int newLevel) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+        child: Container(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1DAB87).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.star,
+                  size: 60,
+                  color: Color(0xFFF97316),
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                '🎉 LEVEL UP! 🎉',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF1DAB87),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'You are now Level $newLevel!',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1DAB87),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 16,
+                  ),
+                ),
+                child: const Text(
+                  'Awesome!',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
-
-    // Navigate back to nutrition screen
-    Navigator.popUntil(context, (route) => route.isFirst);
   }
 }
 
@@ -514,7 +633,6 @@ class NutritionDonutPainter extends CustomPainter {
     final radius = size.width / 2;
     final strokeWidth = 6.0;
 
-    // Background circle (light color)
     final backgroundPaint = Paint()
       ..color = backgroundColor
       ..style = PaintingStyle.stroke
@@ -523,16 +641,6 @@ class NutritionDonutPainter extends CustomPainter {
 
     canvas.drawCircle(center, radius - strokeWidth / 2, backgroundPaint);
 
-    // Outer glow ring (very light)
-    final glowPaint = Paint()
-      ..color = color.withOpacity(0.2)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth + 4
-      ..strokeCap = StrokeCap.round;
-
-    canvas.drawCircle(center, radius - strokeWidth / 2, glowPaint);
-
-    // Progress arc (main color)
     final progressPaint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
@@ -546,25 +654,11 @@ class NutritionDonutPainter extends CustomPainter {
 
     canvas.drawArc(
       rect,
-      -math.pi / 2, // Start from top
-      progress * 2 * math.pi, // Progress angle
+      -math.pi / 2,
+      progress * 2 * math.pi,
       false,
       progressPaint,
     );
-
-    // Inner white circle
-    final innerCirclePaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
-
-    canvas.drawCircle(center, radius - strokeWidth - 3, innerCirclePaint);
-
-    // Inner colored circle (small)
-    final innerColoredPaint = Paint()
-      ..color = color.withOpacity(0.9)
-      ..style = PaintingStyle.fill;
-
-    canvas.drawCircle(center, radius - strokeWidth - 5, innerColoredPaint);
   }
 
   @override

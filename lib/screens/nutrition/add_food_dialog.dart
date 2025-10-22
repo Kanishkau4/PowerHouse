@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:powerhouse/screens/nutrition/barcode_scanner_screen.dart';
 import 'package:powerhouse/screens/nutrition/food_detail_screen.dart';
+import 'package:powerhouse/services/ai_meal_scanner_service.dart';
+import 'package:powerhouse/services/nutrition_service.dart';
+import 'package:powerhouse/models/food_item_model.dart';
 
 class AddFoodDialog extends StatefulWidget {
   final String mealType;
@@ -17,67 +22,12 @@ class _AddFoodDialogState extends State<AddFoodDialog>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
+  final _nutritionService = NutritionService();
 
   int _selectedTab = 0;
-  bool _showSriLankanFoods = true;
-
-  // Sample Sri Lankan food data
-  final List<FoodItemData> _sriLankanFoods = [
-    FoodItemData(
-      name: 'Dhal Curry (Parippu)',
-      description: 'Yellow lentil curry',
-      calories: 180,
-      protein: 12,
-      fat: 8,
-      carbs: 18,
-      imageUrl: 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=400',
-    ),
-    FoodItemData(
-      name: 'White Rice (Sudu Bath)',
-      description: 'Steamed white rice',
-      calories: 400,
-      protein: 8,
-      fat: 2,
-      carbs: 85,
-      imageUrl: 'https://images.unsplash.com/photo-1516684732162-798a0062be99?w=400',
-    ),
-    FoodItemData(
-      name: 'Chicken Kottu',
-      description: 'Chopped roti with chicken',
-      calories: 550,
-      protein: 35,
-      fat: 20,
-      carbs: 65,
-      imageUrl: 'https://images.unsplash.com/photo-1567337710282-00832b415979?w=400',
-    ),
-    FoodItemData(
-      name: 'Pol Roti',
-      description: 'Coconut flatbread',
-      calories: 350,
-      protein: 6,
-      fat: 15,
-      carbs: 48,
-      imageUrl: 'https://images.unsplash.com/photo-1574894709920-11b28e7367e3?w=400',
-    ),
-    FoodItemData(
-      name: 'String Hoppers',
-      description: 'Rice noodle pancakes',
-      calories: 180,
-      protein: 4,
-      fat: 1,
-      carbs: 38,
-      imageUrl: 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=400',
-    ),
-    FoodItemData(
-      name: 'Chicken Curry',
-      description: 'Spicy chicken curry',
-      calories: 280,
-      protein: 28,
-      fat: 15,
-      carbs: 10,
-      imageUrl: 'https://images.unsplash.com/photo-1588166524941-3bf61a9c41db?w=400',
-    ),
-  ];
+  List<FoodItemModel> _foods = [];
+  List<FoodItemModel> _filteredFoods = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -87,6 +37,42 @@ class _AddFoodDialogState extends State<AddFoodDialog>
       setState(() {
         _selectedTab = _tabController.index;
       });
+    });
+    
+    _loadFoods();
+  }
+
+  Future<void> _loadFoods() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Load Sri Lankan foods for Search tab
+      final foods = await _nutritionService.getSriLankanFoods();
+      setState(() {
+        _foods = foods;
+        _filteredFoods = foods;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading foods: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _filterFoods(String query) {
+    setState(() {
+      if (query.isEmpty) {
+        _filteredFoods = _foods;
+      } else {
+        _filteredFoods = _foods
+            .where((food) =>
+                food.foodName.toLowerCase().contains(query.toLowerCase()))
+            .toList();
+      }
     });
   }
 
@@ -110,7 +96,6 @@ class _AddFoodDialogState extends State<AddFoodDialog>
       ),
       child: Column(
         children: [
-          // Handle Bar
           const SizedBox(height: 12),
           Container(
             width: 40,
@@ -120,7 +105,6 @@ class _AddFoodDialogState extends State<AddFoodDialog>
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-
           const SizedBox(height: 20),
 
           // Header
@@ -164,14 +148,8 @@ class _AddFoodDialogState extends State<AddFoodDialog>
                   borderRadius: BorderRadius.circular(25),
                   borderSide: BorderSide.none,
                 ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 16,
-                ),
               ),
-              onChanged: (value) {
-                setState(() {});
-              },
+              onChanged: _filterFoods,
             ),
           ),
 
@@ -193,7 +171,7 @@ class _AddFoodDialogState extends State<AddFoodDialog>
 
           const SizedBox(height: 20),
 
-          // Quick Actions (Scan & Barcode)
+          // Quick Actions
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24.0),
             child: Row(
@@ -219,7 +197,7 @@ class _AddFoodDialogState extends State<AddFoodDialog>
 
           const SizedBox(height: 20),
 
-          // Country Selector (for Search tab)
+          // Country Selector
           if (_selectedTab == 0) ...[
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -227,7 +205,7 @@ class _AddFoodDialogState extends State<AddFoodDialog>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Select Country',
+                    'Sri Lankan Foods',
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w600,
@@ -235,23 +213,21 @@ class _AddFoodDialogState extends State<AddFoodDialog>
                   ),
                   const SizedBox(height: 16),
                   _buildCountryCard(),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Foods',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
           ],
 
           // Food List
           Expanded(
-            child: _buildFoodList(),
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      color: Color(0xFF1DAB87),
+                    ),
+                  )
+                : _buildFoodList(),
           ),
         ],
       ),
@@ -368,27 +344,30 @@ class _AddFoodDialogState extends State<AddFoodDialog>
 
   // ==================== FOOD LIST ====================
   Widget _buildFoodList() {
-    final filteredFoods = _searchController.text.isEmpty
-        ? _sriLankanFoods
-        : _sriLankanFoods
-            .where((food) => food.name
-                .toLowerCase()
-                .contains(_searchController.text.toLowerCase()))
-            .toList();
+    if (_filteredFoods.isEmpty) {
+      return Center(
+        child: Text(
+          _searchController.text.isEmpty
+              ? 'No foods available'
+              : 'No foods found for "${_searchController.text}"',
+          style: const TextStyle(fontSize: 16, color: Colors.grey),
+        ),
+      );
+    }
 
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      itemCount: filteredFoods.length,
+      itemCount: _filteredFoods.length,
       itemBuilder: (context, index) {
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
-          child: _buildFoodItem(filteredFoods[index]),
+          child: _buildFoodItem(_filteredFoods[index]),
         );
       },
     );
   }
 
-  Widget _buildFoodItem(FoodItemData food) {
+  Widget _buildFoodItem(FoodItemModel food) {
     return GestureDetector(
       onTap: () => _onFoodTap(food),
       child: Container(
@@ -406,11 +385,27 @@ class _AddFoodDialogState extends State<AddFoodDialog>
               height: 61,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                image: DecorationImage(
-                  image: NetworkImage(food.imageUrl),
-                  fit: BoxFit.cover,
-                ),
+                color: const Color(0xFF1DAB87).withOpacity(0.2),
               ),
+              child: food.imageUrl != null
+                  ? ClipOval(
+                      child: Image.network(
+                        food.imageUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Icon(
+                            Icons.restaurant,
+                            color: Color(0xFF1DAB87),
+                            size: 30,
+                          );
+                        },
+                      ),
+                    )
+                  : const Icon(
+                      Icons.restaurant,
+                      color: Color(0xFF1DAB87),
+                      size: 30,
+                    ),
             ),
             const SizedBox(width: 26),
             // Food Info
@@ -420,18 +415,20 @@ class _AddFoodDialogState extends State<AddFoodDialog>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    food.name,
+                    food.foodName,
                     style: const TextStyle(
-                      fontSize: 20,
+                      fontSize: 18,
                       fontWeight: FontWeight.w600,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${food.calories} cal',
+                    '${food.calories} cal | P: ${food.protein.toInt()}g C: ${food.carbs.toInt()}g F: ${food.fat.toInt()}g',
                     style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
                       color: Color(0xFF7E7E7E),
                     ),
                   ),
@@ -452,57 +449,136 @@ class _AddFoodDialogState extends State<AddFoodDialog>
 
   // ==================== HANDLERS ====================
 
-  void _onScanMeal() {
-    Navigator.pop(context);
-    showDialog(
+  void _onScanMeal() async {
+  Navigator.pop(context); // Close dialog
+
+  try {
+    final aiScanner = AIMealScannerService();
+    
+    // Show camera or gallery option
+    final source = await showDialog<ImageSource>(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        title: const Text('📸 Scan Meal'),
-        content: const Text(
-          'AI meal scanning coming soon! Take a photo of your meal and we\'ll identify it automatically.',
-        ),
+        title: const Text('Scan Meal'),
+        content: const Text('Choose image source:'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'OK',
-              style: TextStyle(color: Color(0xFF1DAB87)),
-            ),
+          TextButton.icon(
+            onPressed: () => Navigator.pop(context, ImageSource.camera),
+            icon: const Icon(Icons.camera_alt),
+            label: const Text('Camera'),
+          ),
+          TextButton.icon(
+            onPressed: () => Navigator.pop(context, ImageSource.gallery),
+            icon: const Icon(Icons.photo_library),
+            label: const Text('Gallery'),
           ),
         ],
       ),
     );
-  }
 
-  void _onScanBarcode() {
-    Navigator.pop(context);
+    if (source == null) return;
+
+    // Show loading
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: Color(0xFF1DAB87)),
+      ),
+    );
+
+    // Scan meal
+    final foods = source == ImageSource.camera
+        ? await aiScanner.scanMealFromCamera()
+        : await aiScanner.scanMealFromGallery();
+
+    Navigator.pop(context); // Close loading
+
+    if (foods == null || foods.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No food detected. Try again.'),
+          backgroundColor: Colors.orange,
         ),
-        title: const Text('📱 Scan Barcode'),
-        content: const Text(
-          'Barcode scanning coming soon! Scan product barcodes to get nutritional information.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'OK',
-              style: TextStyle(color: Color(0xFF1DAB87)),
-            ),
+      );
+      return;
+    }
+
+    // Show detected foods (if multiple, show list; if one, go to detail)
+    if (foods.length == 1) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => FoodDetailScreen(
+            food: foods.first,
+            mealType: widget.mealType,
           ),
-        ],
+        ),
+      );
+    } else {
+      _showDetectedFoodsDialog(foods);
+    }
+  } catch (e) {
+    Navigator.pop(context); // Close loading if open
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Error: ${e.toString()}'),
+        backgroundColor: Colors.red,
       ),
     );
   }
+}
 
-  void _onFoodTap(FoodItemData food) {
+void _onScanBarcode() {
+  Navigator.pop(context); // Close dialog
+  
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => BarcodeScannerScreen(
+        mealType: widget.mealType,
+      ),
+    ),
+  );
+}
+
+void _showDetectedFoodsDialog(List<FoodItemModel> foods) {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Detected Foods'),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: ListView.builder(
+          shrinkWrap: true,
+          itemCount: foods.length,
+          itemBuilder: (context, index) {
+            final food = foods[index];
+            return ListTile(
+              leading: const Icon(Icons.restaurant, color: Color(0xFF1DAB87)),
+              title: Text(food.foodName),
+              subtitle: Text('${food.calories} cal'),
+              onTap: () {
+                Navigator.pop(context); // Close dialog
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => FoodDetailScreen(
+                      food: food,
+                      mealType: widget.mealType,
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      ),
+    ),
+  );
+}
+
+  void _onFoodTap(FoodItemModel food) {
     Navigator.pop(context); // Close dialog
     Navigator.push(
       context,
@@ -514,25 +590,4 @@ class _AddFoodDialogState extends State<AddFoodDialog>
       ),
     );
   }
-}
-
-// ==================== DATA MODEL ====================
-class FoodItemData {
-  final String name;
-  final String description;
-  final int calories;
-  final int protein;
-  final int fat;
-  final int carbs;
-  final String imageUrl;
-
-  FoodItemData({
-    required this.name,
-    required this.description,
-    required this.calories,
-    required this.protein,
-    required this.fat,
-    required this.carbs,
-    required this.imageUrl,
-  });
 }

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_tts/flutter_tts.dart';
-import 'package:powerhouse/screens/workouts/workout_detail_screen.dart';
+import 'package:powerhouse/models/workout_model.dart'; // Add this import
 
 class RestScreen extends StatefulWidget {
-  final Exercise nextExercise;
+  final ExerciseWithDetails nextExercise; // Change type from Exercise to ExerciseWithDetails
   final int restSeconds;
   final VoidCallback onRestComplete;
 
@@ -59,7 +59,7 @@ class _RestScreenState extends State<RestScreen>
   Future<void> _announceRest() async {
     await _tts.speak("Take a rest");
     await Future.delayed(const Duration(seconds: 2));
-    await _tts.speak("Next exercise is ${widget.nextExercise.name}");
+    await _tts.speak("Next exercise is ${widget.nextExercise.exercise.exerciseName}"); // Access exerciseName through exercise property
   }
 
   void _startRestTimer() {
@@ -180,7 +180,7 @@ Widget build(BuildContext context) {
                         const SizedBox(height: 16),
 
                         Text(
-                          widget.nextExercise.name,
+                          widget.nextExercise.exercise.exerciseName, // Access exerciseName through exercise property
                           style: const TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.w700,
@@ -243,11 +243,11 @@ Widget build(BuildContext context) {
                 color: const Color(0xFF1DAB87).withOpacity(0.2),
                 borderRadius: BorderRadius.circular(15),
               ),
-              child: widget.nextExercise.imageUrl.isNotEmpty
+              child: widget.nextExercise.exercise.animationUrl?.isNotEmpty == true // Access animationUrl through exercise property
                   ? ClipRRect(
                       borderRadius: BorderRadius.circular(15),
                       child: Image.network(
-                        widget.nextExercise.imageUrl,
+                        widget.nextExercise.exercise.animationUrl!, // Access animationUrl through exercise property
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
                           return const Icon(
@@ -274,7 +274,7 @@ Widget build(BuildContext context) {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    widget.nextExercise.name,
+                    widget.nextExercise.exercise.exerciseName, // Access exerciseName through exercise property
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
@@ -291,7 +291,7 @@ Widget build(BuildContext context) {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        widget.nextExercise.duration,
+                        widget.nextExercise.durationFormatted, // Use durationFormatted from ExerciseWithDetails
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
