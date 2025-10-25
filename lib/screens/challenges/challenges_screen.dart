@@ -1,4 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:powerhouse/services/challenge_service.dart';
+import 'package:powerhouse/services/user_service.dart';
+import 'package:powerhouse/services/badge_service.dart';
+import 'package:powerhouse/models/user_model.dart';
+import 'package:powerhouse/models/challenge_model.dart';
+import 'package:powerhouse/models/user_challenge_model.dart';
+import 'package:powerhouse/models/user_badge_model.dart';
+import 'package:powerhouse/models/badge_model.dart';
 
 class ChallengesScreen extends StatefulWidget {
   const ChallengesScreen({Key? key}) : super(key: key);
@@ -11,53 +19,89 @@ class _ChallengesScreenState extends State<ChallengesScreen>
     with SingleTickerProviderStateMixin {
   int selectedTab = 0; // 0 = Challenges, 1 = Leaderboard
   
-  // Sample active challenges
-  final List<Challenge> activeChallenges = [
-    Challenge(
-      title: 'Walk 100,000\nSteps in May',
-      progress: 0.65,
-      current: 65400,
-      target: 100000,
-      unit: 'steps',
-      color: const Color(0xFF1DAB87),
-      imageUrl: 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=800',
-    ),
-  ];
+  // Services
+  final _challengeService = ChallengeService();
+  final _userService = UserService();
+  final _badgeService = BadgeService();
+  
+  // Data
+  UserModel? _userProfile;
+  List<UserChallengeModel> _activeChallenges = [];
+  List<ChallengeModel> _availableChallenges = [];
+  List<UserBadgeModel> _userBadges = [];
+  List<UserModel> _leaderboardUsers = [];
+  
+  // Loading state
+  bool _isLoading = true;
 
-  // Sample available challenges (Sri Lankan themed)
-  final List<AvailableChallenge> availableChallenges = [
-    AvailableChallenge(
-      title: 'Aurudu\nMarathon',
-      description: 'Full body workout',
-      icon: Icons.directions_run,
-      color: const Color(0xFF1DAB87),
-    ),
-    AvailableChallenge(
-      title: 'First Kottu\nKiller',
-      description: '1000 kcal burn',
-      icon: Icons.local_fire_department,
-      color: const Color(0xFFFF844B),
-    ),
-    AvailableChallenge(
-      title: 'Wesak\nCalorie Burn',
-      description: 'Full body workout',
-      icon: Icons.fitness_center,
-      color: const Color(0xFF6C63FF),
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadChallengesData();
+  }
 
-  // Sample achievements
-  final List<Achievement> achievements = [
-    Achievement(name: 'Cardio King', icon: Icons.favorite, isUnlocked: true),
-    Achievement(name: 'Workout\nWarrior', icon: Icons.fitness_center, isUnlocked: true),
-    Achievement(name: 'Marathoner', icon: Icons.directions_run, isUnlocked: true),
-    Achievement(name: 'First 1000\nCalorie Burn', icon: Icons.local_fire_department, isUnlocked: false),
-    Achievement(name: 'Iron Lifter', icon: Icons.fitness_center, isUnlocked: false),
-    Achievement(name: 'Gym Goblin', icon: Icons.sports_gymnastics, isUnlocked: false),
-  ];
+  Future<void> _loadChallengesData() async {
+    setState(() {
+      _isLoading = true;
+    });
+    
+    try {
+      // Load user profile
+      final profile = await _userService.getCurrentUserProfile();
+      
+      // Load user's active challenges
+      final activeChallenges = await _challengeService.getUserActiveChallenges();
+      
+      // Load all available challenges
+      final availableChallenges = await _challengeService.getAllChallenges();
+      
+      // Load user badges
+      final userBadges = await _badgeService.getUserBadges();
+      
+      // Load leaderboard users (top 10 by XP)
+      final leaderboardUsers = await _userService.getLeaderboardUsers(10);
+      
+      // Filter out challenges that user has already joined
+      final joinedChallengeIds = activeChallenges.map((uc) => uc.challengeId).toSet();
+      final filteredAvailableChallenges = availableChallenges
+          .where((challenge) => !joinedChallengeIds.contains(challenge.challengeId))
+          .toList();
+      
+      setState(() {
+        _userProfile = profile;
+        _activeChallenges = activeChallenges;
+        _availableChallenges = filteredAvailableChallenges;
+        _userBadges = userBadges;
+        _leaderboardUsers = leaderboardUsers;
+        _isLoading = false;
+      });
+      
+      // Debug print to see what we loaded
+      print('Loaded ${leaderboardUsers.length} leaderboard users');
+      for (var user in leaderboardUsers) {
+        print('User: ${user.username}, XP: ${user.xpPoints}');
+      }
+    } catch (e) {
+      print('Error loading challenges data: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: CircularProgressIndicator(
+            color: Color(0xFF1DAB87),
+          ),
+        ),
+      );
+    }
+    
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -111,18 +155,35 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                 ),
               ),
               child: ClipOval(
-                child: Image.asset(
-                'assets/images/profile_male.png', // Path to your image
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  // Fallback to icon if image fails to load
-                  return const Icon(
-                    Icons.person,
-                    color: Colors.white,
-                    size: 30,
-                  );
-                },
-              ),
+                child: _userProfile?.profilePictureUrl != null
+                    ? Image.network(
+                        _userProfile!.profilePictureUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: const Color(0xFF1DAB87),
+                            child: const Icon(
+                              Icons.person,
+                              color: Colors.white,
+                              size: 30,
+                            ),
+                          );
+                        },
+                      )
+                    : Image.asset(
+                        'assets/images/profile_male.png',
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: const Color(0xFF1DAB87),
+                            child: const Icon(
+                              Icons.person,
+                              color: Colors.white,
+                              size: 30,
+                            ),
+                          );
+                        },
+                      ),
               ),
             ),
           ),
@@ -216,12 +277,15 @@ class _ChallengesScreenState extends State<ChallengesScreen>
             const SizedBox(height: 16),
             
             // Active Challenge Cards
-            ...activeChallenges.map((challenge) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: _buildActiveChallengeCard(challenge),
-              );
-            }).toList(),
+            if (_activeChallenges.isEmpty)
+              _buildEmptyState('No active challenges', 'Join a challenge to get started!')
+            else
+              ..._activeChallenges.map((userChallenge) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: _buildActiveChallengeCard(userChallenge),
+                );
+              }).toList(),
             
             const SizedBox(height: 24),
             
@@ -231,7 +295,15 @@ class _ChallengesScreenState extends State<ChallengesScreen>
             const SizedBox(height: 16),
             
             // Available Challenge Cards
-            _buildAvailableChallengesGrid(),
+            if (_availableChallenges.isEmpty)
+              _buildEmptyState('No available challenges', 'Check back later for new challenges!')
+            else
+              ..._availableChallenges.map((challenge) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _buildAvailableChallengeCard(challenge),
+                );
+              }).toList(),
             
             const SizedBox(height: 24),
             
@@ -260,20 +332,39 @@ class _ChallengesScreenState extends State<ChallengesScreen>
           children: [
             const SizedBox(height: 16),
             
-            // Top 3 Podium
-            _buildPodium(),
-            
-            const SizedBox(height: 24),
-            
-            // Leaderboard List
-            ...List.generate(10, (index) {
-              return _buildLeaderboardItem(
-                rank: index + 4,
-                name: 'User ${index + 4}',
-                points: (1000 - (index * 50)),
-                isCurrentUser: index == 3,
-              );
-            }).toList(),
+            // Display message if no users
+            if (_leaderboardUsers.isEmpty)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(24.0),
+                  child: Text(
+                    'No users found in leaderboard',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Color(0xFF7E7E7E),
+                    ),
+                  ),
+                ),
+              )
+            else ...[
+              // Top 3 Podium
+              _buildPodium(_leaderboardUsers.take(3).toList()),
+              
+              const SizedBox(height: 24),
+              
+              // Leaderboard List
+              ..._leaderboardUsers.skip(3).map((user) {
+                final isCurrentUser = user.userId == _userProfile?.userId;
+                final rank = _leaderboardUsers.indexOf(user) + 1;
+                return _buildLeaderboardItem(
+                  rank: rank,
+                  name: user.username,
+                  points: user.xpPoints,
+                  profilePictureUrl: user.profilePictureUrl,
+                  isCurrentUser: isCurrentUser,
+                );
+              }).toList(),
+            ],
             
             const SizedBox(height: 40),
           ],
@@ -311,10 +402,53 @@ class _ChallengesScreenState extends State<ChallengesScreen>
     );
   }
 
+  // ==================== EMPTY STATE ====================
+  Widget _buildEmptyState(String title, String subtitle) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1DAB87).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.emoji_events_outlined,
+            size: 50,
+            color: const Color(0xFF1DAB87),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: Colors.black,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 16,
+              color: Color(0xFF7E7E7E),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ==================== ACTIVE CHALLENGE CARD ====================
-  Widget _buildActiveChallengeCard(Challenge challenge) {
+  Widget _buildActiveChallengeCard(UserChallengeModel userChallenge) {
+    final challenge = userChallenge.challenge;
+    if (challenge == null) return const SizedBox.shrink();
+    
+    final progress = userChallenge.progressPercentage;
+    
     return GestureDetector(
-      onTap: () => _onChallengeTap(challenge),
+      onTap: () => _onChallengeTap(userChallenge),
       child: Container(
         height: 178,
         decoration: BoxDecoration(
@@ -335,16 +469,20 @@ class _ChallengesScreenState extends State<ChallengesScreen>
               child: Container(
                 width: double.infinity,
                 height: double.infinity,
-                color: challenge.color.withOpacity(0.3),
-                child: Image.network(
-                  challenge.imageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      color: challenge.color.withOpacity(0.5),
-                    );
-                  },
-                ),
+                color: const Color(0xFF1DAB87).withOpacity(0.3),
+                child: challenge.imageUrl != null
+                    ? Image.network(
+                        challenge.imageUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: const Color(0xFF1DAB87).withOpacity(0.5),
+                          );
+                        },
+                      )
+                    : Container(
+                        color: const Color(0xFF1DAB87).withOpacity(0.5),
+                      ),
               ),
             ),
             
@@ -377,7 +515,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              challenge.title,
+                              challenge.challengeName,
                               style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w800,
@@ -386,7 +524,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              '${challenge.current.toStringAsFixed(0)} / ${challenge.target.toStringAsFixed(0)}',
+                              '${userChallenge.progress} / ${challenge.targetValue} ${challenge.unit}',
                               style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w800,
@@ -398,7 +536,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                       ),
                       
                       // Progress Circle
-                      _buildProgressCircle(challenge.progress),
+                      _buildProgressCircle(progress),
                     ],
                   ),
                   
@@ -483,22 +621,8 @@ class _ChallengesScreenState extends State<ChallengesScreen>
     );
   }
 
-  // ==================== AVAILABLE CHALLENGES GRID ====================
-  Widget _buildAvailableChallengesGrid() {
-    return Row(
-      children: availableChallenges.map((challenge) {
-        return Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6),
-            child: _buildAvailableChallengeCard(challenge),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
   // ==================== AVAILABLE CHALLENGE CARD ====================
-  Widget _buildAvailableChallengeCard(AvailableChallenge challenge) {
+  Widget _buildAvailableChallengeCard(ChallengeModel challenge) {
     return Container(
       height: 120,
       padding: const EdgeInsets.all(12),
@@ -506,24 +630,61 @@ class _ChallengesScreenState extends State<ChallengesScreen>
         color: const Color(0x72D9D9D9),
         borderRadius: BorderRadius.circular(25),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Row(
         children: [
-          Icon(
-            challenge.icon,
-            size: 30,
-            color: challenge.color,
-          ),
-          Text(
-            challenge.title,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
-              color: Colors.black,
-              height: 1.2,
+          // Icon
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: const Color(0xFF1DAB87).withOpacity(0.2),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              _getChallengeIcon(challenge.unit),
+              size: 25,
+              color: const Color(0xFF1DAB87),
             ),
           ),
+          
+          const SizedBox(width: 16),
+          
+          // Text
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  challenge.challengeName,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.black,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${challenge.targetValue} ${challenge.unit} in ${challenge.durationDays} days',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF7E7E7E),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '+${challenge.xpReward} XP',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFFF97316),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          // Join Button
           GestureDetector(
             onTap: () => _onJoinChallenge(challenge),
             child: Container(
@@ -550,166 +711,253 @@ class _ChallengesScreenState extends State<ChallengesScreen>
     );
   }
 
+  // ==================== GET CHALLENGE ICON ====================
+  IconData _getChallengeIcon(String unit) {
+    switch (unit.toLowerCase()) {
+      case 'steps':
+        return Icons.directions_walk;
+      case 'calories':
+        return Icons.local_fire_department;
+      case 'workouts':
+        return Icons.fitness_center;
+      default:
+        return Icons.emoji_events;
+    }
+  }
+
   // ==================== ACHIEVEMENTS BADGES ====================
   Widget _buildAchievementsBadges() {
     return Column(
       children: [
-        // First Row (Unlocked)
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: achievements.sublist(0, 3).map((achievement) {
-            return _buildAchievementBadge(achievement);
-          }).toList(),
-        ),
-        const SizedBox(height: 16),
+        // First Row
+        if (_userBadges.length >= 3)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: _userBadges.take(3).map((userBadge) {
+              return _buildAchievementBadge(userBadge);
+            }).toList(),
+          ),
+        if (_userBadges.length >= 3) const SizedBox(height: 16),
         
-        // Second Row (Locked)
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: achievements.sublist(3, 6).map((achievement) {
-            return _buildAchievementBadge(achievement);
-          }).toList(),
-        ),
+        // Second Row
+        if (_userBadges.length >= 6)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: _userBadges.skip(3).take(3).map((userBadge) {
+              return _buildAchievementBadge(userBadge);
+            }).toList(),
+          ),
       ],
     );
   }
 
   // ==================== ACHIEVEMENT BADGE ====================
-  // Replace the existing _buildAchievementBadge method with this:
-Widget _buildAchievementBadge(Achievement achievement) {
-  // Define image paths for each achievement
-  final badgeImages = {
-    'Cardio King': 'assets/icons/cardio_king.png',
-    'Workout\nWarrior': 'assets/icons/workout_warrior.png',
-    'Marathoner': 'assets/icons/marathoner.png',
-    'First 1000\nCalorie Burn': 'assets/icons/calorie_burn.png',
-    'Iron Lifter': 'assets/icons/iron_lifter.png',
-    'Gym Goblin': 'assets/icons/gym_goblin.png',
-  };
-
-  return GestureDetector(
-    onTap: () => _onBadgeTap(achievement),
-    child: Column(
-      children: [
-        Container(
-          width: 60,
-          height: 60,
-          decoration: BoxDecoration(
-            color: achievement.isUnlocked
-                ? const Color.fromARGB(255, 255, 255, 255)
-                : const Color(0xFFD9D9D9),
-            shape: BoxShape.circle,
-            boxShadow: achievement.isUnlocked
-                ? [
-                    BoxShadow(
-                      color: const Color.fromARGB(255, 92, 100, 98).withOpacity(0.3),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ]
-                : null,
-          ),
-          child: achievement.isUnlocked
-              ? ClipOval(
-                  child: Image.asset(
-                    badgeImages[achievement.name.replaceAll('\n', ' ')] ?? 
-                    badgeImages[achievement.name] ?? 
-                    'assets/images/fitness_model.png', // Fallback image
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      // Fallback to icon if image fails to load
-                      return Icon(
-                        achievement.icon,
-                        color: achievement.isUnlocked ? Colors.white : Colors.grey,
-                        size: 30,
-                      );
-                    },
-                  ),
-                )
-              : Icon(
-                  achievement.icon,
-                  color: Colors.grey,
-                  size: 30,
-                ),
+  Widget _buildAchievementBadge(UserBadgeModel userBadge) {
+    final badge = userBadge.badge;
+    if (badge == null) {
+      return Container(
+        width: 60,
+        height: 60,
+        decoration: BoxDecoration(
+          color: const Color(0xFF1DAB87),
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF1DAB87).withOpacity(0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
-        const SizedBox(height: 8),
-        SizedBox(
-          width: 80,
-          child: Text(
-            achievement.name,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: achievement.isUnlocked
-                  ? Colors.black
-                  : const Color(0xFF979797),
-              height: 1.2,
+        child: const Icon(
+          Icons.emoji_events,
+          color: Colors.white,
+          size: 30,
+        ),
+      );
+    }
+    
+    return GestureDetector(
+      onTap: () => _onBadgeTap(userBadge),
+      child: Column(
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: const Color(0xFF1DAB87),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF1DAB87).withOpacity(0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: badge.iconUrl != null
+                ? ClipOval(
+                    child: Image.network(
+                      badge.iconUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Icon(
+                          Icons.emoji_events,
+                          color: Colors.white,
+                          size: 30,
+                        );
+                      },
+                    ),
+                  )
+                : Icon(
+                    Icons.emoji_events,
+                    color: Colors.white,
+                    size: 30,
+                  ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: 80,
+            child: Text(
+              badge.badgeName,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.black,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
-        ),
-      ],
-    ),
-  );
-}
+        ],
+      ),
+    );
+  }
 
   // ==================== PODIUM (TOP 3) ====================
-  Widget _buildPodium() {
+  Widget _buildPodium(List<UserModel> topUsers) {
+    // Ensure we have exactly 3 users, pad with empty if needed
+    while (topUsers.length < 3) {
+      topUsers.add(UserModel(
+        userId: '',
+        username: 'No User',
+        email: '',
+        xpPoints: 0,
+        level: 1,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ));
+    }
+    
+    // Sort to ensure correct order by XP (highest first)
+    topUsers.sort((a, b) => b.xpPoints.compareTo(a.xpPoints));
+    
+    // Take only the top 3
+    if (topUsers.length > 3) {
+      topUsers = topUsers.take(3).toList();
+    }
+    
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        _buildPodiumPlace(2, 'User 2', 1200, 100),
+        // 2nd place (left)
+        _buildPodiumPlace(
+          user: topUsers.length > 1 ? topUsers[1] : null,
+          rank: 2,
+          height: 100,
+        ),
         const SizedBox(width: 16),
-        _buildPodiumPlace(1, 'User 1', 1500, 140),
+        // 1st place (center, tallest)
+        _buildPodiumPlace(
+          user: topUsers.isNotEmpty ? topUsers[0] : null,
+          rank: 1,
+          height: 140,
+        ),
         const SizedBox(width: 16),
-        _buildPodiumPlace(3, 'User 3', 1000, 100),
+        // 3rd place (right)
+        _buildPodiumPlace(
+          user: topUsers.length > 2 ? topUsers[2] : null,
+          rank: 3,
+          height: 100,
+        ),
       ],
     );
   }
 
-  Widget _buildPodiumPlace(int rank, String name, int points, double height) {
+  Widget _buildPodiumPlace({
+    UserModel? user,
+    required int rank,
+    required double height,
+  }) {
     final colors = {
       1: const Color(0xFFFFD700), // Gold
       2: const Color(0xFFC0C0C0), // Silver
       3: const Color(0xFFCD7F32), // Bronze
     };
 
+    final displayName = user?.username ?? 'No User';
+    final points = user?.xpPoints ?? 0;
+    final profilePictureUrl = user?.profilePictureUrl;
+
     return Column(
       children: [
         Container(
           width: 60,
           height: 60,
           decoration: BoxDecoration(
-            color: colors[rank],
+            color: colors[rank] ?? const Color(0xFF1DAB87),
             shape: BoxShape.circle,
             border: Border.all(color: Colors.white, width: 3),
             boxShadow: [
               BoxShadow(
-                color: colors[rank]!.withOpacity(0.3),
+                color: (colors[rank] ?? const Color(0xFF1DAB87)).withOpacity(0.3),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
             ],
           ),
-          child: Center(
-            child: Text(
-              rank.toString(),
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-              ),
-            ),
-          ),
+          child: profilePictureUrl != null
+              ? ClipOval(
+                  child: Image.network(
+                    profilePictureUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Center(
+                        child: Text(
+                          rank.toString(),
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                )
+              : Center(
+                  child: Text(
+                    rank.toString(),
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
         ),
         const SizedBox(height: 8),
         Text(
-          name,
+          displayName,
           style: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
+            color: Colors.black,
           ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
         Text(
           '$points pts',
@@ -723,7 +971,7 @@ Widget _buildAchievementBadge(Achievement achievement) {
           width: 80,
           height: height,
           decoration: BoxDecoration(
-            color: colors[rank]!.withOpacity(0.3),
+            color: (colors[rank] ?? const Color(0xFF1DAB87)).withOpacity(0.3),
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(12),
               topRight: Radius.circular(12),
@@ -739,6 +987,7 @@ Widget _buildAchievementBadge(Achievement achievement) {
     required int rank,
     required String name,
     required int points,
+    String? profilePictureUrl,
     bool isCurrentUser = false,
   }) {
     return Container(
@@ -765,16 +1014,35 @@ Widget _buildAchievementBadge(Achievement achievement) {
               color: const Color(0xFF1DAB87).withOpacity(0.2),
               shape: BoxShape.circle,
             ),
-            child: Center(
-              child: Text(
-                rank.toString(),
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF1DAB87),
-                ),
-              ),
-            ),
+            child: profilePictureUrl != null
+                ? ClipOval(
+                    child: Image.network(
+                      profilePictureUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Center(
+                          child: Text(
+                            rank.toString(),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF1DAB87),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  )
+                : Center(
+                    child: Text(
+                      rank.toString(),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF1DAB87),
+                      ),
+                    ),
+                  ),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -783,7 +1051,7 @@ Widget _buildAchievementBadge(Achievement achievement) {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: isCurrentUser ? FontWeight.w800 : FontWeight.w600,
-                color: Colors.black,
+                color: isCurrentUser ? const Color(0xFF1DAB87) : Colors.black,
               ),
             ),
           ),
@@ -806,58 +1074,65 @@ Widget _buildAchievementBadge(Achievement achievement) {
     print('Profile tapped');
   }
 
-  void _onChallengeTap(Challenge challenge) {
-    print('Challenge tapped: ${challenge.title}');
+  void _onChallengeTap(UserChallengeModel userChallenge) {
+    print('Challenge tapped: ${userChallenge.challenge?.challengeName}');
     // Navigate to challenge detail
   }
 
-  void _onJoinChallenge(AvailableChallenge challenge) {
-    print('Join challenge: ${challenge.title}');
-    // Show join confirmation dialog
-    _showJoinDialog(challenge);
-  }
-
-  void _onBadgeTap(Achievement achievement) {
-    print('Badge tapped: ${achievement.name}');
-    // Show badge detail
-    _showBadgeDialog(achievement);
-  }
-
-  void _showJoinDialog(AvailableChallenge challenge) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+  void _onJoinChallenge(ChallengeModel challenge) async {
+    print('Join challenge: ${challenge.challengeName}');
+    
+    try {
+      // Show loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(color: Color(0xFF1DAB87)),
         ),
-        title: Text(challenge.title.replaceAll('\n', ' ')),
-        content: Text('Do you want to join this challenge?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Joined ${challenge.title.replaceAll('\n', ' ')}!'),
-                  backgroundColor: const Color(0xFF1DAB87),
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1DAB87),
-            ),
-            child: const Text('Join'),
-          ),
-        ],
-      ),
-    );
+      );
+      
+      // Join the challenge
+      final result = await _challengeService.joinChallenge(challenge.challengeId);
+      
+      // Close loading
+      Navigator.pop(context);
+      
+      // Show success message with XP
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Joined ${challenge.challengeName}! +${result['xp_added']} XP'),
+          backgroundColor: const Color(0xFF1DAB87),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      
+      // Refresh data
+      await _loadChallengesData();
+    } catch (e) {
+      // Close loading
+      Navigator.pop(context);
+      
+      print('Error joining challenge: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to join challenge'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
-  void _showBadgeDialog(Achievement achievement) {
+  void _onBadgeTap(UserBadgeModel userBadge) {
+    final badge = userBadge.badge;
+    if (badge == null) return;
+    
+    print('Badge tapped: ${badge.badgeName}');
+    // Show badge detail
+    _showBadgeDialog(badge);
+  }
+
+  void _showBadgeDialog(BadgeModel badge) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -866,22 +1141,33 @@ Widget _buildAchievementBadge(Achievement achievement) {
         ),
         title: Row(
           children: [
-            Icon(
-              achievement.icon,
-              color: achievement.isUnlocked 
-                  ? const Color(0xFF1DAB87) 
-                  : Colors.grey,
-            ),
+            badge.iconUrl != null
+                ? ClipOval(
+                    child: Image.network(
+                      badge.iconUrl!,
+                      width: 30,
+                      height: 30,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Icon(
+                          Icons.emoji_events,
+                          color: const Color(0xFF1DAB87),
+                        );
+                      },
+                    ),
+                  )
+                : Icon(
+                    Icons.emoji_events,
+                    color: const Color(0xFF1DAB87),
+                  ),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(achievement.name.replaceAll('\n', ' ')),
+              child: Text(badge.badgeName),
             ),
           ],
         ),
         content: Text(
-          achievement.isUnlocked
-              ? 'Congratulations! You unlocked this achievement!'
-              : 'Keep going! This badge is still locked.',
+          badge.description ?? 'Congratulations! You unlocked this achievement!',
         ),
         actions: [
           TextButton(
@@ -895,52 +1181,4 @@ Widget _buildAchievementBadge(Achievement achievement) {
       ),
     );
   }
-}
-
-// ==================== DATA MODELS ====================
-
-class Challenge {
-  final String title;
-  final double progress;
-  final double current;
-  final double target;
-  final String unit;
-  final Color color;
-  final String imageUrl;
-
-  Challenge({
-    required this.title,
-    required this.progress,
-    required this.current,
-    required this.target,
-    required this.unit,
-    required this.color,
-    required this.imageUrl,
-  });
-}
-
-class AvailableChallenge {
-  final String title;
-  final String description;
-  final IconData icon;
-  final Color color;
-
-  AvailableChallenge({
-    required this.title,
-    required this.description,
-    required this.icon,
-    required this.color,
-  });
-}
-
-class Achievement {
-  final String name;
-  final IconData icon;
-  final bool isUnlocked;
-
-  Achievement({
-    required this.name,
-    required this.icon,
-    required this.isUnlocked,
-  });
 }

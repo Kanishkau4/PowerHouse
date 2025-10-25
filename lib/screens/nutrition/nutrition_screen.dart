@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:powerhouse/screens/nutrition/add_food_dialog.dart';
+import 'package:powerhouse/screens/nutrition/recipe_detail_screen.dart';
+import 'package:powerhouse/screens/profile/profile_screen.dart';
+import 'package:powerhouse/services/nutrition_service.dart';
+import 'package:powerhouse/models/recipe_model.dart';
 
 class NutritionScreen extends StatefulWidget {
   const NutritionScreen({Key? key}) : super(key: key);
@@ -11,50 +15,141 @@ class NutritionScreen extends StatefulWidget {
 }
 
 class _NutritionScreenState extends State<NutritionScreen> {
+  final _nutritionService = NutritionService();
+
   DateTime selectedDate = DateTime.now();
 
   // Daily targets
   final int targetCalories = 2000;
-  final int targetCarbs = 500;
+  final int targetCarbs = 250;
   final int targetFat = 50;
   final int targetProtein = 100;
 
-  // Current consumed
-  int consumedCalories = 1250;
-  int consumedCarbs = 300;
-  int consumedFat = 12;
-  int consumedProtein = 76;
+  // Current consumed (will be fetched from database)
+  int consumedCalories = 0;
+  int consumedCarbs = 0;
+  int consumedFat = 0;
+  int consumedProtein = 0;
+
+  // Meal logs grouped by meal type
+  Map<String, List<Map<String, dynamic>>> mealsByType = {
+    'Breakfast': [],
+    'Lunch': [],
+    'Dinner': [],
+    'Snack': [],
+  };
+
+  // Recipes
+  List<RecipeModel> recipes = [];
+
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    await Future.wait([
+      _loadFoodLogs(),
+      _loadRecipes(),
+    ]);
+
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _loadFoodLogs() async {
+    try {
+      print('📦 Loading food logs for ${DateFormat('yyyy-MM-dd').format(selectedDate)}');
+
+      // Get food logs for selected date
+      final logs = await _nutritionService.getFoodLogsByDate(selectedDate);
+
+      print('✅ Loaded ${logs.length} food logs');
+
+      // Reset consumed values
+      consumedCalories = 0;
+      consumedCarbs = 0;
+      consumedFat = 0;
+      consumedProtein = 0;
+
+      // Reset meals
+      mealsByType = {
+        'Breakfast': [],
+        'Lunch': [],
+        'Dinner': [],
+        'Snack': [],
+      };
+
+      // Group logs by meal type and calculate totals
+      for (var log in logs) {
+        final mealType = log['meal_type'] as String;
+        final quantity = (log['quantity'] as num).toDouble();
+        final food = log['foods'];
+
+        if (food != null) {
+          // Calculate nutrition for this log
+          final logCalories = ((food['calories'] as int) * quantity).round();
+          final logProtein = ((food['protein'] as num).toDouble() * quantity);
+          final logCarbs = ((food['carbs'] as num).toDouble() * quantity);
+          final logFat = ((food['fat'] as num).toDouble() * quantity);
+
+          // Add to totals
+          consumedCalories += logCalories;
+          consumedProtein += logProtein.round();
+          consumedCarbs += logCarbs.round();
+          consumedFat += logFat.round();
+
+          // Add to meal type group
+          if (mealsByType.containsKey(mealType)) {
+            mealsByType[mealType]!.add({
+              'log_id': log['log_id'],
+              'food_name': food['food_name'],
+              'quantity': quantity,
+              'serving_unit': log['serving_unit'],
+              'calories': logCalories,
+              'image_url': food['image_url'],
+            });
+          }
+        }
+      }
+
+      print('📊 Total calories: $consumedCalories');
+      print('📊 Breakfast items: ${mealsByType['Breakfast']!.length}');
+      print('📊 Lunch items: ${mealsByType['Lunch']!.length}');
+      print('📊 Dinner items: ${mealsByType['Dinner']!.length}');
+    } catch (e) {
+      print('❌ Error loading food logs: $e');
+    }
+  }
+
+  Future<void> _loadRecipes() async {
+    try {
+      print('📦 Loading recipes...');
+      final loadedRecipes = await _nutritionService.getSriLankanRecipes(limit: 5);
+      
+      setState(() {
+        recipes = loadedRecipes;
+      });
+
+      print('✅ Loaded ${recipes.length} recipes');
+    } catch (e) {
+      print('❌ Error loading recipes: $e');
+    }
+  }
 
   // Calculate percentages
-  double get calorieProgress => consumedCalories / targetCalories;
-  double get carbsProgress => consumedCarbs / targetCarbs;
-  double get fatProgress => consumedFat / targetFat;
-  double get proteinProgress => consumedProtein / targetProtein;
-
-  // Sample meal data
-  final List<Meal> meals = [
-    Meal(
-      type: 'Breakfast',
-      items: [
-        FoodItem(name: 'Bread', amount: '1/2 Slice (1)', calories: 100),
-      ],
-    ),
-    Meal(
-      type: 'Lunch',
-      items: [
-        FoodItem(name: 'Rice', amount: '200g (1)', calories: 260),
-        FoodItem(name: 'Dhal', amount: '1/2 cup (1)', calories: 120),
-        FoodItem(name: 'Fish Curry', amount: '1 piece', calories: 180),
-      ],
-    ),
-    Meal(
-      type: 'Dinner',
-      items: [
-        FoodItem(name: 'Pol Roti', amount: 'piece (1)', calories: 150),
-        FoodItem(name: 'Sambol', amount: '2 tbsp', calories: 80),
-      ],
-    ),
-  ];
+  double get calorieProgress => (consumedCalories / targetCalories).clamp(0.0, 1.0);
+  double get carbsProgress => (consumedCarbs / targetCarbs).clamp(0.0, 1.0);
+  double get fatProgress => (consumedFat / targetFat).clamp(0.0, 1.0);
+  double get proteinProgress => (consumedProtein / targetProtein).clamp(0.0, 1.0);
 
   @override
   Widget build(BuildContext context) {
@@ -63,58 +158,83 @@ class _NutritionScreenState extends State<NutritionScreen> {
       body: SafeArea(
         child: Stack(
           children: [
-            SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 20),
-                    
-                    // Header
-                    _buildHeader(),
-                    
-                    const SizedBox(height: 16),
-                    
-                    // Date Selector
-                    _buildDateSelector(),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // Calorie Donut Chart
-                    _buildCalorieChart(),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // Macros Breakdown
-                    _buildMacrosBreakdown(),
-                    
-                    const SizedBox(height: 32),
-                    
-                    // Today's Meals Section
-                    _buildSectionTitle('Today\'s Meals', ''),
-                    
-                    const SizedBox(height: 16),
-                    
-                    // Meal Cards
-                    ...meals.map((meal) => Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: _buildMealCard(meal),
-                    )).toList(),
-                    
-                    const SizedBox(height: 16),
-                    
-                    // Recipe of the Day Section
-                    _buildSectionTitle('Recipe of the Day', 'See all'),
-                    
-                    const SizedBox(height: 16),
-                    
-                    // Recipe Card
-                    _buildRecipeCard(),
-                    
-                    const SizedBox(height: 100), // Space for FAB
-                  ],
+            RefreshIndicator(
+              onRefresh: _loadData,
+              color: const Color(0xFF1DAB87),
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 20),
+                      
+                      // Header
+                      _buildHeader(),
+                      
+                      const SizedBox(height: 16),
+                      
+                      // Date Selector
+                      _buildDateSelector(),
+                      
+                      const SizedBox(height: 24),
+                      
+                      if (_isLoading)
+                        const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(40.0),
+                            child: CircularProgressIndicator(
+                              color: Color(0xFF1DAB87),
+                            ),
+                          ),
+                        )
+                      else ...[
+                        // Calorie Donut Chart
+                        _buildCalorieChart(),
+                        
+                        const SizedBox(height: 24),
+                        
+                        // Macros Breakdown
+                        _buildMacrosBreakdown(),
+                        
+                        const SizedBox(height: 32),
+                        
+                        // Today's Meals Section
+                        _buildSectionTitle('Today\'s Meals', ''),
+                        
+                        const SizedBox(height: 16),
+                        
+                        // Meal Cards
+                        ...['Breakfast', 'Lunch', 'Dinner', 'Snack'].map((mealType) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: _buildMealCard(mealType),
+                          );
+                        }).toList(),
+                        
+                        const SizedBox(height: 16),
+                        
+                        // Recipe of the Day Section
+                        _buildSectionTitle('Recipe of the Day', 'See all'),
+                        
+                        const SizedBox(height: 16),
+                        
+                        // Recipe Cards
+                        if (recipes.isEmpty)
+                          _buildNoRecipesMessage()
+                        else
+                          ...recipes.take(3).map((recipe) {
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: _buildRecipeCard(recipe),
+                            );
+                          }).toList(),
+                      ],
+                      
+                      const SizedBox(height: 100), // Space for FAB
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -156,19 +276,10 @@ class _NutritionScreenState extends State<NutritionScreen> {
                 width: 2,
               ),
             ),
-            child: ClipOval(
-              child: Image.asset(
-                'assets/images/profile_male.png', // Path to your image
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  // Fallback to icon if image fails to load
-                  return const Icon(
-                    Icons.person,
-                    color: Colors.white,
-                    size: 30,
-                  );
-                },
-              ),
+            child: const Icon(
+              Icons.person,
+              color: Color(0xFF1DAB87),
+              size: 30,
             ),
           ),
         ),
@@ -178,6 +289,9 @@ class _NutritionScreenState extends State<NutritionScreen> {
 
   // ==================== DATE SELECTOR ====================
   Widget _buildDateSelector() {
+    final isToday = DateFormat('yyyy-MM-dd').format(selectedDate) ==
+        DateFormat('yyyy-MM-dd').format(DateTime.now());
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -192,9 +306,9 @@ class _NutritionScreenState extends State<NutritionScreen> {
             ),
           ),
         ),
-        const Text(
-          'Today',
-          style: TextStyle(
+        Text(
+          isToday ? 'Today' : DateFormat('MMM dd').format(selectedDate),
+          style: const TextStyle(
             color: Color(0xFF1DAB87),
             fontSize: 15,
             fontWeight: FontWeight.w800,
@@ -238,7 +352,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
                     showTitle: false,
                   ),
                   PieChartSectionData(
-                    value: (targetCalories - consumedCalories).toDouble(),
+                    value: (targetCalories - consumedCalories).toDouble().clamp(0, targetCalories.toDouble()),
                     color: const Color(0xFFE0E0E0),
                     radius: 20,
                     showTitle: false,
@@ -418,7 +532,13 @@ class _NutritionScreenState extends State<NutritionScreen> {
   }
 
   // ==================== MEAL CARD ====================
-  Widget _buildMealCard(Meal meal) {
+  Widget _buildMealCard(String mealType) {
+    final mealItems = mealsByType[mealType] ?? [];
+    final mealCalories = mealItems.fold<int>(
+      0,
+      (sum, item) => sum + (item['calories'] as int),
+    );
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -438,68 +558,92 @@ class _NutritionScreenState extends State<NutritionScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            meal.type,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: Colors.black,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                mealType,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black,
+                ),
+              ),
+              if (mealItems.isNotEmpty)
+                Text(
+                  '$mealCalories kcal',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1DAB87),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 12),
           
           // Food Items
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: meal.items.map((item) {
-              return _buildFoodItem(item);
-            }).toList(),
-          ),
-          
-          // Add More Button
-          if (meal.items.length < 4)
-            Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: GestureDetector(
-                onTap: () => _onAddFoodToMeal(meal.type),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1DAB87).withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.add,
-                        color: Color(0xFF1DAB87),
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Add item',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF1DAB87),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
+          if (mealItems.isEmpty)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  'No items added',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade600,
+                  ),
                 ),
               ),
+            )
+          else
+            Column(
+              children: mealItems.map((item) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _buildFoodItem(item),
+                );
+              }).toList(),
             ),
+          
+          // Add More Button
+          GestureDetector(
+            onTap: () => _onAddFoodToMeal(mealType),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1DAB87).withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.add,
+                    color: Color(0xFF1DAB87),
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  'Add item',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF1DAB87),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
   // ==================== FOOD ITEM ====================
-  Widget _buildFoodItem(FoodItem item) {
+  Widget _buildFoodItem(Map<String, dynamic> item) {
     return Row(
-      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
           width: 50,
@@ -508,42 +652,63 @@ class _NutritionScreenState extends State<NutritionScreen> {
             color: const Color(0xFF1DAB87).withOpacity(0.2),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: const Icon(
-            Icons.restaurant,
-            color: Color(0xFF1DAB87),
-            size: 24,
-          ),
+          child: item['image_url'] != null
+              ? ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.network(
+                    item['image_url'],
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Icon(
+                        Icons.restaurant,
+                        color: Color(0xFF1DAB87),
+                        size: 24,
+                      );
+                    },
+                  ),
+                )
+              : const Icon(
+                  Icons.restaurant,
+                  color: Color(0xFF1DAB87),
+                  size: 24,
+                ),
         ),
         const SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              item.name,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: Colors.black,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                item['food_name'],
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black,
+                ),
               ),
-            ),
-            Text(
-              item.amount,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF7E7E7E),
+              Text(
+                '${item['quantity']} ${item['serving_unit']} • ${item['calories']} kcal',
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF7E7E7E),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
+          onPressed: () => _onDeleteFoodItem(item['log_id']),
         ),
       ],
     );
   }
 
   // ==================== RECIPE CARD ====================
-  Widget _buildRecipeCard() {
+  Widget _buildRecipeCard(RecipeModel recipe) {
     return GestureDetector(
-      onTap: () => _onRecipeTap(),
+      onTap: () => _onRecipeTap(recipe),
       child: Container(
         height: 190,
         decoration: BoxDecoration(
@@ -575,47 +740,56 @@ class _NutritionScreenState extends State<NutritionScreen> {
                     height: 120,
                     width: double.infinity,
                     color: const Color(0xFF1DAB87).withOpacity(0.3),
-                    child: Image.network(
-                      'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800',
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Center(
-                          child: Icon(
-                            Icons.restaurant_menu,
-                            size: 50,
-                            color: Color(0xFF1DAB87),
+                    child: recipe.imageUrl != null
+                        ? Image.network(
+                            recipe.imageUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return const Center(
+                                child: Icon(
+                                  Icons.restaurant_menu,
+                                  size: 50,
+                                  color: Color(0xFF1DAB87),
+                                ),
+                              );
+                            },
+                          )
+                        : const Center(
+                            child: Icon(
+                              Icons.restaurant_menu,
+                              size: 50,
+                              color: Color(0xFF1DAB87),
+                            ),
                           ),
-                        );
-                      },
-                    ),
                   ),
                 ),
                 
                 // Play Button
-                Positioned(
-                  bottom: 8,
-                  right: 8,
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1DAB87),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF1DAB87).withOpacity(0.5),
-                          blurRadius: 8,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.play_arrow,
-                      color: Colors.white,
-                      size: 24,
+                if (recipe.videoUrl != null)
+                  Positioned(
+                    bottom: 8,
+                    right: 8,
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1DAB87),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF1DAB87).withOpacity(0.5),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.play_arrow,
+                        color: Colors.white,
+                        size: 24,
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
             
@@ -625,24 +799,51 @@ class _NutritionScreenState extends State<NutritionScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Chicken Fried Rice',
-                    style: TextStyle(
+                  Text(
+                    recipe.recipeName,
+                    style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
                       color: Colors.black,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
-                  const Text(
-                    '🕒 20 min  🔥 350 kcal  💪 Easy',
-                    style: TextStyle(
+                  Text(
+                    '🕒 ${recipe.totalTime} min  🔥 ${recipe.caloriesPerServing} kcal  💪 ${recipe.difficulty}',
+                    style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                       color: Color(0xFF7E7E7E),
                     ),
                   ),
                 ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNoRecipesMessage() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(40.0),
+        child: Column(
+          children: [
+            Icon(
+              Icons.restaurant_menu,
+              size: 60,
+              color: Colors.grey.shade300,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No recipes available',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey.shade600,
               ),
             ),
           ],
@@ -668,155 +869,101 @@ class _NutritionScreenState extends State<NutritionScreen> {
   
   void _onProfileTap() {
     print('Profile tapped');
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const ProfileScreen()),
+    );
   }
 
   void _changeDate(int days) {
     setState(() {
       selectedDate = selectedDate.add(Duration(days: days));
     });
-    print('Date changed to: ${DateFormat('yyyy-MM-dd').format(selectedDate)}');
+    _loadData();
   }
 
   void _onAddFood() {
-  print('Add food tapped');
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (context) => const AddFoodDialog(
-      mealType: 'Breakfast', // Or dynamically pass the meal type
-    ),
-  );
-}
-
-// Update _onAddFoodToMeal method:
-void _onAddFoodToMeal(String mealType) {
-  print('Add food to $mealType');
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (context) => AddFoodDialog(
-      mealType: mealType,
-    ),
-  );
-}
-
-  void _onSeeAllRecipes() {
-    print('See all recipes');
-    // Navigate to recipes screen
-  }
-
-  void _onRecipeTap() {
-    print('Recipe tapped');
-    // Navigate to recipe detail
-  }
-
-  Widget _buildQuickAction(IconData icon, String label, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1DAB87).withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: const Color(0xFF1DAB87),
-          ),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: const Color(0xFF1DAB87), size: 32),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF1DAB87),
-              ),
-            ),
-          ],
-        ),
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const AddFoodDialog(
+        mealType: 'Breakfast',
       ),
-    );
+    ).then((_) {
+      // Refresh data when dialog closes
+      _loadData();
+    });
   }
 
-  Widget _buildQuickFoodItem(String name, String calories) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
+  void _onAddFoodToMeal(String mealType) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => AddFoodDialog(
+        mealType: mealType,
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: const Color(0xFF1DAB87).withOpacity(0.2),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(
-              Icons.restaurant,
-              color: Color(0xFF1DAB87),
-            ),
+    ).then((_) {
+      // Refresh data when dialog closes
+      _loadData();
+    });
+  }
+
+  Future<void> _onDeleteFoodItem(String logId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Food'),
+        content: const Text('Are you sure you want to remove this food item?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Text(
-                  calories,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFF7E7E7E),
-                  ),
-                ),
-              ],
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: Colors.red),
             ),
-          ),
-          const Icon(
-            Icons.add_circle,
-            color: Color(0xFF1DAB87),
           ),
         ],
       ),
     );
+
+    if (confirm == true) {
+      try {
+        await _nutritionService.deleteFoodLog(logId);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Food item removed'),
+            backgroundColor: Color(0xFF1DAB87),
+          ),
+        );
+        _loadData();
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
-}
 
-// ==================== DATA MODELS ====================
+  void _onSeeAllRecipes() {
+    print('See all recipes');
+    // TODO: Navigate to recipes list screen
+  }
 
-class Meal {
-  final String type;
-  final List<FoodItem> items;
-
-  Meal({
-    required this.type,
-    required this.items,
-  });
-}
-
-class FoodItem {
-  final String name;
-  final String amount;
-  final int calories;
-
-  FoodItem({
-    required this.name,
-    required this.amount,
-    required this.calories,
-  });
+  void _onRecipeTap(RecipeModel recipe) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RecipeDetailScreen(recipe: recipe),
+      ),
+    );
+  }
 }

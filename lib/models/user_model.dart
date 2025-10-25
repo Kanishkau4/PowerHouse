@@ -3,10 +3,10 @@ class UserModel {
   final String username;
   final String email;
   final String? profilePictureUrl;
-  final DateTime? dateOfBirth;
+  final int? age;
+  final String? gender;
   final double? height; // cm
   final double? currentWeight; // kg
-  final double? goalWeight; // kg
   final String? fitnessGoal;
   final String? activityLevel;
   final int xpPoints;
@@ -19,10 +19,10 @@ class UserModel {
     required this.username,
     required this.email,
     this.profilePictureUrl,
-    this.dateOfBirth,
+    this.age,
+    this.gender,
     this.height,
     this.currentWeight,
-    this.goalWeight,
     this.fitnessGoal,
     this.activityLevel,
     this.xpPoints = 0,
@@ -38,17 +38,13 @@ class UserModel {
       username: json['username'] as String,
       email: json['email'] as String,
       profilePictureUrl: json['profile_picture_url'] as String?,
-      dateOfBirth: json['date_of_birth'] != null
-          ? DateTime.parse(json['date_of_birth'])
-          : null,
+      age: json['age'] as int?,
+      gender: json['gender'] as String?,
       height: json['height'] != null 
           ? double.parse(json['height'].toString()) 
           : null,
       currentWeight: json['current_weight'] != null
           ? double.parse(json['current_weight'].toString())
-          : null,
-      goalWeight: json['goal_weight'] != null
-          ? double.parse(json['goal_weight'].toString())
           : null,
       fitnessGoal: json['fitness_goal'] as String?,
       activityLevel: json['activity_level'] as String?,
@@ -66,28 +62,16 @@ class UserModel {
       'username': username,
       'email': email,
       'profile_picture_url': profilePictureUrl,
-      'date_of_birth': dateOfBirth?.toIso8601String(),
+      'age': age,
+      'gender': gender,
       'height': height,
       'current_weight': currentWeight,
-      'goal_weight': goalWeight,
       'fitness_goal': fitnessGoal,
       'activity_level': activityLevel,
       'xp_points': xpPoints,
       'level': level,
       'updated_at': DateTime.now().toIso8601String(),
     };
-  }
-
-  // Helper: Get age from date of birth
-  int? get age {
-    if (dateOfBirth == null) return null;
-    final now = DateTime.now();
-    int age = now.year - dateOfBirth!.year;
-    if (now.month < dateOfBirth!.month ||
-        (now.month == dateOfBirth!.month && now.day < dateOfBirth!.day)) {
-      age--;
-    }
-    return age;
   }
 
   // Helper: Get BMI
@@ -97,11 +81,27 @@ class UserModel {
     return currentWeight! / (heightInMeters * heightInMeters);
   }
 
+  // Helper: Get BMI Category
+  String? get bmiCategory {
+    final bmiValue = bmi;
+    if (bmiValue == null) return null;
+    
+    if (bmiValue < 18.5) return 'Underweight';
+    if (bmiValue < 25) return 'Normal';
+    if (bmiValue < 30) return 'Overweight';
+    return 'Obese';
+  }
+
   // Helper: Level progress (0.0 to 1.0)
   double get levelProgress {
-    final xpForNextLevel = level * 100;
     final xpInCurrentLevel = xpPoints % 100;
-    return xpInCurrentLevel / xpForNextLevel;
+    return xpInCurrentLevel / 100;
+  }
+
+  // Helper: XP needed for next level
+  int get xpNeededForNextLevel {
+    final xpInCurrentLevel = xpPoints % 100;
+    return 100 - xpInCurrentLevel;
   }
 
   // Copy with
@@ -110,10 +110,10 @@ class UserModel {
     String? username,
     String? email,
     String? profilePictureUrl,
-    DateTime? dateOfBirth,
+    int? age,
+    String? gender,
     double? height,
     double? currentWeight,
-    double? goalWeight,
     String? fitnessGoal,
     String? activityLevel,
     int? xpPoints,
@@ -126,10 +126,10 @@ class UserModel {
       username: username ?? this.username,
       email: email ?? this.email,
       profilePictureUrl: profilePictureUrl ?? this.profilePictureUrl,
-      dateOfBirth: dateOfBirth ?? this.dateOfBirth,
+      age: age ?? this.age,
+      gender: gender ?? this.gender,
       height: height ?? this.height,
       currentWeight: currentWeight ?? this.currentWeight,
-      goalWeight: goalWeight ?? this.goalWeight,
       fitnessGoal: fitnessGoal ?? this.fitnessGoal,
       activityLevel: activityLevel ?? this.activityLevel,
       xpPoints: xpPoints ?? this.xpPoints,
@@ -137,5 +137,10 @@ class UserModel {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
+  }
+
+  @override
+  String toString() {
+    return 'UserModel(userId: $userId, username: $username, email: $email, age: $age, gender: $gender)';
   }
 }

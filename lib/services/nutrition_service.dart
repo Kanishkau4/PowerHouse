@@ -1,3 +1,4 @@
+import 'package:powerhouse/models/recipe_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:powerhouse/core/config/supabase_config.dart';
 import 'package:powerhouse/models/food_item_model.dart';
@@ -214,4 +215,59 @@ class NutritionService {
       };
     }
   }
+
+  // Add these methods to the existing NutritionService class
+
+// ========== GET RECIPES ==========
+Future<List<RecipeModel>> getRecipes({int limit = 20}) async {
+  try {
+    final response = await _supabase
+        .from('recipes')
+        .select()
+        .order('created_at', ascending: false)
+        .limit(limit);
+
+    return (response as List)
+        .map((json) => RecipeModel.fromJson(json))
+        .toList();
+  } catch (e) {
+    print('❌ Error getting recipes: $e');
+    return [];
+  }
+}
+
+// ========== GET SRI LANKAN RECIPES ==========
+Future<List<RecipeModel>> getSriLankanRecipes({int limit = 20}) async {
+  try {
+    final response = await _supabase
+        .from('recipes')
+        .select()
+        .eq('is_sri_lankan', true)
+        .order('created_at', ascending: false)
+        .limit(limit);
+
+    return (response as List)
+        .map((json) => RecipeModel.fromJson(json))
+        .toList();
+  } catch (e) {
+    print('❌ Error getting Sri Lankan recipes: $e');
+    return [];
+  }
+}
+
+// ========== GET RECIPE BY ID ==========
+Future<RecipeModel?> getRecipeById(String recipeId) async {
+  try {
+    final response = await _supabase
+        .from('recipes')
+        .select()
+        .eq('recipe_id', recipeId)
+        .single();
+
+    return RecipeModel.fromJson(response);
+  } catch (e) {
+    print('❌ Error getting recipe: $e');
+    return null;
+  }
+}
 }

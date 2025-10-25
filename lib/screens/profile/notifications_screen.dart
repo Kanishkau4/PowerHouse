@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:powerhouse/services/user_service.dart';
+import 'package:powerhouse/models/user_model.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({Key? key}) : super(key: key);
@@ -8,6 +10,8 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
+  final _userService = UserService();
+  
   // Notification settings
   bool _workoutReminders = true;
   bool _mealReminders = true;
@@ -19,9 +23,61 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   String _workoutReminderTime = '07:00 AM';
   String _mealReminderTime = '12:00 PM';
+  
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNotificationSettings();
+  }
+
+  Future<void> _loadNotificationSettings() async {
+    try {
+      final user = await _userService.getCurrentUserProfile();
+      if (user != null) {
+        // In a real app, these settings would be stored in the database
+        // For now, we'll use default values
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading notification settings: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _saveNotificationSettings() async {
+    // In a real app, these settings would be saved to the database
+    // For now, we'll just show a success message
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('✅ Notification settings saved!'),
+          backgroundColor: Color(0xFF1DAB87),
+        ),
+      );
+      Navigator.pop(context);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: CircularProgressIndicator(
+            color: Color(0xFF1DAB87),
+          ),
+        ),
+      );
+    }
+    
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -363,15 +419,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       width: double.infinity,
       height: 56,
       child: ElevatedButton(
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('✅ Notification settings saved!'),
-              backgroundColor: Color(0xFF1DAB87),
-            ),
-          );
-          Navigator.pop(context);
-        },
+        onPressed: _saveNotificationSettings,
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF1DAB87),
           foregroundColor: Colors.white,

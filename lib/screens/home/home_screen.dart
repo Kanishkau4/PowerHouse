@@ -21,9 +21,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // User data
   String userName = 'User';
-  int userLevel = 1;
-  int userXP = 0;
-  double levelProgress = 0.0;
   String? profilePictureUrl;
 
   // Daily progress
@@ -78,14 +75,9 @@ class _HomeScreenState extends State<HomeScreen> {
       final profile = await _userService.getCurrentUserProfile();
 
       if (profile != null) {
-        final progressStats = await _progressService.getUserProgressStats();
-
         setState(() {
           userName = profile.username;
-          userLevel = profile.level;
-          userXP = profile.xpPoints;
           profilePictureUrl = profile.profilePictureUrl;
-          levelProgress = progressStats['level_progress'] ?? 0.0;
         });
       }
     } catch (e) {
@@ -248,35 +240,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: Colors.black,
                 ),
                 overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 4),
-              // Level indicator
-              Row(
-                children: [
-                  const Icon(
-                    Icons.star,
-                    color: Color(0xFFF97316),
-                    size: 16,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Level $userLevel',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF1DAB87),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '$userXP XP',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF7E7E7E),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
               ),
             ],
           ),
@@ -850,7 +813,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // Refresh tasks
       await _loadDailyTasks();
-      await _loadUserProfile();
     } catch (e) {
       print('Error toggling task: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -938,6 +900,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // ==================== TASK TAP HANDLER ====================
+  void _onTaskTap(Map<String, dynamic> task) {
+    print('Task tapped: ${task['task_title']}');
+    // Handle task tap - could show task details or edit screen
+  }
+
   // ==================== HELPER METHODS ====================
 
   String _getGreeting() {
@@ -1000,18 +968,14 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
   } catch (e) {
-    Navigator.pop(context);
+    Navigator.pop(context); // Close loading
+    print('Error loading workout: $e');
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Error: ${e.toString()}'),
+      const SnackBar(
+        content: Text('Failed to load workout'),
         backgroundColor: Colors.red,
       ),
     );
   }
 }
-
-  void _onTaskTap(Map<String, dynamic> task) {
-    // Task details or quick actions
-    print('Task tapped: ${task['task_title']}');
-  }
 }
