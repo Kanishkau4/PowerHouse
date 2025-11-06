@@ -26,7 +26,7 @@ class WorkoutService {
     }
   }
 
-  // ========== GET WORKOUT BY ID WITH EXERCISES ==========
+  // ========== GET WORKOUT BY ID WITH EXERCISES (FIXED) ==========
   Future<WorkoutModel?> getWorkoutWithExercises(String workoutId) async {
     try {
       print('📦 Fetching workout: $workoutId');
@@ -42,10 +42,9 @@ class WorkoutService {
 
       final workout = WorkoutModel.fromJson(workoutResponse);
 
-      // Get exercises for this workout using a more robust approach
-      print('📦 Fetching exercises for workout...');
+      // Get exercises using Supabase's nested join feature
+      print('📦 Fetching exercises for workout using nested join...');
       
-      // First get the workout_exercises records with exercise details
       final workoutExercisesResponse = await _supabase
           .from('workout_exercises')
           .select('''
@@ -53,7 +52,15 @@ class WorkoutService {
             reps,
             duration,
             order_in_workout,
-            exercise_id
+            exercises (
+              exercise_id,
+              exercise_name,
+              description,
+              video_url,
+              animation_url,
+              muscle_group_targeted,
+              created_at
+            )
           ''')
           .eq('workout_id', workoutId)
           .order('order_in_workout');
@@ -65,51 +72,40 @@ class WorkoutService {
         return workout; // Return workout without exercises
       }
 
-      // Extract unique exercise IDs
-      final exerciseIds = (workoutExercisesResponse as List)
-          .map((item) => item['exercise_id'] as String)
-          .toSet()
-          .toList();
-
-      print('📦 Fetching exercise details for ${exerciseIds.length} unique exercises...');
-      
-      // Get the actual exercise details
-      final exercisesResponse = await _supabase
-          .from('exercises')
-          .select()
-          .inFilter('exercise_id', exerciseIds);
-
-      print('✅ Exercises details response: ${exercisesResponse.length} exercises found');
-
-      // Create a map for quick lookup of exercise details
-      final exerciseMap = <String, ExerciseModel>{};
-      for (var exerciseData in exercisesResponse as List) {
-        final exercise = ExerciseModel.fromJson(exerciseData as Map<String, dynamic>);
-        exerciseMap[exercise.exerciseId] = exercise;
-      }
-
-      // Combine workout_exercises data with exercise details
+      // Parse the joined data
       final exercises = <ExerciseWithDetails>[];
-      for (var workoutExercise in workoutExercisesResponse) {
-        final exerciseId = workoutExercise['exercise_id'] as String;
-        final exercise = exerciseMap[exerciseId];
-        
-        if (exercise != null) {
+      for (var item in workoutExercisesResponse as List) {
+        try {
+          // The exercise data is nested under 'exercises' key
+          final exerciseData = item['exercises'];
+          
+          if (exerciseData == null) {
+            print('⚠️ No exercise data found in item: $item');
+            continue;
+          }
+
+          // Create ExerciseModel from the nested data
+          final exercise = ExerciseModel.fromJson(exerciseData as Map<String, dynamic>);
+          
+          // Create ExerciseWithDetails combining exercise + workout_exercises data
           exercises.add(ExerciseWithDetails(
             exercise: exercise,
-            sets: workoutExercise['sets'] as int?,
-            reps: workoutExercise['reps'] as int?,
-            duration: workoutExercise['duration'] as int?,
-            orderInWorkout: workoutExercise['order_in_workout'] as int,
+            sets: item['sets'] as int?,
+            reps: item['reps'] as int?,
+            duration: item['duration'] as int?,
+            orderInWorkout: item['order_in_workout'] as int,
           ));
-        } else {
-          print('⚠️ Exercise data not found for exercise_id: $exerciseId');
+          
+          print('✅ Added exercise: ${exercise.exerciseName}');
+        } catch (e) {
+          print('❌ Error parsing exercise item: $e');
+          print('Item data: $item');
         }
       }
 
-      print('✅ Successfully combined ${exercises.length} exercises');
+      print('✅ Successfully parsed ${exercises.length} exercises');
 
-      // Sort exercises by order_in_workout to ensure correct sequence
+      // Sort by order just to be safe
       exercises.sort((a, b) => a.orderInWorkout.compareTo(b.orderInWorkout));
 
       return workout.copyWithExercises(exercises);
@@ -219,19 +215,17 @@ class WorkoutService {
     }
   }
 
-  // ========== GET TOTAL WORKOUT COUNT (FIXED) ==========
+  // ========== GET TOTAL WORKOUT COUNT ==========
   Future<int> getTotalWorkoutCount() async {
     try {
       final userId = SupabaseConfig.currentUserId;
       if (userId == null) return 0;
 
-      // Modern way to count in Supabase
       final response = await _supabase
           .from('workout_logs')
           .select('log_id')
           .eq('user_id', userId);
 
-      // Simply return the length of the response
       return (response as List).length;
     } catch (e) {
       print('❌ Error getting workout count: $e');

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart'; // Add this import
 import 'package:powerhouse/screens/workouts/workout_detail_screen.dart';
 import 'package:powerhouse/services/user_service.dart';
 import 'package:powerhouse/services/workout_service.dart';
@@ -12,7 +13,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   // Services
   final _userService = UserService();
   final _workoutService = WorkoutService();
@@ -276,21 +277,21 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildProfileFallback() {
-  return Image.asset(
-    'assets/images/profile_male.png',
-    fit: BoxFit.cover,
-    errorBuilder: (context, error, stackTrace) {
-      return Container(
-        color: const Color(0xFF1DAB87),
-        child: const Icon(
-          Icons.person,
-          color: Colors.white,
-          size: 30,
-        ),
-      );
-    },
-  );
-}
+    return Image.asset(
+      'assets/images/profile_male.png',
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        return Container(
+          color: const Color(0xFF1DAB87),
+          child: const Icon(
+            Icons.person,
+            color: Colors.white,
+            size: 30,
+          ),
+        );
+      },
+    );
+  }
 
   // ==================== MY PLAN CARD ====================
   Widget _buildPlanCard() {
@@ -824,78 +825,129 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // ==================== SHOW LEVEL UP DIALOG ====================
+  // ==================== SHOW LEVEL UP DIALOG (WITH LOTTIE ANIMATIONS) ====================
   void _showLevelUpDialog(int newLevel) {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(25),
-        ),
-        child: Container(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1DAB87).withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.star,
-                  size: 60,
-                  color: Color(0xFFF97316),
-                ),
+      builder: (context) => Stack(
+        children: [
+          // Dialog content
+          Dialog(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            child: Container(
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(25),
               ),
-              const SizedBox(height: 24),
-              const Text(
-                '🎉 LEVEL UP! 🎉',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF1DAB87),
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'You are now Level $newLevel!',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1DAB87),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Star/Trophy Lottie Animation
+                  SizedBox(
+                    width: 200,
+                    height: 200,
+                    child: Lottie.asset(
+                      'assets/animations/Star.json',
+                      fit: BoxFit.contain,
+                      repeat: true,
+                    ),
                   ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 16,
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Title
+                  const Text(
+                    '🎉 LEVEL UP! 🎉',
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF1DAB87),
+                    ),
+                    textAlign: TextAlign.center,
                   ),
-                ),
-                child: const Text(
-                  'Awesome!',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Level info
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF1DAB87), Color(0xFF2DD4A3)],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      'You are now Level $newLevel!',
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
-                ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Motivational message
+                  const Text(
+                    'Keep crushing your goals!',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF7E7E7E),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  
+                  const SizedBox(height: 32),
+                  
+                  // Action button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1DAB87),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(28),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        'Awesome!',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
+          
+          // Confetti Lottie Animation (Full screen overlay)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Lottie.asset(
+                'assets/animations/Confetti.json',
+                fit: BoxFit.cover,
+                repeat: false,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -934,48 +986,48 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onWorkoutTap(Map<String, dynamic> workout) async {
-  print('Workout tapped: ${workout['title']}');
+    print('Workout tapped: ${workout['title']}');
 
-  // Show loading
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (context) => const Center(
-      child: CircularProgressIndicator(color: Color(0xFF1DAB87)),
-    ),
-  );
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: Color(0xFF1DAB87)),
+      ),
+    );
 
-  try {
-    // Fetch full workout details from database
-    final workoutId = workout['workout_id'] as String;
-    final fullWorkout = await _workoutService.getWorkoutWithExercises(workoutId);
+    try {
+      // Fetch full workout details from database
+      final workoutId = workout['workout_id'] as String;
+      final fullWorkout = await _workoutService.getWorkoutWithExercises(workoutId);
 
-    Navigator.pop(context); // Close loading
+      Navigator.pop(context); // Close loading
 
-    if (fullWorkout != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => WorkoutDetailScreen(workout: fullWorkout),
-        ),
-      );
-    } else {
+      if (fullWorkout != null) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => WorkoutDetailScreen(workout: fullWorkout),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to load workout details'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      Navigator.pop(context); // Close loading
+      print('Error loading workout: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Failed to load workout details'),
+          content: Text('Failed to load workout'),
           backgroundColor: Colors.red,
         ),
       );
     }
-  } catch (e) {
-    Navigator.pop(context); // Close loading
-    print('Error loading workout: $e');
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Failed to load workout'),
-        backgroundColor: Colors.red,
-      ),
-    );
   }
-}
 }

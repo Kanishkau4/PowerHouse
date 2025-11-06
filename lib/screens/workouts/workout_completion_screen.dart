@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:confetti/confetti.dart';
+import 'package:lottie/lottie.dart'; // Changed from confetti to lottie
 import 'dart:async';
 import 'package:powerhouse/models/workout_model.dart';
 import 'package:powerhouse/services/workout_service.dart';
@@ -25,26 +25,22 @@ class WorkoutCompletionScreen extends StatefulWidget {
 
 class _WorkoutCompletionScreenState extends State<WorkoutCompletionScreen>
     with TickerProviderStateMixin {
-  late ConfettiController _confettiController;
   late AnimationController _scaleController;
   late AnimationController _xpController;
+  late AnimationController _lottieController; // For trophy animation
   late Animation<double> _scaleAnimation;
   late Animation<double> _xpAnimation;
 
   final _workoutService = WorkoutService();
 
   int earnedXP = 0;
-  int maxXP = 100; // XP needed for next level
+  int maxXP = 100;
   bool _isSaving = false;
   bool _dataSaved = false;
 
   @override
   void initState() {
     super.initState();
-
-    _confettiController = ConfettiController(
-      duration: const Duration(seconds: 3),
-    );
 
     _scaleController = AnimationController(
       duration: const Duration(milliseconds: 800),
@@ -64,13 +60,18 @@ class _WorkoutCompletionScreenState extends State<WorkoutCompletionScreen>
       end: 0.5,
     ).animate(CurvedAnimation(parent: _xpController, curve: Curves.easeOut));
 
+    _lottieController = AnimationController(
+      duration: const Duration(seconds: 2),
+      vsync: this,
+    );
+
     // Save workout and award XP
     _saveWorkoutCompletion();
 
     // Start animations
     Timer(const Duration(milliseconds: 300), () {
-      _confettiController.play();
       _scaleController.forward();
+      _lottieController.forward();
     });
   }
 
@@ -93,7 +94,7 @@ class _WorkoutCompletionScreenState extends State<WorkoutCompletionScreen>
 
       setState(() {
         earnedXP = result['xp_added'] ?? 0;
-        maxXP = 100; // Fixed for now
+        maxXP = 100;
         _dataSaved = true;
       });
 
@@ -133,80 +134,133 @@ class _WorkoutCompletionScreenState extends State<WorkoutCompletionScreen>
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-        child: Container(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1DAB87).withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.star,
-                  size: 60,
-                  color: Color(0xFFF97316),
-                ),
+      builder: (context) => Stack(
+        children: [
+          // Dialog content
+          Dialog(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            child: Container(
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(25),
               ),
-              const SizedBox(height: 24),
-              const Text(
-                '🎉 LEVEL UP! 🎉',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF1DAB87),
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'You are now Level $newLevel!',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1DAB87),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Star/Trophy Lottie Animation
+                  SizedBox(
+                    width: 200,
+                    height: 200,
+                    child: Lottie.asset(
+                      'assets/animations/Star.json',
+                      fit: BoxFit.contain,
+                      repeat: true,
+                    ),
                   ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 16,
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Title
+                  const Text(
+                    '🎉 LEVEL UP! 🎉',
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF1DAB87),
+                    ),
+                    textAlign: TextAlign.center,
                   ),
-                ),
-                child: const Text(
-                  'Awesome!',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Level info
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF1DAB87), Color(0xFF2DD4A3)],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      'You are now Level $newLevel!',
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
-                ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Motivational message
+                  const Text(
+                    'Keep crushing your goals!',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF7E7E7E),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  
+                  const SizedBox(height: 32),
+                  
+                  // Action button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1DAB87),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(28),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        'Awesome!',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
+          
+          // Confetti Lottie Animation (Full screen overlay)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Lottie.asset(
+                'assets/animations/Confetti.json',
+                fit: BoxFit.cover,
+                repeat: false,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   @override
   void dispose() {
-    _confettiController.dispose();
     _scaleController.dispose();
     _xpController.dispose();
+    _lottieController.dispose();
     super.dispose();
   }
 
@@ -216,7 +270,6 @@ class _WorkoutCompletionScreenState extends State<WorkoutCompletionScreen>
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
-  @override
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -237,7 +290,7 @@ class _WorkoutCompletionScreenState extends State<WorkoutCompletionScreen>
                         children: [
                           const SizedBox(height: 36),
 
-                          // Trophy Animation
+                          // Trophy Animation (Lottie)
                           _buildTrophySection(),
 
                           const SizedBox(height: 40),
@@ -286,22 +339,18 @@ class _WorkoutCompletionScreenState extends State<WorkoutCompletionScreen>
                   ),
                 ),
 
-                // Confetti (top-aligned, doesn't affect layout)
-                Align(
-                  alignment: Alignment.topCenter,
-                  child: ConfettiWidget(
-                    confettiController: _confettiController,
-                    blastDirection: 3.14 / 2, // Down
-                    emissionFrequency: 0.05,
-                    numberOfParticles: 20,
-                    gravity: 0.3,
-                    colors: const [
-                      Color(0xFF1DAB87),
-                      Color(0xFFFF844B),
-                      Color(0xFF6C63FF),
-                      Colors.yellow,
-                      Colors.pink,
-                    ],
+                // Confetti Lottie Animation (overlay)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: Lottie.asset(
+                      'assets/animations/Confetti.json',
+                      fit: BoxFit.cover,
+                      repeat: false,
+                      controller: _lottieController,
+                      onLoaded: (composition) {
+                        _lottieController.duration = composition.duration;
+                      },
+                    ),
                   ),
                 ),
               ],
@@ -312,28 +361,17 @@ class _WorkoutCompletionScreenState extends State<WorkoutCompletionScreen>
     );
   }
 
-  // ==================== TROPHY SECTION ====================
+  // ==================== TROPHY SECTION (LOTTIE) ====================
   Widget _buildTrophySection() {
     return ScaleTransition(
       scale: _scaleAnimation,
       child: Container(
-        width: 180,
-        height: 180,
-        decoration: BoxDecoration(
-          color: const Color(0xFFFFF9E6),
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFFFFD700).withOpacity(0.3),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        child: const Icon(
-          Icons.emoji_events,
-          size: 100,
-          color: Color(0xFFFFD700),
+        width: 250,
+        height: 250,
+        child: Lottie.asset(
+          'assets/animations/Trophy.json',
+          fit: BoxFit.contain,
+          repeat: true,
         ),
       ),
     );
@@ -518,12 +556,11 @@ class _WorkoutCompletionScreenState extends State<WorkoutCompletionScreen>
   }
 
   // ==================== HANDLERS ====================
-
   void _onStartNextWorkout() {
     // Navigate to next workout or workout selection
     Navigator.popUntil(context, (route) => route.isFirst);
     // Then navigate to workouts screen
-    // Navigator.pushNamed(context, '/workouts');
+    Navigator.pushNamed(context, '/workouts');
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -536,5 +573,6 @@ class _WorkoutCompletionScreenState extends State<WorkoutCompletionScreen>
   void _onBackToHome() {
     // Navigate back to home screen
     Navigator.popUntil(context, (route) => route.isFirst);
+    Navigator.pushNamed(context, '/home');
   }
 }

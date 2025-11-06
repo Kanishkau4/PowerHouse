@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:powerhouse/services/auth_service.dart';
 
 class OnboardScreen extends StatelessWidget {
   const OnboardScreen({super.key});
@@ -148,9 +149,8 @@ class OnboardScreen extends StatelessWidget {
   Widget _buildGoogleSignInButton(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        // TODO: Implement Google Sign-In
-        print('Google Sign-In tapped');
-        _showComingSoonDialog(context, 'Google Sign-In');
+        // Implement Google Sign-In
+        _handleGoogleSignIn(context);
       },
       child: Container(
         width: double.infinity,
@@ -255,5 +255,39 @@ class OnboardScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  // Handle Google Sign-In
+  void _handleGoogleSignIn(BuildContext context) async {
+    try {
+      final authService = AuthService();
+      final success = await authService.signInWithGoogle();
+      
+      if (success) {
+        // Navigate to next step or home screen
+        // The actual navigation will be handled by the auth state listener
+        // Show a loading indicator or success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Redirecting to Google...'),
+            backgroundColor: Color(0xFF1DAB87),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Google sign in failed. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 }

@@ -30,6 +30,10 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
   Timer? _exerciseTimer;
   int _secondsRemaining = 0;
 
+  // Check if current exercise is duration-based or reps-based
+  bool get _isDurationBased => exercises[_currentExerciseIndex].duration != null && 
+                                exercises[_currentExerciseIndex].duration! > 0;
+
   // Text-to-Speech
   final FlutterTts _tts = FlutterTts();
 
@@ -44,7 +48,6 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
     super.initState();
 
     if (exercises.isEmpty) {
-      // No exercises, go back
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -94,22 +97,26 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
     final exercise = exercises[_currentExerciseIndex].exercise;
     await Future.delayed(const Duration(milliseconds: 500));
     if (_isVoiceEnabled) {
-      await _tts.speak("${exercise.exerciseName}. Let's go!");
+      if (_isDurationBased) {
+        await _tts.speak("${exercise.exerciseName}. ${_secondsRemaining} seconds. Let's go!");
+      } else {
+        await _tts.speak("${exercise.exerciseName}. $_targetReps reps. Let's go!");
+      }
     }
   }
 
   void _initializeExercise() {
     final currentExercise = exercises[_currentExerciseIndex];
 
-    // Set target reps
+    // Set target reps (for reps-based exercises)
     _targetReps = currentExercise.reps ?? 12;
     _currentReps = 0;
 
-    // Set duration if available
+    // Set duration (for duration-based exercises)
     _secondsRemaining = currentExercise.duration ?? 0;
 
-    // Start timer if duration-based
-    if (_secondsRemaining > 0) {
+    // Start timer ONLY if duration-based
+    if (_isDurationBased) {
       _startExerciseTimer();
     }
   }
@@ -133,13 +140,18 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
         if (_isVoiceEnabled) {
           _tts.speak("Exercise complete!");
         }
-        _showExerciseCompleteDialog();
+        // Auto-proceed to next exercise
+        Future.delayed(const Duration(milliseconds: 1000), () {
+          _nextExercise();
+        });
       }
     });
   }
 
   // Enhanced rep increment with voice
   void _incrementReps() {
+    if (_isDurationBased) return; // Don't increment reps for duration-based exercises
+
     if (_currentReps < _targetReps) {
       setState(() {
         _currentReps++;
@@ -157,7 +169,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
           Future.delayed(const Duration(milliseconds: 500), () {
             _tts.speak("Halfway there! Keep going!");
           });
-        } else if (_currentReps == _targetReps - 3) {
+        } else if (_currentReps == _targetReps - 3 && _targetReps > 3) {
           Future.delayed(const Duration(milliseconds: 500), () {
             _tts.speak("Almost done! Three more!");
           });
@@ -169,13 +181,15 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
           _tts.speak("Exercise complete! Great job!");
         }
         Future.delayed(const Duration(milliseconds: 1500), () {
-          _showExerciseCompleteDialog();
+          _nextExercise();
         });
       }
     }
   }
 
   void _decrementReps() {
+    if (_isDurationBased) return; // Don't decrement reps for duration-based exercises
+
     if (_currentReps > 0) {
       setState(() {
         _currentReps--;
@@ -183,6 +197,18 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
       if (_isVoiceEnabled) {
         _tts.speak(_currentReps.toString());
       }
+    }
+  }
+
+  // Add 20 seconds to timer (for duration-based exercises)
+  void _addTime() {
+    if (!_isDurationBased) return;
+
+    setState(() {
+      _secondsRemaining += 20;
+    });
+    if (_isVoiceEnabled) {
+      _tts.speak("Added 20 seconds");
     }
   }
 
@@ -253,7 +279,15 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
   }
 
   double get _repProgress {
-    return _currentReps / _targetReps;
+    if (_isDurationBased) {
+      // For duration-based: show progress based on time elapsed
+      final totalDuration = exercises[_currentExerciseIndex].duration ?? 1;
+      final elapsed = totalDuration - _secondsRemaining;
+      return (elapsed / totalDuration).clamp(0.0, 1.0);
+    } else {
+      // For reps-based: show progress based on reps completed
+      return _currentReps / _targetReps;
+    }
   }
 
   String get _progressText {
@@ -311,12 +345,15 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
 
                   const SizedBox(height: 24),
 
-                  // Rep Counter / Timer Circle
-                  _buildRepCounter(),
+                  // CONDITIONAL: Show either Timer Circle OR Rep Counter
+                  if (_isDurationBased)
+                    _buildTimerCircle()
+                  else
+                    _buildRepCounter(),
 
                   const SizedBox(height: 32),
 
-                  // Control Buttons
+                  // Control Buttons (conditional based on exercise type)
                   _buildControlButtons(),
 
                   const SizedBox(height: 24),
@@ -473,33 +510,61 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
                     ),
             ),
 
-            // Timer Display (if timed exercise)
-            if (_secondsRemaining > 0)
-              Positioned(
-                bottom: 20,
-                left: 0,
-                right: 0,
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      _timeText,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF1DAB87),
+            // Exercise Info Badge at bottom
+            Positioned(
+              bottom: 20,
+              left: 20,
+              right: 20,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (_isDurationBased) ...[
+                      const Icon(Icons.timer, color: Color(0xFF1DAB87), size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        exerciseDetails.durationFormatted,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1DAB87),
+                        ),
                       ),
-                    ),
-                  ),
+                    ] else ...[
+                      const Icon(Icons.repeat, color: Color(0xFF1DAB87), size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${exerciseDetails.reps} reps',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1DAB87),
+                        ),
+                      ),
+                      if (exerciseDetails.sets != null) ...[
+                        const SizedBox(width: 8),
+                        Text(
+                          'x ${exerciseDetails.sets}',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF7E7E7E),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ],
                 ),
               ),
+            ),
           ],
         ),
       ),
@@ -521,7 +586,49 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
     );
   }
 
-  // ==================== REP COUNTER ====================
+  // ==================== TIMER CIRCLE (for duration-based exercises) ====================
+  Widget _buildTimerCircle() {
+    return GestureDetector(
+      onTap: () {
+        // Optional: tap to pause
+        _togglePause();
+      },
+      child: CustomPaint(
+        size: const Size(200, 200),
+        painter: RepCounterPainter(progress: _repProgress),
+        child: SizedBox(
+          width: 200,
+          height: 200,
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  _timeText,
+                  style: const TextStyle(
+                    fontSize: 56,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF1DAB87),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'remaining',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ==================== REP COUNTER (for reps-based exercises) ====================
   Widget _buildRepCounter() {
     return GestureDetector(
       onTap: _incrementReps,
@@ -531,11 +638,11 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
           return Transform.scale(
             scale: _repScaleAnimation.value,
             child: CustomPaint(
-              size: const Size(140, 140),
+              size: const Size(200, 200),
               painter: RepCounterPainter(progress: _repProgress),
               child: SizedBox(
-                width: 140,
-                height: 140,
+                width: 200,
+                height: 200,
                 child: Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -543,7 +650,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
                       Text(
                         _currentReps.toString(),
                         style: const TextStyle(
-                          fontSize: 56,
+                          fontSize: 72,
                           fontWeight: FontWeight.w800,
                           color: Color(0xFF1DAB87),
                         ),
@@ -551,7 +658,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
                       Text(
                         '/ $_targetReps',
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: 20,
                           fontWeight: FontWeight.w600,
                           color: Colors.grey.shade600,
                         ),
@@ -569,60 +676,94 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
 
   // ==================== CONTROL BUTTONS ====================
   Widget _buildControlButtons() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 40.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Decrease Reps
-          IconButton(
-            onPressed: _decrementReps,
-            icon: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: const Color(0xFFB2E5D8),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.remove,
-                color: Color(0xFF1DAB87),
-              ),
-            ),
-          ),
-
-          const SizedBox(width: 20),
-
-          // Tap to Count Text
-          Text(
-            'Tap circle to count',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade600,
-            ),
-          ),
-
-          const SizedBox(width: 20),
-
-          // Increase Reps
-          IconButton(
-            onPressed: _incrementReps,
-            icon: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: const Color(0xFF1DAB87),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.add,
-                color: Colors.white,
+    if (_isDurationBased) {
+      // For duration-based: Show "Add Time" button
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 40.0),
+        child: Column(
+          children: [
+            ElevatedButton.icon(
+              onPressed: _addTime,
+              icon: const Icon(Icons.add_circle_outline),
+              label: const Text('Add 20s'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFB2E5D8),
+                foregroundColor: const Color(0xFF1DAB87),
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
               ),
             ),
-          ),
-        ],
-      ),
-    );
+            const SizedBox(height: 12),
+            Text(
+              'Tap to pause/resume',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      // For reps-based: Show increment/decrement buttons
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 40.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Decrease Reps
+            IconButton(
+              onPressed: _decrementReps,
+              icon: Container(
+                width: 40,
+                height: 40,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFB2E5D8),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.remove,
+                  color: Color(0xFF1DAB87),
+                ),
+              ),
+            ),
+
+            const SizedBox(width: 20),
+
+            // Tap to Count Text
+            Text(
+              'Tap circle to count',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+              ),
+            ),
+
+            const SizedBox(width: 20),
+
+            // Increase Reps
+            IconButton(
+              onPressed: _incrementReps,
+              icon: Container(
+                width: 40,
+                height: 40,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF1DAB87),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.add,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   // ==================== NAVIGATION BUTTONS ====================
@@ -705,73 +846,6 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
   }
 
   // ==================== DIALOGS ====================
-
-  void _showExerciseCompleteDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        title: const Text(
-          '✅ Exercise Complete!',
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.check_circle,
-              size: 80,
-              color: Color(0xFF1DAB87),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Great job on ${exercises[_currentExerciseIndex].exercise.exerciseName}!',
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 16),
-            ),
-          ],
-        ),
-        actions: [
-          if (_currentExerciseIndex < exercises.length - 1)
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _nextExercise();
-              },
-              child: const Text(
-                'Next Exercise',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1DAB87),
-                ),
-              ),
-            )
-          else
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _showWorkoutCompleteDialog();
-              },
-              child: const Text(
-                'Finish Workout',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1DAB87),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
 
   void _showWorkoutCompleteDialog() {
     if (_isVoiceEnabled) {
