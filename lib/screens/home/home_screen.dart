@@ -6,7 +6,7 @@ import 'package:powerhouse/services/daily_tasks_service.dart';
 import 'package:powerhouse/services/progress_service.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();

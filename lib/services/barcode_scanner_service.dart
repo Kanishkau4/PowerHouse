@@ -1,4 +1,3 @@
-import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:powerhouse/models/food_item_model.dart';

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class WeightScreen extends StatefulWidget {
-  const WeightScreen({Key? key}) : super(key: key);
+  const WeightScreen({super.key});
 
   @override
   State<WeightScreen> createState() => _WeightScreenState();

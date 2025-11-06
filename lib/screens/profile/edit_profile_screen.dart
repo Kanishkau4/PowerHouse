@@ -6,7 +6,7 @@ import 'package:powerhouse/core/constants/goals.dart'; // ← Add this import
 import 'dart:io';
 
 class EditProfileScreen extends StatefulWidget {
-  const EditProfileScreen({Key? key}) : super(key: key);
+  const EditProfileScreen({super.key});
 
   @override
   State<EditProfileScreen> createState() => _EditProfileScreenState();
@@ -589,7 +589,7 @@ Future<void> _saveProfile() async {
     };
 
     return DropdownButtonFormField<String>(
-      value: _selectedGoal,
+      initialValue: _selectedGoal,
       decoration: InputDecoration(
         labelText: 'Primary Goal',
         labelStyle: const TextStyle(color: Color(0xFF7E7E7E)),
@@ -775,7 +775,7 @@ Future<void> _saveProfile() async {
     required void Function(String?) onChanged,
   }) {
     return DropdownButtonFormField<String>(
-      value: value,
+      initialValue: value,
       decoration: InputDecoration(
         labelText: label,
         labelStyle: const TextStyle(color: Color(0xFF7E7E7E)),

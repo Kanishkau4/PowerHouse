@@ -5,7 +5,7 @@ import 'package:powerhouse/services/user_service.dart';
 import 'package:powerhouse/models/workout_model.dart';
 
 class WorkoutsScreen extends StatefulWidget {
-  const WorkoutsScreen({Key? key}) : super(key: key);
+  const WorkoutsScreen({super.key});
 
   @override
   State<WorkoutsScreen> createState() => _WorkoutsScreenState();

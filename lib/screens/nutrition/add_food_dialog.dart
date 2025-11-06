@@ -10,9 +10,9 @@ class AddFoodDialog extends StatefulWidget {
   final String mealType;
 
   const AddFoodDialog({
-    Key? key,
+    super.key,
     required this.mealType,
-  }) : super(key: key);
+  });
 
   @override
   State<AddFoodDialog> createState() => _AddFoodDialogState();

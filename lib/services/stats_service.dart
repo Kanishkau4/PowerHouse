@@ -35,9 +35,6 @@ class StatsService {
           .select('calories_burned')
           .eq('user_id', userId);
 
-      // In newer versions of Supabase, the response is directly the data
-      if (response == null) return 0;
-
       final List<dynamic> data = response as List<dynamic>;
       return data.fold<int>(0, (sum, item) {
         if (item is Map<String, dynamic> && item['calories_burned'] is int) {
@@ -101,12 +98,9 @@ class StatsService {
           .select('xp_points')
           .eq('user_id', userId)
           .single();
-
-      // For single record queries, the response is directly the data
-      if (response == null) return 0;
       
       // When using single(), the response is a Map<String, dynamic>
-      final data = response as Map<String, dynamic>;
+      final data = response;
       return data['xp_points'] as int? ?? 0;
     } catch (e) {
       print('Error getting total XP earned: $e');

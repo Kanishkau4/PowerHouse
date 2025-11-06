@@ -6,9 +6,9 @@ class WorkoutDetailScreen extends StatefulWidget {
   final WorkoutModel workout;
 
   const WorkoutDetailScreen({
-    Key? key,
+    super.key,
     required this.workout,
-  }) : super(key: key);
+  });
 
   @override
   State<WorkoutDetailScreen> createState() => _WorkoutDetailScreenState();
@@ -327,7 +327,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
               padding: const EdgeInsets.only(bottom: 16),
               child: _buildExerciseItem(exerciseDetails, index),
             );
-          }).toList(),
+          }),
         ],
       ),
     );

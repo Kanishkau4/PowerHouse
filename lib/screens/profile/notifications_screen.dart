@@ -3,7 +3,7 @@ import 'package:powerhouse/services/user_service.dart';
 import 'package:powerhouse/models/user_model.dart';
 
 class NotificationsScreen extends StatefulWidget {
-  const NotificationsScreen({Key? key}) : super(key: key);
+  const NotificationsScreen({super.key});
 
   @override
   State<NotificationsScreen> createState() => _NotificationsScreenState();
@@ -328,7 +328,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: const Color(0xFF1DAB87),
+            activeThumbColor: const Color(0xFF1DAB87),
           ),
         ],
       ),

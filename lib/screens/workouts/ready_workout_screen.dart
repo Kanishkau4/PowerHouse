@@ -9,10 +9,10 @@ class ReadyWorkoutScreen extends StatefulWidget {
   final int countdownSeconds;
 
   const ReadyWorkoutScreen({
-    Key? key,
+    super.key,
     required this.workout,
     this.countdownSeconds = 10,
-  }) : super(key: key);
+  });
 
   @override
   State<ReadyWorkoutScreen> createState() => _ReadyWorkoutScreenState();

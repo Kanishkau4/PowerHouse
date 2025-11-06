@@ -11,7 +11,7 @@ import 'package:powerhouse/core/config/supabase_config.dart';
 import 'dart:math' as math;
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({Key? key}) : super(key: key);
+  const ProfileScreen({super.key});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -331,7 +331,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             icon: Icons.monitor_weight_outlined,
             label: 'Weight',
             value: _userProfile?.currentWeight != null 
-                ? '${_userProfile!.currentWeight!.toStringAsFixed(1)}' 
+                ? _userProfile!.currentWeight!.toStringAsFixed(1) 
                 : 'N/A',
             unit: 'kg',
           ),
@@ -342,7 +342,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             icon: Icons.height,
             label: 'Height',
             value: _userProfile?.height != null 
-                ? '${_userProfile!.height!.toStringAsFixed(0)}' 
+                ? _userProfile!.height!.toStringAsFixed(0) 
                 : 'N/A',
             unit: 'cm',
           ),

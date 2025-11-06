@@ -6,9 +6,11 @@ import 'package:powerhouse/screens/nutrition/recipe_detail_screen.dart';
 import 'package:powerhouse/screens/profile/profile_screen.dart';
 import 'package:powerhouse/services/nutrition_service.dart';
 import 'package:powerhouse/models/recipe_model.dart';
+import 'package:powerhouse/models/user_model.dart';
+import 'package:powerhouse/services/user_service.dart';
 
 class NutritionScreen extends StatefulWidget {
-  const NutritionScreen({Key? key}) : super(key: key);
+  const NutritionScreen({super.key});
 
   @override
   State<NutritionScreen> createState() => _NutritionScreenState();
@@ -16,6 +18,7 @@ class NutritionScreen extends StatefulWidget {
 
 class _NutritionScreenState extends State<NutritionScreen> {
   final _nutritionService = NutritionService();
+  UserModel? _userProfile;
 
   DateTime selectedDate = DateTime.now();
 
@@ -55,10 +58,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
       _isLoading = true;
     });
 
-    await Future.wait([
-      _loadFoodLogs(),
-      _loadRecipes(),
-    ]);
+    await Future.wait([_loadFoodLogs(), _loadRecipes(), _loadUserProfile()]);
 
     setState(() {
       _isLoading = false;
@@ -67,7 +67,9 @@ class _NutritionScreenState extends State<NutritionScreen> {
 
   Future<void> _loadFoodLogs() async {
     try {
-      print('📦 Loading food logs for ${DateFormat('yyyy-MM-dd').format(selectedDate)}');
+      print(
+        '📦 Loading food logs for ${DateFormat('yyyy-MM-dd').format(selectedDate)}',
+      );
 
       // Get food logs for selected date
       final logs = await _nutritionService.getFoodLogsByDate(selectedDate);
@@ -81,12 +83,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
       consumedProtein = 0;
 
       // Reset meals
-      mealsByType = {
-        'Breakfast': [],
-        'Lunch': [],
-        'Dinner': [],
-        'Snack': [],
-      };
+      mealsByType = {'Breakfast': [], 'Lunch': [], 'Dinner': [], 'Snack': []};
 
       // Group logs by meal type and calculate totals
       for (var log in logs) {
@@ -133,8 +130,10 @@ class _NutritionScreenState extends State<NutritionScreen> {
   Future<void> _loadRecipes() async {
     try {
       print('📦 Loading recipes...');
-      final loadedRecipes = await _nutritionService.getSriLankanRecipes(limit: 5);
-      
+      final loadedRecipes = await _nutritionService.getSriLankanRecipes(
+        limit: 5,
+      );
+
       setState(() {
         recipes = loadedRecipes;
       });
@@ -145,11 +144,25 @@ class _NutritionScreenState extends State<NutritionScreen> {
     }
   }
 
+  Future<void> _loadUserProfile() async {
+    try {
+      final profile = await UserService().getCurrentUserProfile();
+      setState(() {
+        _userProfile = profile;
+      });
+    } catch (e) {
+      print('❌ Error loading user profile: $e');
+      // Optionally set a default or leave as null
+    }
+  }
+
   // Calculate percentages
-  double get calorieProgress => (consumedCalories / targetCalories).clamp(0.0, 1.0);
+  double get calorieProgress =>
+      (consumedCalories / targetCalories).clamp(0.0, 1.0);
   double get carbsProgress => (consumedCarbs / targetCarbs).clamp(0.0, 1.0);
   double get fatProgress => (consumedFat / targetFat).clamp(0.0, 1.0);
-  double get proteinProgress => (consumedProtein / targetProtein).clamp(0.0, 1.0);
+  double get proteinProgress =>
+      (consumedProtein / targetProtein).clamp(0.0, 1.0);
 
   @override
   Widget build(BuildContext context) {
@@ -169,17 +182,17 @@ class _NutritionScreenState extends State<NutritionScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 20),
-                      
+
                       // Header
                       _buildHeader(),
-                      
+
                       const SizedBox(height: 16),
-                      
+
                       // Date Selector
                       _buildDateSelector(),
-                      
+
                       const SizedBox(height: 24),
-                      
+
                       if (_isLoading)
                         const Center(
                           child: Padding(
@@ -192,34 +205,36 @@ class _NutritionScreenState extends State<NutritionScreen> {
                       else ...[
                         // Calorie Donut Chart
                         _buildCalorieChart(),
-                        
+
                         const SizedBox(height: 24),
-                        
+
                         // Macros Breakdown
                         _buildMacrosBreakdown(),
-                        
+
                         const SizedBox(height: 32),
-                        
+
                         // Today's Meals Section
                         _buildSectionTitle('Today\'s Meals', ''),
-                        
+
                         const SizedBox(height: 16),
-                        
+
                         // Meal Cards
-                        ...['Breakfast', 'Lunch', 'Dinner', 'Snack'].map((mealType) {
+                        ...['Breakfast', 'Lunch', 'Dinner', 'Snack'].map((
+                          mealType,
+                        ) {
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 16),
                             child: _buildMealCard(mealType),
                           );
-                        }).toList(),
-                        
+                        }),
+
                         const SizedBox(height: 16),
-                        
+
                         // Recipe of the Day Section
                         _buildSectionTitle('Recipe of the Day', 'See all'),
-                        
+
                         const SizedBox(height: 16),
-                        
+
                         // Recipe Cards
                         if (recipes.isEmpty)
                           _buildNoRecipesMessage()
@@ -229,22 +244,18 @@ class _NutritionScreenState extends State<NutritionScreen> {
                               padding: const EdgeInsets.only(bottom: 16),
                               child: _buildRecipeCard(recipe),
                             );
-                          }).toList(),
+                          }),
                       ],
-                      
+
                       const SizedBox(height: 100), // Space for FAB
                     ],
                   ),
                 ),
               ),
             ),
-            
+
             // Floating Action Button (Add Food)
-            Positioned(
-              bottom: 20,
-              right: 20,
-              child: _buildAddButton(),
-            ),
+            Positioned(bottom: 20, right: 20, child: _buildAddButton()),
           ],
         ),
       ),
@@ -271,15 +282,38 @@ class _NutritionScreenState extends State<NutritionScreen> {
             height: 50,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(
-                color: const Color(0xFF1DAB87),
-                width: 2,
-              ),
+              border: Border.all(color: const Color(0xFF1DAB87), width: 2),
             ),
-            child: const Icon(
-              Icons.person,
-              color: Color(0xFF1DAB87),
-              size: 30,
+            child: ClipOval(
+              child: _userProfile?.profilePictureUrl != null
+                  ? Image.network(
+                      _userProfile!.profilePictureUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: const Color(0xFF1DAB87),
+                          child: const Icon(
+                            Icons.person,
+                            color: Colors.white,
+                            size: 30,
+                          ),
+                        );
+                      },
+                    )
+                  : Image.asset(
+                      'assets/images/profile_male.png',
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: const Color(0xFF1DAB87),
+                          child: const Icon(
+                            Icons.person,
+                            color: Colors.white,
+                            size: 30,
+                          ),
+                        );
+                      },
+                    ),
             ),
           ),
         ),
@@ -289,7 +323,8 @@ class _NutritionScreenState extends State<NutritionScreen> {
 
   // ==================== DATE SELECTOR ====================
   Widget _buildDateSelector() {
-    final isToday = DateFormat('yyyy-MM-dd').format(selectedDate) ==
+    final isToday =
+        DateFormat('yyyy-MM-dd').format(selectedDate) ==
         DateFormat('yyyy-MM-dd').format(DateTime.now());
 
     return Row(
@@ -352,7 +387,10 @@ class _NutritionScreenState extends State<NutritionScreen> {
                     showTitle: false,
                   ),
                   PieChartSectionData(
-                    value: (targetCalories - consumedCalories).toDouble().clamp(0, targetCalories.toDouble()),
+                    value: (targetCalories - consumedCalories).toDouble().clamp(
+                      0,
+                      targetCalories.toDouble(),
+                    ),
                     color: const Color(0xFFE0E0E0),
                     radius: 20,
                     showTitle: false,
@@ -360,7 +398,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
                 ],
               ),
             ),
-            
+
             // Center Text
             Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -444,7 +482,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
     IconData icon,
   ) {
     final progress = (consumed / target).clamp(0.0, 1.0);
-    
+
     return Container(
       height: 96,
       padding: const EdgeInsets.all(12),
@@ -544,9 +582,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0x21979797),
-        ),
+        border: Border.all(color: const Color(0x21979797)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
@@ -581,7 +617,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          
+
           // Food Items
           if (mealItems.isEmpty)
             Center(
@@ -589,10 +625,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Text(
                   'No items added',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade600,
-                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                 ),
               ),
             )
@@ -605,7 +638,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
                 );
               }).toList(),
             ),
-          
+
           // Add More Button
           GestureDetector(
             onTap: () => _onAddFoodToMeal(mealType),
@@ -714,9 +747,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: const Color(0x21979797),
-          ),
+          border: Border.all(color: const Color(0x21979797)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.1),
@@ -763,7 +794,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
                           ),
                   ),
                 ),
-                
+
                 // Play Button
                 if (recipe.videoUrl != null)
                   Positioned(
@@ -792,7 +823,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
                   ),
               ],
             ),
-            
+
             // Recipe Info
             Padding(
               padding: const EdgeInsets.all(12),
@@ -833,18 +864,11 @@ class _NutritionScreenState extends State<NutritionScreen> {
         padding: const EdgeInsets.all(40.0),
         child: Column(
           children: [
-            Icon(
-              Icons.restaurant_menu,
-              size: 60,
-              color: Colors.grey.shade300,
-            ),
+            Icon(Icons.restaurant_menu, size: 60, color: Colors.grey.shade300),
             const SizedBox(height: 16),
             Text(
               'No recipes available',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey.shade600,
-              ),
+              style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
             ),
           ],
         ),
@@ -857,16 +881,12 @@ class _NutritionScreenState extends State<NutritionScreen> {
     return FloatingActionButton(
       onPressed: () => _onAddFood(),
       backgroundColor: const Color(0xFF1DAB87),
-      child: const Icon(
-        Icons.add,
-        size: 32,
-        color: Colors.white,
-      ),
+      child: const Icon(Icons.add, size: 32, color: Colors.white),
     );
   }
 
   // ==================== HANDLERS ====================
-  
+
   void _onProfileTap() {
     print('Profile tapped');
     Navigator.push(
@@ -887,9 +907,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => const AddFoodDialog(
-        mealType: 'Breakfast',
-      ),
+      builder: (context) => const AddFoodDialog(mealType: 'Breakfast'),
     ).then((_) {
       // Refresh data when dialog closes
       _loadData();
@@ -901,9 +919,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => AddFoodDialog(
-        mealType: mealType,
-      ),
+      builder: (context) => AddFoodDialog(mealType: mealType),
     ).then((_) {
       // Refresh data when dialog closes
       _loadData();
@@ -923,10 +939,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text(
-              'Delete',
-              style: TextStyle(color: Colors.red),
-            ),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),

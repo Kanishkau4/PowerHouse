@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class HeightScreen extends StatefulWidget {
-  const HeightScreen({Key? key}) : super(key: key);
+  const HeightScreen({super.key});
 
   @override
   State<HeightScreen> createState() => _HeightScreenState();

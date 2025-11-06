@@ -11,12 +11,12 @@ class WorkoutCompletionScreen extends StatefulWidget {
   final Duration workoutDuration;
 
   const WorkoutCompletionScreen({
-    Key? key,
+    super.key,
     required this.workout,
     this.workoutsCompleted = 1,
     this.caloriesBurned = 320,
     required this.workoutDuration,
-  }) : super(key: key);
+  });
 
   @override
   State<WorkoutCompletionScreen> createState() =>

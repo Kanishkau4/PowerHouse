@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:powerhouse/services/auth_service.dart';
 
 class CongratulationsScreen extends StatefulWidget {
-  const CongratulationsScreen({Key? key}) : super(key: key);
+  const CongratulationsScreen({super.key});
 
   @override
   State<CongratulationsScreen> createState() => _CongratulationsScreenState();

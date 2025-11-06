@@ -9,11 +9,11 @@ class RestScreen extends StatefulWidget {
   final VoidCallback onRestComplete;
 
   const RestScreen({
-    Key? key,
+    super.key,
     required this.nextExercise,
     this.restSeconds = 30,
     required this.onRestComplete,
-  }) : super(key: key);
+  });
 
   @override
   State<RestScreen> createState() => _RestScreenState();

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({Key? key}) : super(key: key);
+  const SplashScreen({super.key});
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
@@ -16,17 +16,20 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
+
     controller = AnimationController(vsync: this);
 
+    // Set speed and play once (no repeat)
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      controller.repeat(min: 0, max: 50, period: const Duration(seconds: 2));
+      controller.duration = const Duration(seconds: 4); // slower animation (x0.5 roughly)
+      controller.forward(); // play once
     });
 
     _navigateToWelcome();
   }
 
   _navigateToWelcome() async {
-    await Future.delayed(const Duration(seconds: 3));
+    await Future.delayed(const Duration(seconds: 4)); // increase splash duration
     if (mounted) {
       Navigator.pushReplacementNamed(context, '/welcome');
     }
@@ -44,9 +47,14 @@ class _SplashScreenState extends State<SplashScreen>
       backgroundColor: const Color(0xFF1DAB87),
       body: Center(
         child: Lottie.asset(
-          'assets/animations/splash_screen.json',
-          width: 300,
-          height: 300,
+          'assets/animations/Muscle.json',
+          controller: controller, // attach controller
+          onLoaded: (composition) {
+            controller.duration = composition.duration * 2; // slow down (x0.5)
+            controller.forward();
+          },
+          width: 100,
+          height: 100,
         ),
       ),
     );

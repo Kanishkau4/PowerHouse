@@ -3,7 +3,7 @@ import 'package:powerhouse/services/auth_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SignInScreen extends StatefulWidget {
-  const SignInScreen({Key? key}) : super(key: key);
+  const SignInScreen({super.key});
 
   @override
   State<SignInScreen> createState() => _SignInScreenState();
@@ -110,7 +110,7 @@ class _SignInScreenState extends State<SignInScreen> {
       children: [
         GestureDetector(
           onTap: () => Navigator.pop(context),
-          child: Container(
+          child: SizedBox(
             width: 40,
             height: 40,
             child: Image.asset(

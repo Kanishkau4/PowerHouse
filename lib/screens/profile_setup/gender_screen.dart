@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class GenderScreen extends StatefulWidget {
-  const GenderScreen({Key? key}) : super(key: key);
+  const GenderScreen({super.key});
 
   @override
   State<GenderScreen> createState() => _GenderScreenState();
@@ -191,13 +191,13 @@ class GenderButtonWithImage extends StatelessWidget {
   final VoidCallback onTap;
 
   const GenderButtonWithImage({
-    Key? key,
+    super.key,
     required this.imagePath,
     required this.fallbackIcon,
     required this.label,
     required this.isSelected,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

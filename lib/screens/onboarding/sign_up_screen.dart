@@ -3,7 +3,7 @@ import 'package:powerhouse/services/auth_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SignUpScreen extends StatefulWidget {
-  const SignUpScreen({Key? key}) : super(key: key);
+  const SignUpScreen({super.key});
 
   @override
   State<SignUpScreen> createState() => _SignUpScreenState();
@@ -140,7 +140,7 @@ Widget _buildTopBar(BuildContext context) {
       // Back Button with Custom Icon
       GestureDetector(
         onTap: () => Navigator.pop(context),
-        child: Container(
+        child: SizedBox(
           width: 40,
           height: 40,
           child: Image.asset(

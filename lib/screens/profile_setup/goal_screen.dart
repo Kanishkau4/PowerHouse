@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class GoalScreen extends StatefulWidget {
-  const GoalScreen({Key? key}) : super(key: key);
+  const GoalScreen({super.key});
 
   @override
   State<GoalScreen> createState() => _GoalScreenState();

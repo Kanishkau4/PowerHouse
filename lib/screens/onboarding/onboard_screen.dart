@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class OnboardScreen extends StatelessWidget {
-  const OnboardScreen({Key? key}) : super(key: key);
+  const OnboardScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -73,27 +73,32 @@ class OnboardScreen extends StatelessWidget {
 
   // Gradient Title Widget
   Widget _buildGradientTitle() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      decoration: BoxDecoration(
-        // Removed gradient and set background to white
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        'PowerHouse',
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          // Added black stroke using shadows for better compatibility
-          fontSize: 42,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0,
-          foreground: Paint()
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 1
-            ..color = Colors.black,
+    return Stack(
+      children: [
+        // Outline text
+        Text(
+          'PowerHouse',
+          style: TextStyle(
+            fontSize: 48,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -2,
+            foreground: Paint()
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 2
+              ..color = const Color.fromARGB(255, 0, 0, 0),
+          ),
         ),
-      ),
+        // Solid text
+        const Text(
+          'PowerHouse',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 48,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -2,
+          ),
+        ),
+      ],
     );
   }
 

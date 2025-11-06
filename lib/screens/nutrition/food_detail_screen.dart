@@ -8,10 +8,10 @@ class FoodDetailScreen extends StatefulWidget {
   final String mealType;
 
   const FoodDetailScreen({
-    Key? key,
+    super.key,
     required this.food,
     required this.mealType,
-  }) : super(key: key);
+  });
 
   @override
   State<FoodDetailScreen> createState() => _FoodDetailScreenState();

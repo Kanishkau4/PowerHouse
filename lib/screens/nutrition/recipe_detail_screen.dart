@@ -6,9 +6,9 @@ class RecipeDetailScreen extends StatelessWidget {
   final RecipeModel recipe;
 
   const RecipeDetailScreen({
-    Key? key,
+    super.key,
     required this.recipe,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -169,7 +169,7 @@ class RecipeDetailScreen extends StatelessWidget {
                         ],
                       ),
                     );
-                  }).toList(),
+                  }),
 
                   const SizedBox(height: 32),
 
@@ -219,7 +219,7 @@ class RecipeDetailScreen extends StatelessWidget {
                         ],
                       ),
                     );
-                  }).toList(),
+                  }),
 
                   const SizedBox(height: 40),
                 ],

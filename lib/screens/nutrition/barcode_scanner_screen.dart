@@ -7,9 +7,9 @@ class BarcodeScannerScreen extends StatefulWidget {
   final String mealType;
 
   const BarcodeScannerScreen({
-    Key? key,
+    super.key,
     required this.mealType,
-  }) : super(key: key);
+  });
 
   @override
   State<BarcodeScannerScreen> createState() => _BarcodeScannerScreenState();

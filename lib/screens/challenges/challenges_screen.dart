@@ -9,7 +9,7 @@ import 'package:powerhouse/models/user_badge_model.dart';
 import 'package:powerhouse/models/badge_model.dart';
 
 class ChallengesScreen extends StatefulWidget {
-  const ChallengesScreen({Key? key}) : super(key: key);
+  const ChallengesScreen({super.key});
 
   @override
   State<ChallengesScreen> createState() => _ChallengesScreenState();
@@ -285,7 +285,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                   padding: const EdgeInsets.only(bottom: 16),
                   child: _buildActiveChallengeCard(userChallenge),
                 );
-              }).toList(),
+              }),
             
             const SizedBox(height: 24),
             
@@ -303,7 +303,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                   padding: const EdgeInsets.only(bottom: 12),
                   child: _buildAvailableChallengeCard(challenge),
                 );
-              }).toList(),
+              }),
             
             const SizedBox(height: 24),
             
@@ -363,7 +363,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                   profilePictureUrl: user.profilePictureUrl,
                   isCurrentUser: isCurrentUser,
                 );
-              }).toList(),
+              }),
             ],
             
             const SizedBox(height: 40),

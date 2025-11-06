@@ -6,7 +6,7 @@ import 'package:powerhouse/screens/challenges/challenges_screen.dart';
 import 'package:powerhouse/screens/profile/profile_screen.dart';
 
 class MainNavigation extends StatefulWidget {
-  const MainNavigation({Key? key}) : super(key: key);
+  const MainNavigation({super.key});
 
   @override
   State<MainNavigation> createState() => _MainNavigationState();
