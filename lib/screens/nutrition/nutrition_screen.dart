@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:powerhouse/core/theme/theme_extensions.dart';
 import 'package:intl/intl.dart';
 import 'package:powerhouse/screens/nutrition/add_food_dialog.dart';
 import 'package:powerhouse/screens/nutrition/recipe_detail_screen.dart';
@@ -167,7 +168,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.surfaceColor,
       body: SafeArea(
         child: Stack(
           children: [
@@ -267,12 +268,12 @@ class _NutritionScreenState extends State<NutritionScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const Text(
+        Text(
           'Nutrition',
           style: TextStyle(
             fontSize: 32,
             fontWeight: FontWeight.w800,
-            color: Colors.black,
+            color: context.primaryText,
           ),
         ),
         GestureDetector(
@@ -405,10 +406,10 @@ class _NutritionScreenState extends State<NutritionScreen> {
               children: [
                 Text(
                   consumedCalories.toString(),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.w800,
-                    color: Colors.black,
+                    color: context.primaryText,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -547,10 +548,10 @@ class _NutritionScreenState extends State<NutritionScreen> {
       children: [
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w700,
-            color: Colors.black,
+            color: context.primaryText,
           ),
         ),
         if (actionText.isNotEmpty)

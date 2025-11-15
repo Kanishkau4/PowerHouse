@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:powerhouse/core/theme/theme_extensions.dart';
 
 class GoalScreen extends StatefulWidget {
   const GoalScreen({super.key});
@@ -40,7 +41,7 @@ class _GoalScreenState extends State<GoalScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.surfaceColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 30.0),

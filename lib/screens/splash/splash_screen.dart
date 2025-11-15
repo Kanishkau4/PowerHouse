@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:powerhouse/core/theme/theme_extensions.dart';
 // ignore: depend_on_referenced_packages
 import 'package:lottie/lottie.dart';
 

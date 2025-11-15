@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:powerhouse/core/theme/theme_extensions.dart';
 
 class WeightScreen extends StatefulWidget {
   const WeightScreen({super.key});
@@ -39,7 +40,7 @@ class _WeightScreenState extends State<WeightScreen> {
  @override
 Widget build(BuildContext context) {
   return Scaffold(
-    backgroundColor: Colors.white,
+    backgroundColor: context.surfaceColor,
     body: SafeArea(
       child: LayoutBuilder(
         builder: (context, constraints) {

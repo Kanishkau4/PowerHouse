@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:powerhouse/core/theme/theme_extensions.dart';
 import 'dart:math' as math;
 import 'package:powerhouse/services/auth_service.dart';
 
@@ -53,7 +54,7 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.surfaceColor,
       body: SafeArea(
         child: Stack(
           children: [

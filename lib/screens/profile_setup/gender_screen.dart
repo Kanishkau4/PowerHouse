@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:powerhouse/core/theme/theme_extensions.dart';
 
 class GenderScreen extends StatefulWidget {
   const GenderScreen({super.key});
@@ -13,7 +14,7 @@ class _GenderScreenState extends State<GenderScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.surfaceColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 30.0),

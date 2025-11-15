@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart'; // Add this import
+import 'package:powerhouse/core/theme/theme_extensions.dart';
 import 'package:powerhouse/screens/workouts/workout_detail_screen.dart';
 import 'package:powerhouse/services/user_service.dart';
 import 'package:powerhouse/services/workout_service.dart';
@@ -155,11 +156,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.surfaceColor,
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _refreshData,
-          color: const Color(0xFF1DAB87),
+          color: context.primaryText,
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             child: Padding(
@@ -235,10 +236,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               const SizedBox(height: 4),
               Text(
                 userName,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.w800,
-                  color: Colors.black,
+                  color: context.primaryText
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -402,10 +403,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       children: [
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w800,
-            color: Colors.black,
+            color: context.primaryText
           ),
         ),
         if (actionText.isNotEmpty)
@@ -860,7 +861,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   
                   // Title
                   const Text(
-                    '🎉 LEVEL UP! 🎉',
+                    'LEVEL UP!',
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.w800,

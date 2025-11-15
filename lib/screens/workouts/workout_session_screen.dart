@@ -98,7 +98,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
     await Future.delayed(const Duration(milliseconds: 500));
     if (_isVoiceEnabled) {
       if (_isDurationBased) {
-        await _tts.speak("${exercise.exerciseName}. ${_secondsRemaining} seconds. Let's go!");
+        await _tts.speak("${exercise.exerciseName}. $_secondsRemaining seconds. Let's go!");
       } else {
         await _tts.speak("${exercise.exerciseName}. $_targetReps reps. Let's go!");
       }

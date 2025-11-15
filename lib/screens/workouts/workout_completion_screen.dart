@@ -164,7 +164,7 @@ class _WorkoutCompletionScreenState extends State<WorkoutCompletionScreen>
                   
                   // Title
                   const Text(
-                    '🎉 LEVEL UP! 🎉',
+                    'LEVEL UP!',
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.w800,
@@ -365,7 +365,7 @@ class _WorkoutCompletionScreenState extends State<WorkoutCompletionScreen>
   Widget _buildTrophySection() {
     return ScaleTransition(
       scale: _scaleAnimation,
-      child: Container(
+      child: SizedBox(
         width: 250,
         height: 250,
         child: Lottie.asset(

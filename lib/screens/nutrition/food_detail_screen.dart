@@ -579,7 +579,7 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
                   
                   // Title
                   const Text(
-                    '🎉 LEVEL UP! 🎉',
+                    'LEVEL UP!',
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.w800,

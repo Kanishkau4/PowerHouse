@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:powerhouse/core/theme/theme_extensions.dart';
 import 'package:powerhouse/services/auth_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -37,7 +38,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.surfaceColor,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
@@ -53,10 +54,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   const SizedBox(height: 40),
                   
                   // Title
-                  const Text(
+                  Text(
                     'Create Account',
                     style: TextStyle(
-                      color: Colors.black,
+                      color: context.primaryText,
                       fontSize: 32,
                       fontWeight: FontWeight.w800,
                     ),
@@ -182,8 +183,8 @@ Widget _buildTopBar(BuildContext context) {
       children: [
         Text(
           label,
-          style: const TextStyle(
-            color: Colors.black,
+          style: TextStyle(
+            color: context.primaryText,
             fontSize: 18,
             fontWeight: FontWeight.w700,
           ),

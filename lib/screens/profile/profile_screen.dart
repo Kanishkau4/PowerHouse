@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:provider/provider.dart';
 import 'package:powerhouse/screens/profile/edit_profile_screen.dart';
 import 'package:powerhouse/screens/profile/help_support_screen.dart';
 import 'package:powerhouse/screens/profile/notifications_screen.dart';
@@ -8,6 +9,8 @@ import 'package:powerhouse/services/badge_service.dart';
 import 'package:powerhouse/models/user_model.dart';
 import 'package:powerhouse/models/user_badge_model.dart';
 import 'package:powerhouse/core/config/supabase_config.dart';
+import 'package:powerhouse/core/constants/badge_icons.dart';
+import 'package:powerhouse/core/theme/theme_provider.dart';
 import 'dart:math' as math;
 
 class ProfileScreen extends StatefulWidget {
@@ -30,7 +33,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   List<FlSpot> _chartData = [];
   
   // Settings
-  bool isDarkMode = false;
   String selectedLanguage = 'English';
   
   // Loading state
@@ -54,6 +56,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // Load user badges
       final badges = await _badgeService.getUserBadges();
       
+      print('✅ Loaded ${badges.length} badges for user');
+      
       setState(() {
         _userProfile = profile;
         _userBadges = badges;
@@ -69,15 +73,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _generateBMIChartData() {
-    // Generate BMI chart data for the last 7 days
-    // In a real app, this would come from weight history in database
     final List<FlSpot> data = [];
     final currentBMI = _userProfile?.bmi ?? 22.0;
     final random = math.Random();
     
     for (int i = 0; i < 7; i++) {
-      // Generate slight variations around current BMI
-      final variation = (random.nextDouble() - 0.5) * 2; // -1 to +1
+      final variation = (random.nextDouble() - 0.5) * 2;
       final bmi = (currentBMI + variation).clamp(15.0, 35.0);
       data.add(FlSpot(i.toDouble(), bmi));
     }
@@ -89,10 +90,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Provider.of<ThemeProvider>(context).isDarkMode;
+    final theme = Theme.of(context);
+    
     if (_isLoading) {
-      return const Scaffold(
-        backgroundColor: Colors.white,
-        body: Center(
+      return Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        body: const Center(
           child: CircularProgressIndicator(
             color: Color(0xFF1DAB87),
           ),
@@ -101,7 +105,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
     
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
@@ -109,63 +113,57 @@ class _ProfileScreenState extends State<ProfileScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 24),
-              
-              // Profile Picture & Info
-              _buildProfileHeader(),
-              
+              _buildProfileHeader(isDarkMode),
               const SizedBox(height: 32),
               
-              // Stats Overview
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Stats Overview',
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w600,
-                        color: Colors.black,
+                        color: isDarkMode ? Colors.white : Colors.black,
                       ),
                     ),
                     const SizedBox(height: 16),
-                    _buildStatsCards(),
+                    _buildStatsCards(isDarkMode),
                   ],
                 ),
               ),
               
               const SizedBox(height: 32),
               
-              // BMI Progress Chart
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'BMI Trend',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w600,
-                        color: Colors.black,
+                        color: isDarkMode ? Colors.white : Colors.black,
                       ),
                     ),
                     const SizedBox(height: 16),
-                    _buildBMIChart(),
+                    _buildBMIChart(isDarkMode),
                   ],
                 ),
               ),
               
               const SizedBox(height: 32),
               
-              // Settings Section
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: _buildSettingsSection(),
+                child: _buildSettingsSection(isDarkMode),
               ),
               
-              const SizedBox(height: 100), // Space for bottom nav
+              const SizedBox(height: 100),
             ],
           ),
         ),
@@ -174,10 +172,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // ==================== PROFILE HEADER ====================
-  Widget _buildProfileHeader() {
+  Widget _buildProfileHeader(bool isDarkMode) {
     return Column(
       children: [
-        // Profile Picture
         Container(
           width: 150,
           height: 150,
@@ -210,28 +207,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
         
         const SizedBox(height: 16),
         
-        // User Name
         Text(
           _userProfile?.username ?? 'User',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.w600,
-            color: Colors.black,
+            color: isDarkMode ? Colors.white : Colors.black,
           ),
         ),
         
         const SizedBox(height: 8),
         
-        // Level and XP Text
         Text.rich(
           TextSpan(
             children: [
-              const TextSpan(
+              TextSpan(
                 text: 'Level ',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: Colors.black,
+                  color: isDarkMode ? Colors.white70 : Colors.black,
                 ),
               ),
               TextSpan(
@@ -242,12 +237,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   color: Color(0xFF1DAB87),
                 ),
               ),
-              const TextSpan(
+              TextSpan(
                 text: ' • ',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: Colors.black,
+                  color: isDarkMode ? Colors.white70 : Colors.black,
                 ),
               ),
               TextSpan(
@@ -264,7 +259,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         
         const SizedBox(height: 12),
         
-        // Level Progress Bar
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 60),
           child: Stack(
@@ -272,7 +266,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Container(
                 height: 8,
                 decoration: BoxDecoration(
-                  color: const Color(0x9ED9D9D9),
+                  color: isDarkMode 
+                      ? Colors.grey.shade800 
+                      : const Color(0x9ED9D9D9),
                   borderRadius: BorderRadius.circular(20),
                 ),
               ),
@@ -323,7 +319,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // ==================== STATS CARDS ====================
-  Widget _buildStatsCards() {
+  Widget _buildStatsCards(bool isDarkMode) {
     return Row(
       children: [
         Expanded(
@@ -334,6 +330,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ? _userProfile!.currentWeight!.toStringAsFixed(1) 
                 : 'N/A',
             unit: 'kg',
+            isDarkMode: isDarkMode,
           ),
         ),
         const SizedBox(width: 12),
@@ -345,6 +342,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ? _userProfile!.height!.toStringAsFixed(0) 
                 : 'N/A',
             unit: 'cm',
+            isDarkMode: isDarkMode,
           ),
         ),
         const SizedBox(width: 12),
@@ -356,6 +354,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ? _userProfile!.bmi!.toStringAsFixed(1)
                 : 'N/A',
             unit: '',
+            isDarkMode: isDarkMode,
           ),
         ),
       ],
@@ -367,16 +366,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required String label,
     required String value,
     required String unit,
+    required bool isDarkMode,
   }) {
     return Container(
       height: 100,
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.1),
             blurRadius: 4,
             offset: const Offset(0, 4),
           ),
@@ -410,10 +410,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Flexible(
                 child: Text(
                   value,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
-                    color: Colors.black,
+                    color: isDarkMode ? Colors.white : Colors.black,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -439,16 +439,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // ==================== BMI CHART ====================
-  Widget _buildBMIChart() {
+  Widget _buildBMIChart(bool isDarkMode) {
     if (_chartData.isEmpty) {
       return Container(
         height: 200,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.1),
               blurRadius: 4,
               offset: const Offset(0, 4),
             ),
@@ -470,11 +470,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       height: 220,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.1),
             blurRadius: 4,
             offset: const Offset(0, 4),
           ),
@@ -482,7 +482,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       child: Column(
         children: [
-          // Chart Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -555,7 +554,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           
           const SizedBox(height: 16),
           
-          // Line Chart
           Expanded(
             child: LineChart(
               LineChartData(
@@ -668,15 +666,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // ==================== SETTINGS SECTION ====================
-  Widget _buildSettingsSection() {
+  Widget _buildSettingsSection(bool isDarkMode) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0x26D9D9D9),
+        color: isDarkMode ? const Color(0xFF1E1E1E) : const Color(0x26D9D9D9),
         borderRadius: BorderRadius.circular(25),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.1),
             blurRadius: 4,
             offset: const Offset(0, 4),
           ),
@@ -688,12 +686,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             icon: Icons.edit_outlined,
             title: 'Edit Profile',
             onTap: () => _onEditProfile(),
+            isDarkMode: isDarkMode,
           ),
           const SizedBox(height: 16),
           _buildSettingsItem(
             icon: Icons.emoji_events_outlined,
             title: 'My Achievements / Badges',
             onTap: () => _onAchievements(),
+            isDarkMode: isDarkMode,
           ),
           const SizedBox(height: 16),
           _buildSettingsItem(
@@ -705,6 +705,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               size: 16,
               color: Color(0xFF979797),
             ),
+            isDarkMode: isDarkMode,
           ),
           const SizedBox(height: 16),
           _buildSettingsItem(
@@ -716,6 +717,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               size: 16,
               color: Color(0xFF979797),
             ),
+            isDarkMode: isDarkMode,
           ),
           const SizedBox(height: 16),
           _buildSettingsItem(
@@ -724,12 +726,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             trailing: _buildToggleSwitch(
               value: isDarkMode,
               onChanged: (value) {
-                setState(() {
-                  isDarkMode = value;
-                });
-                _onDarkModeToggle(value);
+                Provider.of<ThemeProvider>(context, listen: false).toggleTheme();
               },
             ),
+            isDarkMode: isDarkMode,
           ),
           const SizedBox(height: 16),
           _buildSettingsItem(
@@ -742,6 +742,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               size: 16,
               color: Color(0xFF979797),
             ),
+            isDarkMode: isDarkMode,
           ),
           const SizedBox(height: 16),
           _buildSettingsItem(
@@ -754,6 +755,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               color: Colors.red,
             ),
             titleColor: Colors.red,
+            isDarkMode: isDarkMode,
           ),
         ],
       ),
@@ -767,6 +769,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     VoidCallback? onTap,
     Widget? trailing,
     Color? titleColor,
+    required bool isDarkMode,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -795,7 +798,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: titleColor ?? Colors.black,
+                      color: titleColor ?? (isDarkMode ? Colors.white : Colors.black),
                     ),
                   ),
                   if (subtitle != null)
@@ -850,7 +853,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // ==================== HANDLERS ====================
 
   void _onAchievements() {
-    print('Achievements tapped');
+    print('🎯 Showing ${_userBadges.length} badges');
     _showAchievementsDialog();
   }
 
@@ -862,7 +865,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
     
-    // Reload profile if edited
     if (result == true) {
       _loadProfileData();
     }
@@ -886,38 +888,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _onDarkModeToggle(bool value) {
-    print('Dark mode: $value');
-    // TODO: Implement dark mode toggle
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(value ? 'Dark mode enabled' : 'Dark mode disabled'),
-        backgroundColor: const Color(0xFF1DAB87),
-        duration: const Duration(seconds: 1),
-      ),
-    );
-  }
-
   void _onLanguageSelect() {
-    print('Language select tapped');
     _showLanguageDialog();
   }
 
   void _onLogout() {
+    final isDarkMode = Provider.of<ThemeProvider>(context, listen: false).isDarkMode;
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
-        title: const Text(
+        title: Text(
           'Logout',
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w800,
+            color: isDarkMode ? Colors.white : Colors.black,
           ),
         ),
-        content: const Text('Are you sure you want to logout?'),
+        content: Text(
+          'Are you sure you want to logout?',
+          style: TextStyle(
+            color: isDarkMode ? Colors.white70 : Colors.black87,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -946,7 +944,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _handleLogout() async {
     try {
-      // Show loading
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -957,22 +954,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       );
 
-      // Sign out from Supabase
       await SupabaseConfig.client.auth.signOut();
 
-      // Close loading dialog
       if (mounted) Navigator.pop(context);
 
-      // Navigate to login/welcome screen
       if (mounted) {
         Navigator.pushNamedAndRemoveUntil(
           context,
-          '/welcome', // Change this to your welcome/login route
+          '/welcome',
           (route) => false,
         );
       }
     } catch (e) {
-      // Close loading dialog
       if (mounted) Navigator.pop(context);
       
       print('Logout error: $e');
@@ -988,15 +981,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showAchievementsDialog() {
+    final isDarkMode = Provider.of<ThemeProvider>(context, listen: false).isDarkMode;
+    
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.6,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.only(
+        height: MediaQuery.of(context).size.height * 0.7,
+        decoration: BoxDecoration(
+          color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+          borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(25),
             topRight: Radius.circular(25),
           ),
@@ -1013,32 +1008,67 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'My Achievements',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.w800,
+                color: isDarkMode ? Colors.white : Colors.black,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${_userBadges.length} badges earned',
+              style: const TextStyle(
+                fontSize: 14,
+                color: Color(0xFF7E7E7E),
               ),
             ),
             const SizedBox(height: 20),
             Expanded(
               child: _userBadges.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'No achievements yet!\nKeep working out to earn badges.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF7E7E7E),
-                        ),
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.emoji_events_outlined,
+                            size: 80,
+                            color: Colors.grey.shade300,
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'No achievements yet!',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF7E7E7E),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Keep working out to earn badges.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFF7E7E7E),
+                            ),
+                          ),
+                        ],
                       ),
                     )
-                  : GridView.count(
-                      crossAxisCount: 3,
+                  : GridView.builder(
                       padding: const EdgeInsets.all(20),
-                      children: _userBadges.map((userBadge) {
-                        return _buildAchievementBadge(userBadge);
-                      }).toList(),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        mainAxisSpacing: 20,
+                        crossAxisSpacing: 20,
+                        childAspectRatio: 0.8,
+                      ),
+                      itemCount: _userBadges.length,
+                      itemBuilder: (context, index) {
+                        return _buildAchievementBadge(_userBadges[index]);
+                      },
                     ),
             ),
           ],
@@ -1049,98 +1079,214 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildAchievementBadge(UserBadgeModel userBadge) {
     final badge = userBadge.badge;
-    if (badge == null) {
-      return Container(
-        width: 60,
-        height: 60,
-        decoration: const BoxDecoration(
-          color: Color(0xFFD9D9D9),
-          shape: BoxShape.circle,
-        ),
-        child: const Icon(
-          Icons.emoji_events_outlined,
-          color: Colors.grey,
-          size: 30,
-        ),
-      );
-    }
+    if (badge == null) return const SizedBox.shrink();
     
-    return Column(
-      children: [
-        Container(
-          width: 60,
-          height: 60,
-          decoration: BoxDecoration(
-            color: const Color(0xFF1DAB87),
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF1DAB87).withOpacity(0.3),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
+    // Try to get local asset path
+    final assetPath = BadgeIcons.getAssetPath(badge.badgeName);
+    
+    return GestureDetector(
+      onTap: () => _showBadgeDetail(badge),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 70,
+            height: 70,
+            decoration: BoxDecoration(
+              color: const Color(0xFF1DAB87),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF1DAB87).withOpacity(0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: assetPath != null
+                  ? Image.asset(
+                      assetPath,
+                      color: Colors.white,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(
+                          Icons.emoji_events,
+                          color: Colors.white,
+                          size: 35,
+                        );
+                      },
+                    )
+                  : (badge.iconUrl != null && badge.iconUrl!.isNotEmpty
+                      ? Image.network(
+                          badge.iconUrl!,
+                          color: Colors.white,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Icon(
+                              Icons.emoji_events,
+                              color: Colors.white,
+                              size: 35,
+                            );
+                          },
+                        )
+                      : const Icon(
+                          Icons.emoji_events,
+                          color: Colors.white,
+                          size: 35,
+                        )),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            badge.badgeName,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: Colors.black,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showBadgeDetail(dynamic badge) {
+    final isDarkMode = Provider.of<ThemeProvider>(context, listen: false).isDarkMode;
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: const BoxDecoration(
+                color: Color(0xFF1DAB87),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.emoji_events,
+                color: Colors.white,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                badge.badgeName,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: isDarkMode ? Colors.white : Colors.black,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              badge.description ?? 'Achievement unlocked!',
+              style: TextStyle(
+                fontSize: 14,
+                color: isDarkMode ? Colors.white70 : Colors.black87,
+              ),
+            ),
+            if (badge.requirementDescription != null) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1DAB87).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.check_circle,
+                      color: Color(0xFF1DAB87),
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        badge.requirementDescription,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF1DAB87),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
-          ),
-          child: badge.iconUrl != null
-              ? ClipOval(
-                  child: Image.network(
-                    badge.iconUrl!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return const Icon(
-                        Icons.emoji_events,
-                        color: Colors.white,
-                        size: 30,
-                      );
-                    },
-                  ),
-                )
-              : const Icon(
-                  Icons.emoji_events,
-                  color: Colors.white,
-                  size: 30,
-                ),
+          ],
         ),
-        const SizedBox(height: 8),
-        Text(
-          badge.badgeName,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: Colors.black,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Close',
+              style: TextStyle(
+                color: Color(0xFF1DAB87),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ],
+        ],
+      ),
     );
   }
 
   void _showLanguageDialog() {
+    final isDarkMode = Provider.of<ThemeProvider>(context, listen: false).isDarkMode;
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
-        title: const Text('Select Language'),
+        title: Text(
+          'Select Language',
+          style: TextStyle(
+            color: isDarkMode ? Colors.white : Colors.black,
+          ),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildLanguageOption('English'),
-            _buildLanguageOption('Sinhala'),
-            _buildLanguageOption('Tamil'),
+            _buildLanguageOption('English', isDarkMode),
+            _buildLanguageOption('Sinhala', isDarkMode),
+            _buildLanguageOption('Tamil', isDarkMode),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildLanguageOption(String language) {
+  Widget _buildLanguageOption(String language, bool isDarkMode) {
     final isSelected = selectedLanguage == language;
     return ListTile(
-      title: Text(language),
+      title: Text(
+        language,
+        style: TextStyle(
+          color: isDarkMode ? Colors.white : Colors.black,
+        ),
+      ),
       trailing: isSelected
           ? const Icon(Icons.check, color: Color(0xFF1DAB87))
           : null,

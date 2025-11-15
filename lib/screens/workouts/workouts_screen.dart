@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:powerhouse/core/theme/theme_extensions.dart';
 import 'package:powerhouse/screens/workouts/workout_detail_screen.dart';
 import 'package:powerhouse/services/workout_service.dart';
 import 'package:powerhouse/services/user_service.dart';
@@ -97,7 +98,7 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.surfaceColor,
       body: SafeArea(
         child: Column(
           children: [
@@ -142,12 +143,12 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text(
+          Text(
             'Workouts',
             style: TextStyle(
               fontSize: 32,
               fontWeight: FontWeight.w800,
-              color: Colors.black,
+              color: context.primaryText,
             ),
           ),
           GestureDetector(
@@ -289,7 +290,7 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w800,
-              color: isSelected ? Colors.white : Colors.black,
+              color: isSelected ? Colors.white : context.primaryText,
             ),
           ),
         ),
@@ -308,10 +309,10 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
             selectedCategoryIndex == 0
                 ? 'All Workouts'
                 : categories[selectedCategoryIndex],
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w800,
-              color: Colors.black,
+              color: context.primaryText,
             ),
           ),
           const SizedBox(height: 8),

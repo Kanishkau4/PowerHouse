@@ -56,6 +56,14 @@ dependencies:
   mobile_scanner: ^3.5.2
   http: ^1.1.0
 
+  shared_preferences: ^2.2.2
+  provider: ^6.1.1
+
+  # Health & Fitness Tracking
+  # health: ^10.0.0
+  # pedometer: ^4.0.1
+  # permission_handler: ^11.0.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

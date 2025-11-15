@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:powerhouse/models/workout_model.dart';
 import 'dart:math' as math;
-import 'package:powerhouse/screens/workouts/workout_detail_screen.dart';
 import 'package:powerhouse/screens/workouts/workout_session_screen.dart';
 
 class ReadyWorkoutScreen extends StatefulWidget {

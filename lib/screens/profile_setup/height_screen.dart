@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:powerhouse/core/theme/theme_extensions.dart';
 
 class HeightScreen extends StatefulWidget {
   const HeightScreen({super.key});
@@ -37,7 +38,7 @@ class _HeightScreenState extends State<HeightScreen> {
   @override
 Widget build(BuildContext context) {
   return Scaffold(
-    backgroundColor: Colors.white,
+    backgroundColor: context.surfaceColor,
     body: SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 30.0),
