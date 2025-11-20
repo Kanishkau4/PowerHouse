@@ -8,9 +8,9 @@ class BadgeUnlockScreen extends StatefulWidget {
   final BadgeModel badge;
 
   const BadgeUnlockScreen({
-    Key? key,
+    super.key,
     required this.badge,
-  }) : super(key: key);
+  });
 
   @override
   State<BadgeUnlockScreen> createState() => _BadgeUnlockScreenState();

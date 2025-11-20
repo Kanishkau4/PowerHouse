@@ -646,7 +646,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: const Color(0xFF1DAB87),
+            activeThumbColor: const Color(0xFF1DAB87),
           ),
         ],
       ),

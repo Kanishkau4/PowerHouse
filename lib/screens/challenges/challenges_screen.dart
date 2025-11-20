@@ -508,7 +508,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
             // Background Image
             ClipRRect(
               borderRadius: BorderRadius.circular(25),
-              child: Container(
+              child: SizedBox(
                 width: double.infinity,
                 height: double.infinity,
                 child:

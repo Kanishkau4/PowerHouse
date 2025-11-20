@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:powerhouse/core/theme/theme_extensions.dart';
+import 'package:powerhouse/widgets/circular_progress_button.dart';
 
 class GenderScreen extends StatefulWidget {
   const GenderScreen({super.key});
@@ -79,7 +80,7 @@ class _GenderScreenState extends State<GenderScreen> {
                 color: Colors.black,
                 fontSize: 48,
                 fontWeight: FontWeight.w800,
-                height: 1.1, 
+                height: 1.1,
               ),
             ),
             TextSpan(
@@ -132,40 +133,10 @@ class _GenderScreenState extends State<GenderScreen> {
     final bool isEnabled = selectedGender.isNotEmpty;
 
     return Center(
-      child: GestureDetector(
+      child: CircularProgressButton(
+        progress: 0.2, // 20% progress (step 1/5)
         onTap: isEnabled ? _handleNext : null,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                color: isEnabled
-                    ? const Color(0xFF1DAB87).withOpacity(0.3)
-                    : Colors.grey.withOpacity(0.2),
-                shape: BoxShape.circle,
-              ),
-            ),
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: isEnabled 
-                    ? const Color(0xFF1DAB87) 
-                    : Colors.grey,
-                shape: BoxShape.circle,
-              ),
-              child: const Center(
-                child: Icon(
-                  Icons.arrow_forward_ios,
-                  color: Colors.white,
-                  size: 32,
-                ),
-              ),
-            ),
-          ],
-        ),
+        isEnabled: isEnabled,
       ),
     );
   }
@@ -174,12 +145,8 @@ class _GenderScreenState extends State<GenderScreen> {
     if (selectedGender.isEmpty) return;
 
     print('Selected gender: $selectedGender');
-    
-    Navigator.pushNamed(
-      context,
-      '/age',
-      arguments: {'gender': selectedGender},
-    );
+
+    Navigator.pushNamed(context, '/age', arguments: {'gender': selectedGender});
   }
 }
 
@@ -202,11 +169,11 @@ class GenderButtonWithImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isSelected 
-        ? const Color(0xFFF15223) 
+    final color = isSelected
+        ? const Color(0xFFF15223)
         : const Color(0xFF7E7E7E);
-    final bgColor = isSelected 
-        ? const Color(0xFFF15223).withOpacity(0.1) 
+    final bgColor = isSelected
+        ? const Color(0xFFF15223).withOpacity(0.1)
         : Colors.white;
 
     return GestureDetector(
@@ -218,10 +185,7 @@ class GenderButtonWithImage extends StatelessWidget {
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(30),
-          border: Border.all(
-            color: color,
-            width: isSelected ? 2 : 1,
-          ),
+          border: Border.all(color: color, width: isSelected ? 2 : 1),
           boxShadow: isSelected
               ? [
                   BoxShadow(
@@ -242,11 +206,7 @@ class GenderButtonWithImage extends StatelessWidget {
               height: 60,
               color: color,
               errorBuilder: (context, error, stackTrace) {
-                return Icon(
-                  fallbackIcon,
-                  size: 60,
-                  color: color,
-                );
+                return Icon(fallbackIcon, size: 60, color: color);
               },
             ),
             const SizedBox(height: 8),

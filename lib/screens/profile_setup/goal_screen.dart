@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:powerhouse/core/theme/theme_extensions.dart';
+import 'package:powerhouse/widgets/circular_progress_button.dart';
 
 class GoalScreen extends StatefulWidget {
   const GoalScreen({super.key});
@@ -49,33 +50,34 @@ class _GoalScreenState extends State<GoalScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 40),
-              
+
               // Outline Title
               _buildOutlineTitle(),
-              
+
               const SizedBox(height: 60),
-              
+
               // Heading
               _buildHeading(),
-              
+
               const SizedBox(height: 60),
-              
+
               // Goal Cards
               Expanded(
                 child: ListView.separated(
                   itemCount: goals.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: 12),
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 12),
                   itemBuilder: (context, index) {
                     return _buildGoalCard(goals[index]);
                   },
                 ),
               ),
-              
+
               const SizedBox(height: 40),
-              
+
               // Next Button
               _buildNextButton(),
-              
+
               const SizedBox(height: 60),
             ],
           ),
@@ -157,14 +159,12 @@ class _GoalScreenState extends State<GoalScreen> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: isSelected 
+          color: isSelected
               ? const Color(0xFFF97316).withOpacity(0.1)
               : const Color(0xFFF3F3F3),
           borderRadius: BorderRadius.circular(19),
           border: Border.all(
-            color: isSelected 
-                ? const Color(0xFFF97316) 
-                : Colors.transparent,
+            color: isSelected ? const Color(0xFFF97316) : Colors.transparent,
             width: 2,
           ),
         ),
@@ -175,8 +175,8 @@ class _GoalScreenState extends State<GoalScreen> {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: isSelected 
-                    ? const Color(0xFFF97316) 
+                color: isSelected
+                    ? const Color(0xFFF97316)
                     : goal.color.withOpacity(0.2),
                 shape: BoxShape.circle,
               ),
@@ -186,9 +186,9 @@ class _GoalScreenState extends State<GoalScreen> {
                 size: 24,
               ),
             ),
-            
+
             const SizedBox(width: 16),
-            
+
             // Title
             Expanded(
               child: Text(
@@ -200,7 +200,7 @@ class _GoalScreenState extends State<GoalScreen> {
                 ),
               ),
             ),
-            
+
             // Checkmark
             if (isSelected)
               Container(
@@ -210,11 +210,7 @@ class _GoalScreenState extends State<GoalScreen> {
                   color: Color(0xFFF97316),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.check,
-                  color: Colors.white,
-                  size: 18,
-                ),
+                child: const Icon(Icons.check, color: Colors.white, size: 18),
               )
             else
               Container(
@@ -222,10 +218,7 @@ class _GoalScreenState extends State<GoalScreen> {
                 height: 28,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: const Color(0xFFD7D7D8),
-                    width: 2,
-                  ),
+                  border: Border.all(color: const Color(0xFFD7D7D8), width: 2),
                 ),
               ),
           ],
@@ -238,40 +231,10 @@ class _GoalScreenState extends State<GoalScreen> {
     final bool isEnabled = selectedGoal.isNotEmpty;
 
     return Center(
-      child: GestureDetector(
+      child: CircularProgressButton(
+        progress: 1.0, // 100% progress (step 5/5)
         onTap: isEnabled ? _handleNext : null,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                color: isEnabled
-                    ? const Color(0xFF1DAB87).withOpacity(0.3)
-                    : Colors.grey.withOpacity(0.2),
-                shape: BoxShape.circle,
-              ),
-            ),
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: isEnabled 
-                    ? const Color(0xFF1DAB87) 
-                    : Colors.grey,
-                shape: BoxShape.circle,
-              ),
-              child: const Center(
-                child: Icon(
-                  Icons.arrow_forward,
-                  color: Colors.white,
-                  size: 32,
-                ),
-              ),
-            ),
-          ],
-        ),
+        isEnabled: isEnabled,
       ),
     );
   }
@@ -286,11 +249,7 @@ class _GoalScreenState extends State<GoalScreen> {
     previousData['goal'] = selectedGoal;
 
     // Navigate to congratulations screen
-    Navigator.pushNamed(
-      context,
-      '/congratulations',
-      arguments: previousData,
-    );
+    Navigator.pushNamed(context, '/congratulations', arguments: previousData);
   }
 }
 

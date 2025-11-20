@@ -91,7 +91,10 @@ class ChallengeService {
   }
 
   // ========== SYNC HEALTH DATA FOR CHALLENGE ==========
-  Future<Map<String, dynamic>> syncHealthData(String challengeId, String unit) async {
+  Future<Map<String, dynamic>> syncHealthData(
+    String challengeId,
+    String unit,
+  ) async {
     try {
       final userId = SupabaseConfig.currentUserId;
       if (userId == null) throw Exception('No user logged in');
@@ -138,11 +141,7 @@ class ChallengeService {
         }
       }
 
-      return {
-        'success': true,
-        'progress': newProgress,
-        'completed': false,
-      };
+      return {'success': true, 'progress': newProgress, 'completed': false};
     } catch (e) {
       print('Error syncing health data: $e');
       rethrow;
@@ -182,11 +181,7 @@ class ChallengeService {
         };
       }
 
-      return {
-        'success': true,
-        'progress': newProgress,
-        'completed': false,
-      };
+      return {'success': true, 'progress': newProgress, 'completed': false};
     } catch (e) {
       print('Error manual progress update: $e');
       rethrow;
@@ -222,10 +217,14 @@ class ChallengeService {
       final userId = SupabaseConfig.currentUserId;
       if (userId == null) throw Exception('No user logged in');
 
-      await _supabase.from('user_challenges').update({
-        'status': 'Completed',
-        'completed_at': DateTime.now().toIso8601String(),
-      }).eq('user_id', userId).eq('challenge_id', challengeId);
+      await _supabase
+          .from('user_challenges')
+          .update({
+            'status': 'Completed',
+            'completed_at': DateTime.now().toIso8601String(),
+          })
+          .eq('user_id', userId)
+          .eq('challenge_id', challengeId);
 
       final xpResult = await _progressService.awardChallengeCompleteXP();
       return xpResult;
@@ -236,7 +235,9 @@ class ChallengeService {
   }
 
   // ========== GET CHALLENGE LEADERBOARD ==========
-  Future<List<Map<String, dynamic>>> getChallengeLeaderboard(String challengeId) async {
+  Future<List<Map<String, dynamic>>> getChallengeLeaderboard(
+    String challengeId,
+  ) async {
     try {
       final response = await _supabase
           .from('user_challenges')
@@ -248,6 +249,36 @@ class ChallengeService {
       return (response as List).map((e) => e as Map<String, dynamic>).toList();
     } catch (e) {
       print('Error getting challenge leaderboard: $e');
+      return [];
+    }
+  }
+
+  // ========== GET GLOBAL XP LEADERBOARD ==========
+  Future<List<Map<String, dynamic>>> getGlobalLeaderboard() async {
+    try {
+      print('🔍 Fetching global leaderboard...');
+      print('🔍 Current user ID: ${SupabaseConfig.currentUserId}');
+
+      final response = await _supabase
+          .from('users')
+          .select('user_id, username, profile_picture_url, xp_points, level')
+          .order('xp_points', ascending: false)
+          .limit(10);
+
+      print('🏆 Leaderboard response: $response');
+      print('🏆 Number of users fetched: ${(response as List).length}');
+
+      // Print each user's data
+      for (var i = 0; i < (response as List).length; i++) {
+        final user = response[i];
+        print(
+          '🏆 User $i: ${user['username']} - ${user['xp_points']} XP (ID: ${user['user_id']})',
+        );
+      }
+
+      return (response as List).map((e) => e as Map<String, dynamic>).toList();
+    } catch (e) {
+      print('❌ Error getting global leaderboard: $e');
       return [];
     }
   }

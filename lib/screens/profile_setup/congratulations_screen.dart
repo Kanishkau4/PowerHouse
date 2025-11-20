@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:powerhouse/core/theme/theme_extensions.dart';
 import 'dart:math' as math;
 import 'package:powerhouse/services/auth_service.dart';
+import 'package:lottie/lottie.dart';
 
 class CongratulationsScreen extends StatefulWidget {
   const CongratulationsScreen({super.key});
@@ -13,11 +14,11 @@ class CongratulationsScreen extends StatefulWidget {
 class _CongratulationsScreenState extends State<CongratulationsScreen>
     with SingleTickerProviderStateMixin {
   final _authService = AuthService();
-  
+
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
-  
+
   bool _isSaving = false;
   bool _profileSaved = false;
 
@@ -29,16 +30,18 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
       vsync: this,
     );
 
-    _scaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.elasticOut),
-    );
+    _scaleAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.elasticOut));
 
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeIn),
-    );
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeIn));
 
     _controller.forward();
-    
+
     // Save profile automatically when screen loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _saveProfileToDatabase();
@@ -60,54 +63,52 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
           children: [
             // Confetti background
             _buildConfetti(),
-            
+
             // Main content
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 30.0),
               child: Column(
                 children: [
                   const SizedBox(height: 40),
-                  
+
                   _buildOutlineTitle(),
-                  
+
                   const Spacer(),
-                  
+
                   ScaleTransition(
                     scale: _scaleAnimation,
                     child: _buildSuccessIcon(),
                   ),
-                  
+
                   const SizedBox(height: 40),
-                  
+
                   FadeTransition(
                     opacity: _fadeAnimation,
                     child: _buildCongratulationsText(),
                   ),
-                  
+
                   const SizedBox(height: 16),
-                  
+
                   FadeTransition(
                     opacity: _fadeAnimation,
                     child: _buildSubtitle(),
                   ),
-                  
+
                   const Spacer(),
-                  
+
                   _buildStartButton(),
-                  
+
                   const SizedBox(height: 60),
                 ],
               ),
             ),
-            
+
             // Loading overlay
             if (_isSaving)
               Container(
                 color: Colors.black54,
                 child: const Center(
-                  child: CircularProgressIndicator(
-                    color: Color(0xFF1DAB87),
-                  ),
+                  child: CircularProgressIndicator(color: Color(0xFF1DAB87)),
                 ),
               ),
           ],
@@ -145,30 +146,42 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
   }
 
   Widget _buildSuccessIcon() {
-    return Container(
-      width: 200,
-      height: 200,
-      decoration: BoxDecoration(
-        color: const Color(0xFF1DAB87).withOpacity(0.1),
-        shape: BoxShape.circle,
-      ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Container(
-            width: 160,
-            height: 160,
-            decoration: const BoxDecoration(
-              color: Color(0xFF1DAB87),
+    return SizedBox(
+      width: 300,
+      height: 300,
+      child: Lottie.asset(
+        'assets/animations/success.json',
+        repeat: false,
+        animate: true,
+        errorBuilder: (context, error, stackTrace) {
+          // Fallback to the original icon if Lottie file is not found
+          return Container(
+            width: 200,
+            height: 200,
+            decoration: BoxDecoration(
+              color: const Color(0xFF1DAB87).withOpacity(0.1),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.check,
-              size: 100,
-              color: Colors.white,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: 160,
+                  height: 160,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF1DAB87),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.check,
+                    size: 100,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -246,7 +259,7 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
   // ========== SAVE PROFILE TO DATABASE ==========
   Future<void> _saveProfileToDatabase() async {
     if (_isSaving || _profileSaved) return;
-    
+
     setState(() {
       _isSaving = true;
     });
@@ -254,7 +267,7 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
     try {
       // Get all profile data from navigation arguments
       final args = ModalRoute.of(context)?.settings.arguments as Map?;
-      
+
       if (args == null) {
         throw Exception('Profile data missing');
       }
@@ -271,8 +284,11 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
       final heightUnit = args['heightUnit'] as String?;
 
       // Validate required fields
-      if (gender == null || ageStr == null || weightStr == null || 
-          heightStr == null || goal == null) {
+      if (gender == null ||
+          ageStr == null ||
+          weightStr == null ||
+          heightStr == null ||
+          goal == null) {
         throw Exception('Missing required profile fields');
       }
 
@@ -351,11 +367,7 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
     print('🚀 Navigating to home...');
 
     // Navigate to home screen and remove all previous routes
-    Navigator.pushNamedAndRemoveUntil(
-      context,
-      '/home',
-      (route) => false,
-    );
+    Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
   }
 }
 
@@ -379,11 +391,11 @@ class _ConfettiParticleState extends State<_ConfettiParticle>
   @override
   void initState() {
     super.initState();
-    
+
     final random = math.Random(widget.index);
     leftPosition = random.nextDouble() * 400;
     delay = random.nextDouble() * 2;
-    
+
     final colors = [
       const Color(0xFF1DAB87),
       const Color(0xFFFF6B6B),
@@ -424,10 +436,7 @@ class _ConfettiParticleState extends State<_ConfettiParticle>
             child: Container(
               width: 8,
               height: 8,
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-              ),
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
             ),
           ),
         );

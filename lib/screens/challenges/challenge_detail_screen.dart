@@ -4,16 +4,13 @@ import 'package:powerhouse/models/user_challenge_model.dart';
 import 'package:powerhouse/models/challenge_model.dart';
 import 'package:powerhouse/services/challenge_service.dart';
 import 'package:powerhouse/services/health_service.dart';
-import 'package:fl_chart/fl_chart.dart';
+import 'package:powerhouse/core/config/supabase_config.dart';
 import 'dart:async';
 
 class ChallengeDetailScreen extends StatefulWidget {
   final UserChallengeModel userChallenge;
 
-  const ChallengeDetailScreen({
-    Key? key,
-    required this.userChallenge,
-  }) : super(key: key);
+  const ChallengeDetailScreen({super.key, required this.userChallenge});
 
   @override
   State<ChallengeDetailScreen> createState() => _ChallengeDetailScreenState();
@@ -24,7 +21,7 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
   final _healthService = HealthService();
 
   late UserChallengeModel _userChallenge;
-  bool _isLoading = false;
+  final bool _isLoading = false;
   bool _isSyncing = false;
   bool _hasHealthPermission = false;
   List<Map<String, dynamic>> _leaderboard = [];
@@ -60,7 +57,10 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
 
   bool _isHealthTrackableChallenge() {
     final unit = _userChallenge.challenge?.unit.toLowerCase() ?? '';
-    return unit == 'steps' || unit == 'calories' || unit == 'km' || unit == 'distance';
+    return unit == 'steps' ||
+        unit == 'calories' ||
+        unit == 'km' ||
+        unit == 'distance';
   }
 
   void _startAutoSync() {
@@ -86,7 +86,9 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
       );
 
       // Refresh challenge data
-      final updated = await _challengeService.getUserChallenge(_userChallenge.challengeId);
+      final updated = await _challengeService.getUserChallenge(
+        _userChallenge.challengeId,
+      );
       if (updated != null) {
         setState(() {
           _userChallenge = updated;
@@ -107,12 +109,14 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
 
   Future<void> _loadLeaderboard() async {
     try {
-      final leaderboard = await _challengeService.getChallengeLeaderboard(
-        _userChallenge.challengeId,
-      );
+      print('📊 Loading leaderboard in UI...');
+      final leaderboard = await _challengeService.getGlobalLeaderboard();
+      print('📊 Received ${leaderboard.length} users in UI');
+      print('📊 Leaderboard data: $leaderboard');
       setState(() {
         _leaderboard = leaderboard;
       });
+      print('📊 State updated with ${_leaderboard.length} users');
     } catch (e) {
       print('Error loading leaderboard: $e');
     }
@@ -123,15 +127,10 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
           '🎉 Challenge Completed!',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w800,
-          ),
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -192,9 +191,7 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
             onPressed: () => Navigator.pop(context),
           ),
         ),
-        body: const Center(
-          child: Text('Challenge not found'),
-        ),
+        body: const Center(child: Text('Challenge not found')),
       );
     }
 
@@ -238,7 +235,12 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
                   const SizedBox(height: 24),
 
                   // Progress Stats
-                  _buildProgressStats(progress, target, challenge.unit, daysLeft!),
+                  _buildProgressStats(
+                    progress,
+                    target,
+                    challenge.unit,
+                    daysLeft!,
+                  ),
 
                   const SizedBox(height: 24),
 
@@ -248,8 +250,7 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
                   const SizedBox(height: 32),
 
                   // Sync Button (for health-trackable challenges)
-                  if (_isHealthTrackableChallenge())
-                    _buildSyncButton(),
+                  if (_isHealthTrackableChallenge()) _buildSyncButton(),
 
                   const SizedBox(height: 24),
 
@@ -290,9 +291,7 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
                 challenge.imageUrl!,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: const Color(0xFF1DAB87),
-                  );
+                  return Container(color: const Color(0xFF1DAB87));
                 },
               )
             else
@@ -315,10 +314,7 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    Colors.black.withOpacity(0.7),
-                  ],
+                  colors: [Colors.transparent, Colors.black.withOpacity(0.7)],
                 ),
               ),
             ),
@@ -328,7 +324,12 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
     );
   }
 
-  Widget _buildProgressStats(int progress, int target, String unit, int daysLeft) {
+  Widget _buildProgressStats(
+    int progress,
+    int target,
+    String unit,
+    int daysLeft,
+  ) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -384,11 +385,7 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
   }) {
     return Column(
       children: [
-        Icon(
-          icon,
-          color: const Color(0xFF1DAB87),
-          size: 24,
-        ),
+        Icon(icon, color: const Color(0xFF1DAB87), size: 24),
         const SizedBox(height: 8),
         Text(
           value,
@@ -410,10 +407,7 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
         const SizedBox(height: 2),
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 10,
-            color: Color(0xFF7E7E7E),
-          ),
+          style: const TextStyle(fontSize: 10, color: Color(0xFF7E7E7E)),
         ),
       ],
     );
@@ -460,10 +454,7 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
                 height: 20,
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [
-                      Color(0xFF1DAB87),
-                      Color(0xFF15c497),
-                    ],
+                    colors: [Color(0xFF1DAB87), Color(0xFF15c497)],
                   ),
                   borderRadius: BorderRadius.circular(10),
                   boxShadow: [
@@ -484,17 +475,11 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
           children: [
             Text(
               '$progress completed',
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFF7E7E7E),
-              ),
+              style: const TextStyle(fontSize: 12, color: Color(0xFF7E7E7E)),
             ),
             Text(
               '${target - progress} remaining',
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFF7E7E7E),
-              ),
+              style: const TextStyle(fontSize: 12, color: Color(0xFF7E7E7E)),
             ),
           ],
         ),
@@ -520,10 +505,7 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
             : const Icon(Icons.sync, size: 24),
         label: Text(
           _isSyncing ? 'Syncing...' : 'Sync Health Data',
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-          ),
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF1DAB87),
@@ -539,6 +521,8 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
   }
 
   Widget _buildLeaderboardSection() {
+    final currentUserId = SupabaseConfig.currentUserId;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -561,10 +545,7 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
             child: const Center(
               child: Text(
                 'No participants yet',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF7E7E7E),
-                ),
+                style: TextStyle(fontSize: 14, color: Color(0xFF7E7E7E)),
               ),
             ),
           )
@@ -572,21 +553,26 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
           ..._leaderboard.asMap().entries.map((entry) {
             final index = entry.key;
             final data = entry.value;
-            final userData = data['users'] as Map<String, dynamic>?;
-            
+            final userId = data['user_id'] as String?;
+            final isCurrentUser = userId == currentUserId;
+
             return Container(
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: index < 3 
+                color: isCurrentUser
+                    ? const Color(0xFF1DAB87).withOpacity(0.2)
+                    : index < 3
                     ? const Color(0xFF1DAB87).withOpacity(0.1)
                     : Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: index < 3 
+                  color: isCurrentUser
+                      ? const Color(0xFF1DAB87)
+                      : index < 3
                       ? const Color(0xFF1DAB87)
                       : const Color(0xFFE0E0E0),
-                  width: index < 3 ? 2 : 1,
+                  width: isCurrentUser || index < 3 ? 2 : 1,
                 ),
               ),
               child: Row(
@@ -596,7 +582,9 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: index < 3
+                      color: isCurrentUser
+                          ? const Color(0xFF1DAB87)
+                          : index < 3
                           ? const Color(0xFF1DAB87)
                           : const Color(0xFFE0E0E0),
                       shape: BoxShape.circle,
@@ -607,7 +595,9 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
-                          color: index < 3 ? Colors.white : context.primaryText,
+                          color: isCurrentUser || index < 3
+                              ? Colors.white
+                              : context.primaryText,
                         ),
                       ),
                     ),
@@ -615,18 +605,48 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
                   const SizedBox(width: 16),
                   // Name
                   Expanded(
-                    child: Text(
-                      userData?['username'] ?? 'Unknown',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black,
-                      ),
+                    child: Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            data['username'] ?? 'Unknown',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: isCurrentUser
+                                  ? const Color(0xFF1DAB87)
+                                  : Colors.black,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (isCurrentUser) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1DAB87),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Text(
+                              'YOU',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
-                  // Progress
+                  // XP Points
                   Text(
-                    '${data['progress']} ${_userChallenge.challenge?.unit ?? ''}',
+                    '${data['xp_points']} XP',
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -675,11 +695,7 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
               color: Color(0xFF1DAB87),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.check,
-              color: Colors.white,
-              size: 16,
-            ),
+            child: const Icon(Icons.check, color: Colors.white, size: 16),
           ),
           const SizedBox(width: 12),
           Expanded(

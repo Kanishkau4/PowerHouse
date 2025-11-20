@@ -43,7 +43,6 @@ class ThemeProvider extends ChangeNotifier {
         primary: Color(0xFF1DAB87),
         secondary: Color(0xFFF97316),
         surface: Colors.white,
-        background: Colors.white,
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.white,
@@ -78,7 +77,6 @@ class ThemeProvider extends ChangeNotifier {
         primary: Color(0xFF1DAB87),
         secondary: Color(0xFFF97316),
         surface: Color(0xFF1E1E1E),
-        background: Color(0xFF121212),
       ),
       cardColor: const Color(0xFF1E1E1E),
       appBarTheme: const AppBarTheme(

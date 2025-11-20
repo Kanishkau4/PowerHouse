@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:powerhouse/core/theme/theme_extensions.dart';
+import 'package:powerhouse/widgets/circular_progress_button.dart';
 
 class AgeScreen extends StatefulWidget {
   const AgeScreen({super.key});
@@ -38,27 +39,25 @@ class _AgeScreenState extends State<AgeScreen> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 40),
-              
+
               // Title with outline effect
               _buildOutlineTitle(),
-              
+
               const SizedBox(height: 60),
-              
+
               // Main heading
               _buildHeading(),
-              
+
               const SizedBox(height: 60),
-              
+
               // Age Picker
-              Expanded(
-                child: _buildAgePicker(),
-              ),
-              
+              Expanded(child: _buildAgePicker()),
+
               const SizedBox(height: 40),
-              
+
               // Next button
               _buildNextButton(),
-              
+
               const SizedBox(height: 60),
             ],
           ),
@@ -140,10 +139,7 @@ class _AgeScreenState extends State<AgeScreen> {
             decoration: BoxDecoration(
               color: const Color(0xFFF97316),
               borderRadius: BorderRadius.circular(48),
-              border: Border.all(
-                color: const Color(0xFFFFEDD5),
-                width: 1,
-              ),
+              border: Border.all(color: const Color(0xFFFFEDD5), width: 1),
               boxShadow: [
                 BoxShadow(
                   color: const Color(0xFFF97316).withOpacity(0.25),
@@ -153,7 +149,7 @@ class _AgeScreenState extends State<AgeScreen> {
               ],
             ),
           ),
-          
+
           // Age wheel
           SizedBox(
             height: 400,
@@ -172,17 +168,18 @@ class _AgeScreenState extends State<AgeScreen> {
                 builder: (context, index) {
                   final age = index + 13;
                   final isSelected = age == selectedAge;
-                  
+
                   // Determine the distance from selected item
                   final difference = (age - selectedAge).abs();
-                  
+
                   // Calculate opacity and size based on distance
                   double fontSize;
                   Color textColor;
                   FontWeight fontWeight;
-                  
+
                   if (isSelected) {
-                    fontSize = 80; // Reduced from 96 to better fit in item extent
+                    fontSize =
+                        80; // Reduced from 96 to better fit in item extent
                     textColor = Colors.white;
                     fontWeight = FontWeight.w800;
                   } else if (difference == 1) {
@@ -194,7 +191,7 @@ class _AgeScreenState extends State<AgeScreen> {
                     textColor = const Color(0xFFD7D7D8);
                     fontWeight = FontWeight.w700;
                   }
-                  
+
                   return Center(
                     child: AnimatedDefaultTextStyle(
                       duration: const Duration(milliseconds: 200),
@@ -217,39 +214,13 @@ class _AgeScreenState extends State<AgeScreen> {
     );
   }
 
-  // Next Button Widget (Same as Gender Screen)
+  // Next Button Widget
   Widget _buildNextButton() {
-    return GestureDetector(
-      onTap: _handleNext,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // Outer circle (light)
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              color: const Color(0xFF1DAB87).withOpacity(0.3),
-              shape: BoxShape.circle,
-            ),
-          ),
-          // Inner circle (solid)
-          Container(
-            width: 80,
-            height: 80,
-            decoration: const BoxDecoration(
-              color: Color(0xFF1DAB87),
-              shape: BoxShape.circle,
-            ),
-            child: const Center(
-              child: Icon(
-                Icons.arrow_forward_ios,
-                color: Colors.white,
-                size: 32,
-              ),
-            ),
-          ),
-        ],
+    return Center(
+      child: CircularProgressButton(
+        progress: 0.4, // Step 2/5 = 40%
+        onTap: _handleNext,
+        isEnabled: true,
       ),
     );
   }
@@ -261,15 +232,11 @@ class _AgeScreenState extends State<AgeScreen> {
     // Get previous data if any
     final args = ModalRoute.of(context)?.settings.arguments as Map?;
     final previousData = args ?? {};
-    
+
     // Add age to data
     previousData['age'] = selectedAge.toString();
 
     // Navigate to weight screen
-    Navigator.pushNamed(
-      context,
-      '/weight',
-      arguments: previousData,
-    );
+    Navigator.pushNamed(context, '/weight', arguments: previousData);
   }
 }

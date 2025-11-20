@@ -15,17 +15,20 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   final List<OnboardingData> _pages = [
     OnboardingData(
       title: 'Find Your Perfect\nDiet Plan',
-      description: 'Discover personalized nutrition strategies designed specifically for your body and goals',
+      description:
+          'Discover personalized nutrition strategies designed specifically for your body and goals',
       lottieAsset: 'assets/animations/diet.json',
     ),
     OnboardingData(
       title: 'Stay Organized\nWith Your Training',
-      description: 'Track your workouts and understand what training methods work best for you',
+      description:
+          'Track your workouts and understand what training methods work best for you',
       lottieAsset: 'assets/animations/workout.json',
     ),
     OnboardingData(
       title: 'Get Results That\nWork For You',
-      description: 'Take control of your fitness journey with personalized insights and recommendations',
+      description:
+          'Take control of your fitness journey with personalized insights and recommendations',
       lottieAsset: 'assets/animations/results.json',
     ),
   ];
@@ -92,7 +95,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       child: Column(
         children: [
           const SizedBox(height: 40),
-          
+
           // Lottie Animation with Background Circles
           SizedBox(
             height: 360,
@@ -109,7 +112,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     color: const Color(0xFF2DD4A3).withOpacity(0.1),
                   ),
                 ),
-                
+
                 // Medium circle
                 Container(
                   width: 260,
@@ -119,7 +122,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     color: const Color(0xFF2DD4A3).withOpacity(0.15),
                   ),
                 ),
-                
+
                 // Small inner circle
                 Container(
                   width: 200,
@@ -129,7 +132,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     color: const Color(0xFF1DB386).withOpacity(0.1),
                   ),
                 ),
-                
+
                 // Lottie Animation on top
                 FutureBuilder(
                   future: _checkAssetExists(data.lottieAsset),
@@ -158,14 +161,14 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               ],
             ),
           ),
-          
+
           const SizedBox(height: 40),
-          
+
           // Page Indicator
           _buildPageIndicator(),
-          
+
           const SizedBox(height: 30),
-          
+
           // Title
           Text(
             data.title,
@@ -177,9 +180,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               height: 1.3,
             ),
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Description
           Text(
             data.description,
@@ -225,7 +228,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
           if (_currentPage < _pages.length - 1)
             TextButton(
               onPressed: () {
-                Navigator.pushReplacementNamed(context, '/home');
+                Navigator.pushReplacementNamed(context, '/onboard');
               },
               child: const Text(
                 'SKIP',
@@ -239,7 +242,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
             )
           else
             const SizedBox(width: 60),
-          
+
           // Next/Start Button
           GestureDetector(
             onTap: () {
@@ -249,7 +252,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   curve: Curves.easeInOut,
                 );
               } else {
-                Navigator.pushReplacementNamed(context, '/home');
+                Navigator.pushReplacementNamed(context, '/onboard');
               }
             },
             child: Container(
@@ -257,10 +260,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               height: 56,
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [
-                    Color(0xFF2DD4A3),
-                    Color(0xFF1DB386),
-                  ],
+                  colors: [Color(0xFF2DD4A3), Color(0xFF1DB386)],
                 ),
                 borderRadius: BorderRadius.circular(28),
                 boxShadow: [

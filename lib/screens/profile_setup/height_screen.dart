@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:powerhouse/core/theme/theme_extensions.dart';
+import 'package:powerhouse/widgets/circular_progress_button.dart';
 
 class HeightScreen extends StatefulWidget {
   const HeightScreen({super.key});
@@ -36,39 +37,39 @@ class _HeightScreenState extends State<HeightScreen> {
   }
 
   @override
-Widget build(BuildContext context) {
-  return Scaffold(
-    backgroundColor: context.surfaceColor,
-    body: SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 30.0),
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
-            _buildOutlineTitle(),
-            const SizedBox(height: 20),
-            _buildHeading(),
-            const SizedBox(height: 20),
-            
-            // Height Display
-            _buildHeightDisplay(),
-            
-            const SizedBox(height: 20),
-            
-            // Vertical Ruler (without Expanded)
-            _buildVerticalRuler(),
-            
-            const SizedBox(height: 20),
-            _buildUnitToggle(),
-            const SizedBox(height: 20),
-            _buildNextButton(),
-            const SizedBox(height: 20),
-          ],
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: context.surfaceColor,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 30.0),
+          child: Column(
+            children: [
+              const SizedBox(height: 20),
+              _buildOutlineTitle(),
+              const SizedBox(height: 20),
+              _buildHeading(),
+              const SizedBox(height: 20),
+
+              // Height Display
+              _buildHeightDisplay(),
+
+              const SizedBox(height: 20),
+
+              // Vertical Ruler (without Expanded)
+              _buildVerticalRuler(),
+
+              const SizedBox(height: 20),
+              _buildUnitToggle(),
+              const SizedBox(height: 20),
+              _buildNextButton(),
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildOutlineTitle() {
     return Stack(
@@ -165,94 +166,90 @@ Widget build(BuildContext context) {
   }
 
   Widget _buildVerticalRuler() {
-  return Row(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [
-      // Left labels
-      SizedBox(
-        width: 40,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              '${(selectedHeight - 1).toInt()}',
-              style: const TextStyle(
-                color: Color(0xFF676B74),
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        // Left labels
+        SizedBox(
+          width: 40,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '${(selectedHeight - 1).toInt()}',
+                style: const TextStyle(
+                  color: Color(0xFF676B74),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
-            // Remove Spacer and add explicit height
-            Text(
-              '${(selectedHeight + 1).toInt()}',
-              style: const TextStyle(
-                color: Color(0xFF676B74),
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
+              // Remove Spacer and add explicit height
+              Text(
+                '${(selectedHeight + 1).toInt()}',
+                style: const TextStyle(
+                  color: Color(0xFF676B74),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(width: 16),
+
+        // Ruler
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            // Center indicator line
+            Container(width: 80, height: 4, color: const Color(0xFFF97316)),
+
+            // Scrollable vertical ruler
+            SizedBox(
+              width: 100,
+              height: 200, // Add explicit height
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  children: List.generate(
+                    151, // 100 to 250 cm
+                    (index) {
+                      final height = 100 + index;
+                      final isMajorTick = height % 5 == 0;
+
+                      return Container(
+                        height: 10,
+                        alignment: Alignment.center,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              height: isMajorTick ? 4 : 2,
+                              width: isMajorTick ? 56 : 24,
+                              decoration: BoxDecoration(
+                                color: isMajorTick
+                                    ? const Color(0xFFB9BBBE)
+                                    : const Color(0xFFD7D7D8),
+                                borderRadius: BorderRadius.circular(
+                                  isMajorTick ? 1.5 : 0.75,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
               ),
             ),
           ],
         ),
-      ),
-      
-      const SizedBox(width: 16),
-      
-      // Ruler
-      Stack(
-        alignment: Alignment.center,
-        children: [
-          // Center indicator line
-          Container(
-            width: 80,
-            height: 4,
-            color: const Color(0xFFF97316),
-          ),
-          
-          // Scrollable vertical ruler
-          SizedBox(
-            width: 100,
-            height: 200, // Add explicit height
-            child: SingleChildScrollView(
-              controller: _scrollController,
-              physics: const BouncingScrollPhysics(),
-              child: Column(
-                children: List.generate(
-                  151, // 100 to 250 cm
-                  (index) {
-                    final height = 100 + index;
-                    final isMajorTick = height % 5 == 0;
-                    
-                    return Container(
-                      height: 10,
-                      alignment: Alignment.center,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            height: isMajorTick ? 4 : 2,
-                            width: isMajorTick ? 56 : 24,
-                            decoration: BoxDecoration(
-                              color: isMajorTick 
-                                  ? const Color(0xFFB9BBBE) 
-                                  : const Color(0xFFD7D7D8),
-                              borderRadius: BorderRadius.circular(
-                                isMajorTick ? 1.5 : 0.75,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    ],
-  );
-}
+      ],
+    );
+  }
 
   Widget _buildUnitToggle() {
     return Row(
@@ -267,7 +264,7 @@ Widget build(BuildContext context) {
 
   Widget _buildUnitButton(String unit) {
     final isSelected = selectedUnit == unit;
-    
+
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -284,8 +281,8 @@ Widget build(BuildContext context) {
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFF1DAB87) : Colors.white,
           border: Border.all(
-            color: isSelected 
-                ? const Color(0xFF1DAB87) 
+            color: isSelected
+                ? const Color(0xFF1DAB87)
                 : const Color(0xFFD7D7D8),
             width: 2,
           ),
@@ -304,35 +301,11 @@ Widget build(BuildContext context) {
   }
 
   Widget _buildNextButton() {
-    return GestureDetector(
-      onTap: _handleNext,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              color: const Color(0xFF1DAB87).withOpacity(0.3),
-              shape: BoxShape.circle,
-            ),
-          ),
-          Container(
-            width: 80,
-            height: 80,
-            decoration: const BoxDecoration(
-              color: Color(0xFF1DAB87),
-              shape: BoxShape.circle,
-            ),
-            child: const Center(
-              child: Icon(
-                Icons.arrow_forward_ios,
-                color: Colors.white,
-                size: 32,
-              ),
-            ),
-          ),
-        ],
+    return Center(
+      child: CircularProgressButton(
+        progress: 0.8, // 80% progress (step 4/5)
+        onTap: _handleNext,
+        isEnabled: true, // Always enabled on height screen
       ),
     );
   }
@@ -345,10 +318,6 @@ Widget build(BuildContext context) {
     previousData['height'] = selectedHeight.toString();
     previousData['heightUnit'] = selectedUnit;
 
-    Navigator.pushNamed(
-      context,
-      '/goal',
-      arguments: previousData,
-    );
+    Navigator.pushNamed(context, '/goal', arguments: previousData);
   }
 }

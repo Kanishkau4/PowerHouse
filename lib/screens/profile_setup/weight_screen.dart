@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:powerhouse/core/theme/theme_extensions.dart';
+import 'package:powerhouse/widgets/circular_progress_button.dart';
+import 'package:flutter/services.dart';
 
 class WeightScreen extends StatefulWidget {
   const WeightScreen({super.key});
@@ -37,60 +39,61 @@ class _WeightScreenState extends State<WeightScreen> {
     });
   }
 
- @override
-Widget build(BuildContext context) {
-  return Scaffold(
-    backgroundColor: context.surfaceColor,
-    body: SafeArea(
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: IntrinsicHeight(
-                child: Column(
-                  children: [
-                    const SizedBox(height: 20),
-                    
-                    // Outline Title
-                    _buildOutlineTitle(),
-                    
-                    const SizedBox(height: 20),
-                    
-                    // Heading
-                    _buildHeading(),
-                    
-                    const SizedBox(height: 10),
-                    
-                    // Weight Display
-                    _buildWeightDisplay(),
-                    
-                    const SizedBox(height: 20),
-                    
-                    // Ruler
-                    _buildRuler(),
-                    
-                    const SizedBox(height: 20),
-                    
-                    // Unit Toggle
-                    _buildUnitToggle(),
-                    
-                    const SizedBox(height: 30), // Replace Spacer with fixed height
-                    
-                    // Next Button
-                    _buildNextButton(),
-                    
-                    const SizedBox(height: 60),
-                  ],
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: context.surfaceColor,
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 20),
+
+                      // Outline Title
+                      _buildOutlineTitle(),
+
+                      const SizedBox(height: 20),
+
+                      // Heading
+                      _buildHeading(),
+
+                      const SizedBox(height: 10),
+
+                      // Weight Display
+                      _buildWeightDisplay(),
+
+                      const SizedBox(height: 20),
+
+                      // Ruler
+                      _buildRuler(),
+
+                      const SizedBox(height: 20),
+
+                      // Unit Toggle
+                      _buildUnitToggle(),
+
+                      const SizedBox(
+                        height: 30,
+                      ), // Replace Spacer with fixed height
+                      // Next Button
+                      _buildNextButton(),
+
+                      const SizedBox(height: 60),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildOutlineTitle() {
     return Stack(
@@ -185,12 +188,8 @@ Widget build(BuildContext context) {
         alignment: Alignment.center,
         children: [
           // Center indicator line
-          Container(
-            width: 4,
-            height: 80,
-            color: const Color(0xFFF97316),
-          ),
-          
+          Container(width: 4, height: 80, color: const Color(0xFFF97316)),
+
           // Scrollable ruler
           SingleChildScrollView(
             controller: _scrollController,
@@ -202,7 +201,7 @@ Widget build(BuildContext context) {
                 (index) {
                   final weight = 30 + index;
                   final isMajorTick = weight % 5 == 0;
-                  
+
                   return Container(
                     width: 10,
                     alignment: Alignment.topCenter,
@@ -213,15 +212,15 @@ Widget build(BuildContext context) {
                           width: isMajorTick ? 4 : 2,
                           height: isMajorTick ? 56 : 24,
                           decoration: BoxDecoration(
-                            color: isMajorTick 
-                                ? const Color(0xFFB9BBBE) 
+                            color: isMajorTick
+                                ? const Color(0xFFB9BBBE)
                                 : const Color(0xFFD7D7D8),
                             borderRadius: BorderRadius.circular(
                               isMajorTick ? 1.5 : 0.75,
                             ),
                           ),
                         ),
-                        
+
                         // Number label (only for major ticks)
                         if (isMajorTick) ...[
                           const SizedBox(height: 44),
@@ -259,7 +258,7 @@ Widget build(BuildContext context) {
 
   Widget _buildUnitButton(String unit) {
     final isSelected = selectedUnit == unit;
-    
+
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -276,8 +275,8 @@ Widget build(BuildContext context) {
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFF1DAB87) : Colors.white,
           border: Border.all(
-            color: isSelected 
-                ? const Color(0xFF1DAB87) 
+            color: isSelected
+                ? const Color(0xFF1DAB87)
                 : const Color(0xFFD7D7D8),
           ),
           borderRadius: BorderRadius.circular(20),
@@ -295,35 +294,11 @@ Widget build(BuildContext context) {
   }
 
   Widget _buildNextButton() {
-    return GestureDetector(
-      onTap: _handleNext,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              color: const Color(0xFF1DAB87).withOpacity(0.3),
-              shape: BoxShape.circle,
-            ),
-          ),
-          Container(
-            width: 80,
-            height: 80,
-            decoration: const BoxDecoration(
-              color: Color(0xFF1DAB87),
-              shape: BoxShape.circle,
-            ),
-            child: const Center(
-              child: Icon(
-                Icons.arrow_forward_ios,
-                color: Colors.white,
-                size: 32,
-              ),
-            ),
-          ),
-        ],
+    return Center(
+      child: CircularProgressButton(
+        progress: 0.6, // 60% progress (step 3/5)
+        onTap: _handleNext,
+        isEnabled: true, // Always enabled on weight screen
       ),
     );
   }
@@ -336,10 +311,6 @@ Widget build(BuildContext context) {
     previousData['weight'] = selectedWeight.toString();
     previousData['weightUnit'] = selectedUnit;
 
-    Navigator.pushNamed(
-      context,
-      '/height',
-      arguments: previousData,
-    );
+    Navigator.pushNamed(context, '/height', arguments: previousData);
   }
 }
