@@ -46,8 +46,8 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>We need camera access to update your profile picture</string>
+	<string>We need camera access to scan your meals</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>We need photo library access to update your profile picture</string>
+	<string>We need photo library access to select meal images</string>
 </dict>
 </plist>

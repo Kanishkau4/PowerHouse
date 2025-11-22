@@ -10,20 +10,19 @@ class SignUpScreen extends StatefulWidget {
   State<SignUpScreen> createState() => _SignUpScreenState();
 }
 
-
 class _SignUpScreenState extends State<SignUpScreen> {
   final _authService = AuthService();
   // Form key for validation
   final _formKey = GlobalKey<FormState>();
-  
+
   // Text controllers
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  
+
   // Password visibility
   bool _isPasswordVisible = false;
-  
+
   // Loading state
   bool _isLoading = false;
 
@@ -50,9 +49,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 children: [
                   // Top Bar
                   _buildTopBar(context),
-                  
+
                   const SizedBox(height: 40),
-                  
+
                   // Title
                   Text(
                     'Create Account',
@@ -62,9 +61,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  
+
                   const SizedBox(height: 8),
-                  
+
                   // Subtitle
                   const Text(
                     'Fill the details to create account',
@@ -74,9 +73,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  
+
                   const SizedBox(height: 40),
-                  
+
                   // Name Field
                   _buildTextField(
                     label: 'Name',
@@ -89,9 +88,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       return null;
                     },
                   ),
-                  
+
                   const SizedBox(height: 24),
-                  
+
                   // Email Field
                   _buildTextField(
                     label: 'Email',
@@ -108,19 +107,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       return null;
                     },
                   ),
-                  
+
                   const SizedBox(height: 24),
-                  
+
                   // Password Field
                   _buildPasswordField(),
-                  
+
                   const SizedBox(height: 40),
-                  
+
                   // Sign Up Button
                   _buildSignUpButton(),
-                  
+
                   const SizedBox(height: 30),
-                  
+
                   // Sign In Link
                   _buildSignInLink(context),
                 ],
@@ -133,42 +132,42 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   // Top Bar with Back Button and Help
-// Top Bar with Back Button and Help
-Widget _buildTopBar(BuildContext context) {
-  return Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    children: [
-      // Back Button with Custom Icon
-      GestureDetector(
-        onTap: () => Navigator.pop(context),
-        child: SizedBox(
-          width: 40,
-          height: 40,
-          child: Image.asset(
-            'assets/icons/back_arrow.png', // Replace with your icon filename
-            width: 24,
-            height: 24,
-            fit: BoxFit.contain,
+  // Top Bar with Back Button and Help
+  Widget _buildTopBar(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        // Back Button with Custom Icon
+        GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: SizedBox(
+            width: 40,
+            height: 40,
+            child: Image.asset(
+              'assets/icons/back_arrow.png', // Replace with your icon filename
+              width: 24,
+              height: 24,
+              fit: BoxFit.contain,
+            ),
           ),
         ),
-      ),
-      // Need Help
-      GestureDetector(
-        onTap: () {
-          _showHelpDialog();
-        },
-        child: const Text(
-          'Need Help?',
-          style: TextStyle(
-            color: Color(0xFF979797),
-            fontSize: 15,
-            fontWeight: FontWeight.w500,
+        // Need Help
+        GestureDetector(
+          onTap: () {
+            _showHelpDialog();
+          },
+          child: const Text(
+            'Need Help?',
+            style: TextStyle(
+              color: Color(0xFF979797),
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
-      ),
-    ],
-  );
-}
+      ],
+    );
+  }
 
   // Text Field Widget
   Widget _buildTextField({
@@ -196,39 +195,24 @@ Widget _buildTopBar(BuildContext context) {
           validator: validator,
           decoration: InputDecoration(
             hintText: hintText,
-            hintStyle: const TextStyle(
-              color: Color(0xFFB0B0B0),
-              fontSize: 15,
-            ),
+            hintStyle: const TextStyle(color: Color(0xFFB0B0B0), fontSize: 15),
             filled: true,
             fillColor: Colors.white,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(
-                color: Color(0xFF979797),
-                width: 1,
-              ),
+              borderSide: const BorderSide(color: Color(0xFF979797), width: 1),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(
-                color: Color(0xFF979797),
-                width: 1,
-              ),
+              borderSide: const BorderSide(color: Color(0xFF979797), width: 1),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(
-                color: Color(0xFF1DAB87),
-                width: 2,
-              ),
+              borderSide: const BorderSide(color: Color(0xFF1DAB87), width: 2),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(
-                color: Colors.red,
-                width: 1,
-              ),
+              borderSide: const BorderSide(color: Colors.red, width: 1),
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 20,
@@ -268,10 +252,7 @@ Widget _buildTopBar(BuildContext context) {
           },
           decoration: InputDecoration(
             hintText: 'Enter your password',
-            hintStyle: const TextStyle(
-              color: Color(0xFFB0B0B0),
-              fontSize: 15,
-            ),
+            hintStyle: const TextStyle(color: Color(0xFFB0B0B0), fontSize: 15),
             filled: true,
             fillColor: Colors.white,
             suffixIcon: IconButton(
@@ -287,31 +268,19 @@ Widget _buildTopBar(BuildContext context) {
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(
-                color: Color(0xFF979797),
-                width: 1,
-              ),
+              borderSide: const BorderSide(color: Color(0xFF979797), width: 1),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(
-                color: Color(0xFF979797),
-                width: 1,
-              ),
+              borderSide: const BorderSide(color: Color(0xFF979797), width: 1),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(
-                color: Color(0xFF1DAB87),
-                width: 2,
-              ),
+              borderSide: const BorderSide(color: Color(0xFF1DAB87), width: 2),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(
-                color: Colors.red,
-                width: 1,
-              ),
+              borderSide: const BorderSide(color: Colors.red, width: 1),
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 20,
@@ -381,7 +350,7 @@ Widget _buildTopBar(BuildContext context) {
                 color: Color(0xFFF97316),
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
-                decoration: TextDecoration.underline,
+                //decoration: TextDecoration.underline,
               ),
             ),
           ),
@@ -431,7 +400,7 @@ Widget _buildTopBar(BuildContext context) {
         });
 
         String errorMessage = 'Sign up failed';
-        
+
         // Handle specific error cases
         if (e.message.contains('already registered')) {
           errorMessage = 'This email is already registered. Please sign in.';
@@ -470,9 +439,7 @@ Widget _buildTopBar(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Need Help?'),
         content: const Text(
           'Contact us at:\nsupport@powerhouse.lk\n\nOr call: +94 77 123 4567',

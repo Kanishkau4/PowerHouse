@@ -34,7 +34,7 @@ class CircularProgressButton extends StatelessWidget {
           children: [
             // Progress indicator
             CustomPaint(
-              size: const Size(120, 120),
+              size: const Size(110, 110),
               painter: CircularProgressPainter(
                 progress: progress,
                 isEnabled: isEnabled,
@@ -42,16 +42,16 @@ class CircularProgressButton extends StatelessWidget {
             ),
 
             // Outer circle (light background)
-            Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                color: isEnabled
-                    ? const Color(0xFF1DAB87).withOpacity(0.3)
-                    : Colors.grey.withOpacity(0.2),
-                shape: BoxShape.circle,
-              ),
-            ),
+            // Container(
+            //   width: 100,
+            //   height: 100,
+            //   decoration: BoxDecoration(
+            //     color: isEnabled
+            //         ? const Color(0xFF1DAB87).withOpacity(0.3)
+            //         : Colors.grey.withOpacity(0.2),
+            //     shape: BoxShape.circle,
+            //   ),
+            // ),
 
             // Inner circle (solid button)
             Container(

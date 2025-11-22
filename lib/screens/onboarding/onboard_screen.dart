@@ -14,7 +14,7 @@ class OnboardScreen extends StatelessWidget {
           child: Column(
             children: [
               const SizedBox(height: 80),
-              
+
               // Welcome Text
               const Text(
                 'Welcome To',
@@ -26,23 +26,22 @@ class OnboardScreen extends StatelessWidget {
                   height: 1.2,
                 ),
               ),
-              
-              
+
               // App Name with Gradient
               _buildGradientTitle(),
-              
+
               const SizedBox(height: 60),
-              
+
               // Sign in with Apple Button
               _buildAppleSignInButton(context),
-              
+
               const SizedBox(height: 20),
-              
+
               // Sign in with Google Button
               _buildGoogleSignInButton(context),
-              
+
               const SizedBox(height: 50),
-              
+
               // Or Text
               const Text(
                 'Or',
@@ -53,17 +52,17 @@ class OnboardScreen extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              
+
               const SizedBox(height: 30),
-              
+
               // Create New Account Button
               _buildCreateAccountButton(context),
-              
+
               const Spacer(),
-              
+
               // Already have account? Sign in
               _buildSignInLink(context),
-              
+
               const SizedBox(height: 30),
             ],
           ),
@@ -168,7 +167,11 @@ class OnboardScreen extends StatelessWidget {
               width: 28,
               height: 28,
               errorBuilder: (context, error, stackTrace) {
-                return const Icon(Icons.g_mobiledata, size: 28, color: Color(0xFF6489FA));
+                return const Icon(
+                  Icons.g_mobiledata,
+                  size: 28,
+                  color: Color(0xFF6489FA),
+                );
               },
             ),
             const SizedBox(width: 12),
@@ -202,7 +205,7 @@ class OnboardScreen extends StatelessWidget {
             color: Color(0xFFFF844B),
             fontSize: 22,
             fontWeight: FontWeight.w600,
-            decoration: TextDecoration.underline,
+            // decoration: TextDecoration.underline,
           ),
         ),
       ),
@@ -216,10 +219,7 @@ class OnboardScreen extends StatelessWidget {
       children: [
         const Text(
           'Already have an account? ',
-          style: TextStyle(
-            color: Color(0xFF979797),
-            fontSize: 14,
-          ),
+          style: TextStyle(color: Color(0xFF979797), fontSize: 14),
         ),
         GestureDetector(
           onTap: () {
@@ -232,7 +232,7 @@ class OnboardScreen extends StatelessWidget {
               color: Color(0xFF1DB386),
               fontSize: 14,
               fontWeight: FontWeight.bold,
-              decoration: TextDecoration.underline,
+              //decoration: TextDecoration.underline,
             ),
           ),
         ),
@@ -262,7 +262,7 @@ class OnboardScreen extends StatelessWidget {
     try {
       final authService = AuthService();
       final success = await authService.signInWithGoogle();
-      
+
       if (success) {
         // Navigate to next step or home screen
         // The actual navigation will be handled by the auth state listener

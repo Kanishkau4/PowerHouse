@@ -9,6 +9,7 @@ import 'package:powerhouse/services/nutrition_service.dart';
 import 'package:powerhouse/models/recipe_model.dart';
 import 'package:powerhouse/models/user_model.dart';
 import 'package:powerhouse/services/user_service.dart';
+import 'dart:math';
 
 class NutritionScreen extends StatefulWidget {
   const NutritionScreen({super.key});
@@ -367,6 +368,8 @@ class _NutritionScreenState extends State<NutritionScreen> {
 
   // ==================== CALORIE DONUT CHART ====================
   Widget _buildCalorieChart() {
+    final progress = calorieProgress;
+
     return Center(
       child: SizedBox(
         width: 200,
@@ -374,17 +377,17 @@ class _NutritionScreenState extends State<NutritionScreen> {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // Donut Chart
+            // PieChart for the main ring
             PieChart(
               PieChartData(
                 startDegreeOffset: -90,
                 sectionsSpace: 0,
-                centerSpaceRadius: 70,
+                centerSpaceRadius: 75,
                 sections: [
                   PieChartSectionData(
                     value: consumedCalories.toDouble(),
                     color: const Color(0xFF1DAB87),
-                    radius: 20,
+                    radius: 18,
                     showTitle: false,
                   ),
                   PieChartSectionData(
@@ -392,12 +395,18 @@ class _NutritionScreenState extends State<NutritionScreen> {
                       0,
                       targetCalories.toDouble(),
                     ),
-                    color: const Color(0xFFE0E0E0),
-                    radius: 20,
+                    color: const Color(0xFFC8E6DD),
+                    radius: 18,
                     showTitle: false,
                   ),
                 ],
               ),
+            ),
+
+            // Donut Chart with custom painter for dot indicator
+            CustomPaint(
+              size: const Size(200, 200),
+              painter: _DonutChartPainter(progress),
             ),
 
             // Center Text
@@ -407,7 +416,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
                 Text(
                   consumedCalories.toString(),
                   style: TextStyle(
-                    fontSize: 32,
+                    fontSize: 40,
                     fontWeight: FontWeight.w800,
                     color: context.primaryText,
                   ),
@@ -416,7 +425,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
                 Text(
                   '🔥/$targetCalories kcal',
                   style: const TextStyle(
-                    fontSize: 15,
+                    fontSize: 14,
                     fontWeight: FontWeight.w500,
                     color: Color(0xFF7E7E7E),
                   ),
@@ -915,16 +924,18 @@ class _NutritionScreenState extends State<NutritionScreen> {
     });
   }
 
-  void _onAddFoodToMeal(String mealType) {
-    showModalBottomSheet(
+  void _onAddFoodToMeal(String mealType) async {
+    await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => AddFoodDialog(mealType: mealType),
-    ).then((_) {
-      // Refresh data when dialog closes
+    );
+
+    // Refresh data when dialog closes
+    if (mounted) {
       _loadData();
-    });
+    }
   }
 
   Future<void> _onDeleteFoodItem(String logId) async {
@@ -979,5 +990,46 @@ class _NutritionScreenState extends State<NutritionScreen> {
         builder: (context) => RecipeDetailScreen(recipe: recipe),
       ),
     );
+  }
+}
+
+// ==================== CUSTOM PAINTER FOR DONUT CHART INDICATOR ====================
+class _DonutChartPainter extends CustomPainter {
+  final double progress;
+
+  _DonutChartPainter(this.progress);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = 84.0; // Radius to the middle of the ring (75 + 18/2 = 84)
+
+    // Calculate the angle for the progress (starting from top, going clockwise)
+    final angle = -90 + (360 * progress); // -90 to start from top
+    final radians = angle * (pi / 180);
+
+    // Calculate position of the dot
+    final dotX = center.dx + radius * cos(radians);
+    final dotY = center.dy + radius * sin(radians);
+
+    // Draw the circular indicator dot
+    final paint = Paint()
+      ..color = const Color(0xFF1DAB87)
+      ..style = PaintingStyle.fill;
+
+    canvas.drawCircle(Offset(dotX, dotY), 10, paint);
+
+    // Draw white border around the dot
+    final borderPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4;
+
+    canvas.drawCircle(Offset(dotX, dotY), 10, borderPaint);
+  }
+
+  @override
+  bool shouldRepaint(_DonutChartPainter oldDelegate) {
+    return oldDelegate.progress != progress;
   }
 }

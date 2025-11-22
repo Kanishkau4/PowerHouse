@@ -21,18 +21,21 @@ class FoodDetailScreen extends StatefulWidget {
 class _FoodDetailScreenState extends State<FoodDetailScreen>
     with SingleTickerProviderStateMixin {
   final _nutritionService = NutritionService();
-  
-  String _selectedServingSize = 'Spoon';
+
+  String _selectedServingSize = 'Serving';
   int _quantity = 1;
   bool _isSaving = false;
+  late String _selectedMealType;
 
-  final List<String> _servingSizes = ['Spoon', 'Cup', 'Plate'];
+  final List<String> _servingSizes = ['Serving', 'Spoon', 'Cup', 'Plate'];
+  final List<String> _mealTypes = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
 
   late AnimationController _animationController;
 
   @override
   void initState() {
     super.initState();
+    _selectedMealType = widget.mealType;
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
@@ -323,6 +326,48 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
                 color: Color(0xFF7E7E7E),
               ),
             ),
+            // Meal Type Selector
+            const Text(
+              'Meal Type',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: _mealTypes.map((type) {
+                final isSelected = _selectedMealType == type;
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedMealType = type;
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 21,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? const Color(0xE01DAB87)
+                          : const Color(0xFFD7D7D7),
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                    child: Text(
+                      type,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: isSelected
+                            ? const Color(0xFF0B4536)
+                            : Colors.black,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
             const SizedBox(height: 24),
             const Text(
               'Serving Size',
@@ -333,6 +378,7 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
             // Serving Size Options
             Wrap(
               spacing: 12,
+              runSpacing: 12,
               children: _servingSizes.map((size) {
                 final isSelected = _selectedServingSize == size;
                 return GestureDetector(
@@ -463,7 +509,7 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
                 child: _isSaving
                     ? const CircularProgressIndicator(color: Colors.white)
                     : Text(
-                        'Add to ${widget.mealType}',
+                        'Add to $_selectedMealType',
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
@@ -492,7 +538,7 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
       // Save to database
       final result = await _nutritionService.logFood(
         foodId: widget.food.foodId,
-        mealType: widget.mealType,
+        mealType: _selectedMealType,
         quantity: _quantity.toDouble(),
         servingUnit: _selectedServingSize,
       );
@@ -524,11 +570,10 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
         _showLevelUpDialog(result['current_level']);
       }
 
-      // Navigate back to nutrition screen
+      // Navigate back to nutrition screen with refresh signal
       await Future.delayed(const Duration(milliseconds: 500));
-      // Pop back to the nutrition screen instead of going to the first route
       if (Navigator.canPop(context)) {
-        Navigator.pop(context);
+        Navigator.pop(context, true); // Pass true to signal refresh needed
       }
     } catch (e) {
       print('❌ Error saving food: $e');
@@ -574,9 +619,9 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
                       repeat: true,
                     ),
                   ),
-                  
+
                   const SizedBox(height: 24),
-                  
+
                   // Title
                   const Text(
                     'LEVEL UP!',
@@ -587,9 +632,9 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  
+
                   const SizedBox(height: 16),
-                  
+
                   // Level info
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -612,9 +657,9 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
                       textAlign: TextAlign.center,
                     ),
                   ),
-                  
+
                   const SizedBox(height: 16),
-                  
+
                   // Motivational message
                   const Text(
                     'Keep crushing your goals!',
@@ -625,9 +670,9 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  
+
                   const SizedBox(height: 32),
-                  
+
                   // Action button
                   SizedBox(
                     width: double.infinity,
@@ -655,7 +700,7 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
               ),
             ),
           ),
-          
+
           // Confetti Lottie Animation (Full screen overlay)
           Positioned.fill(
             child: IgnorePointer(

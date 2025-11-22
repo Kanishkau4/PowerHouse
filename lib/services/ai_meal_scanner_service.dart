@@ -7,13 +7,13 @@ import 'package:powerhouse/models/food_item_model.dart';
 class AIMealScannerService {
   // Get your API key from: https://makersuite.google.com/app/apikey
   static const String _geminiApiKey = 'AIzaSyBR67kwEqmNq2IdqJniLUcCQpErVWgA2XM';
-  
+
   final _picker = ImagePicker();
   late final GenerativeModel _model;
 
   AIMealScannerService() {
     _model = GenerativeModel(
-      model: 'gemini-1.5-flash',
+      model: 'gemini-2.5-flash', // ← Change this line
       apiKey: _geminiApiKey,
     );
   }
@@ -91,10 +91,7 @@ Be realistic with portion sizes and nutritional values.
 
       // Send to Gemini
       final content = [
-        Content.multi([
-          TextPart(prompt),
-          DataPart('image/jpeg', imageBytes),
-        ])
+        Content.multi([TextPart(prompt), DataPart('image/jpeg', imageBytes)]),
       ];
 
       final response = await _model.generateContent(content);
@@ -119,10 +116,13 @@ Be realistic with portion sizes and nutritional values.
     try {
       // Extract JSON from response (Gemini sometimes adds markdown)
       String jsonText = responseText.trim();
-      
+
       // Remove markdown code blocks if present
       if (jsonText.startsWith('```json')) {
-        jsonText = jsonText.replaceAll('```json', '').replaceAll('```', '').trim();
+        jsonText = jsonText
+            .replaceAll('```json', '')
+            .replaceAll('```', '')
+            .trim();
       } else if (jsonText.startsWith('```')) {
         jsonText = jsonText.replaceAll('```', '').trim();
       }
@@ -142,6 +142,7 @@ Be realistic with portion sizes and nutritional values.
           fat: (item['fat'] as num).toDouble(),
           isSriLankan: _isSriLankanFood(item['name'] as String),
           imageUrl: null,
+          localImagePath: imageFile.path, // Add the image path
           createdAt: DateTime.now(),
         );
       }).toList();
@@ -154,9 +155,21 @@ Be realistic with portion sizes and nutritional values.
   // ========== CHECK IF SRI LANKAN FOOD ==========
   bool _isSriLankanFood(String foodName) {
     final sriLankanKeywords = [
-      'rice', 'curry', 'kottu', 'hopper', 'string hopper', 'pittu',
-      'dhal', 'parippu', 'pol', 'sambol', 'roti', 'kiribath',
-      'watalappan', 'coconut', 'sri lankan'
+      'rice',
+      'curry',
+      'kottu',
+      'hopper',
+      'string hopper',
+      'pittu',
+      'dhal',
+      'parippu',
+      'pol',
+      'sambol',
+      'roti',
+      'kiribath',
+      'watalappan',
+      'coconut',
+      'sri lankan',
     ];
 
     final lowerName = foodName.toLowerCase();

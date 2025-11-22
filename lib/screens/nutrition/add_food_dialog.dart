@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:powerhouse/screens/nutrition/barcode_scanner_screen.dart';
 import 'package:powerhouse/screens/nutrition/food_detail_screen.dart';
+import 'package:powerhouse/screens/nutrition/scanned_food_dialog.dart';
 import 'package:powerhouse/services/ai_meal_scanner_service.dart';
 import 'package:powerhouse/services/nutrition_service.dart';
 import 'package:powerhouse/models/food_item_model.dart';
@@ -9,10 +10,7 @@ import 'package:powerhouse/models/food_item_model.dart';
 class AddFoodDialog extends StatefulWidget {
   final String mealType;
 
-  const AddFoodDialog({
-    super.key,
-    required this.mealType,
-  });
+  const AddFoodDialog({super.key, required this.mealType});
 
   @override
   State<AddFoodDialog> createState() => _AddFoodDialogState();
@@ -38,7 +36,7 @@ class _AddFoodDialogState extends State<AddFoodDialog>
         _selectedTab = _tabController.index;
       });
     });
-    
+
     _loadFoods();
   }
 
@@ -69,8 +67,10 @@ class _AddFoodDialogState extends State<AddFoodDialog>
         _filteredFoods = _foods;
       } else {
         _filteredFoods = _foods
-            .where((food) =>
-                food.foodName.toLowerCase().contains(query.toLowerCase()))
+            .where(
+              (food) =>
+                  food.foodName.toLowerCase().contains(query.toLowerCase()),
+            )
             .toList();
       }
     });
@@ -119,10 +119,7 @@ class _AddFoodDialogState extends State<AddFoodDialog>
                 const SizedBox(width: 16),
                 const Text(
                   "Add Today's Food",
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
                 ),
               ],
             ),
@@ -206,10 +203,7 @@ class _AddFoodDialogState extends State<AddFoodDialog>
                 children: [
                   const Text(
                     'Sri Lankan Foods',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 16),
                   _buildCountryCard(),
@@ -223,9 +217,7 @@ class _AddFoodDialogState extends State<AddFoodDialog>
           Expanded(
             child: _isLoading
                 ? const Center(
-                    child: CircularProgressIndicator(
-                      color: Color(0xFF1DAB87),
-                    ),
+                    child: CircularProgressIndicator(color: Color(0xFF1DAB87)),
                   )
                 : _buildFoodList(),
           ),
@@ -284,9 +276,7 @@ class _AddFoodDialogState extends State<AddFoodDialog>
         decoration: BoxDecoration(
           color: const Color(0xFF1DAB87).withOpacity(0.1),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: const Color(0xFF1DAB87),
-          ),
+          border: Border.all(color: const Color(0xFF1DAB87)),
         ),
         child: Column(
           children: [
@@ -323,7 +313,7 @@ class _AddFoodDialogState extends State<AddFoodDialog>
               borderRadius: BorderRadius.circular(10),
               image: const DecorationImage(
                 image: NetworkImage(
-                  'https://images.unsplash.com/photo-1596040033229-a0b55b42eeb3?w=400',
+                  'https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Flag_of_Sri_Lanka.svg/320px-Flag_of_Sri_Lanka.svg.png',
                 ),
                 fit: BoxFit.cover,
               ),
@@ -332,10 +322,7 @@ class _AddFoodDialogState extends State<AddFoodDialog>
           const SizedBox(width: 22),
           const Text(
             'Our Foods (Sri Lankan\nFoods)',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
           ),
         ],
       ),
@@ -450,144 +437,163 @@ class _AddFoodDialogState extends State<AddFoodDialog>
   // ==================== HANDLERS ====================
 
   void _onScanMeal() async {
-  Navigator.pop(context); // Close dialog
+    try {
+      final aiScanner = AIMealScannerService();
 
-  try {
-    final aiScanner = AIMealScannerService();
-    
-    // Show camera or gallery option
-    final source = await showDialog<ImageSource>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Scan Meal'),
-        content: const Text('Choose image source:'),
-        actions: [
-          TextButton.icon(
-            onPressed: () => Navigator.pop(context, ImageSource.camera),
-            icon: const Icon(Icons.camera_alt),
-            label: const Text('Camera'),
-          ),
-          TextButton.icon(
-            onPressed: () => Navigator.pop(context, ImageSource.gallery),
-            icon: const Icon(Icons.photo_library),
-            label: const Text('Gallery'),
-          ),
-        ],
-      ),
-    );
-
-    if (source == null) return;
-
-    // Show loading
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(color: Color(0xFF1DAB87)),
-      ),
-    );
-
-    // Scan meal
-    final foods = source == ImageSource.camera
-        ? await aiScanner.scanMealFromCamera()
-        : await aiScanner.scanMealFromGallery();
-
-    Navigator.pop(context); // Close loading
-
-    if (foods == null || foods.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No food detected. Try again.'),
-          backgroundColor: Colors.orange,
+      // Show camera or gallery option
+      final source = await showDialog<ImageSource>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Scan Meal'),
+          content: const Text('Choose image source:'),
+          actions: [
+            TextButton.icon(
+              onPressed: () => Navigator.pop(context, ImageSource.camera),
+              icon: const Icon(Icons.camera_alt),
+              label: const Text('Camera'),
+            ),
+            TextButton.icon(
+              onPressed: () => Navigator.pop(context, ImageSource.gallery),
+              icon: const Icon(Icons.photo_library),
+              label: const Text('Gallery'),
+            ),
+          ],
         ),
       );
-      return;
-    }
 
-    // Show detected foods (if multiple, show list; if one, go to detail)
-    if (foods.length == 1) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => FoodDetailScreen(
-            food: foods.first,
-            mealType: widget.mealType,
+      if (source == null) return;
+
+      // Close the add food dialog
+      if (mounted) Navigator.pop(context);
+
+      // Scan meal - this returns null if user cancels
+      List<FoodItemModel>? foods;
+      foods = source == ImageSource.camera
+          ? await aiScanner.scanMealFromCamera()
+          : await aiScanner.scanMealFromGallery();
+
+      // If user cancelled, foods will be null - just return
+      if (foods == null) return;
+
+      // Show loading only AFTER we have the image
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const Center(
+            child: CircularProgressIndicator(color: Color(0xFF1DAB87)),
           ),
-        ),
-      );
-    } else {
-      _showDetectedFoodsDialog(foods);
+        );
+      }
+
+      // Small delay for loading animation
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      if (mounted) Navigator.pop(context); // Close loading
+
+      if (foods.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No food detected. Try again.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Show detected foods
+      if (foods.length == 1) {
+        if (mounted) {
+          final result = await showDialog(
+            context: context,
+            builder: (context) => ScannedFoodDialog(
+              food: foods!.first,
+              initialMealType: widget.mealType,
+            ),
+          );
+
+          // Refresh if food was added
+          if (result == true && mounted) {
+            _loadFoods();
+          }
+        }
+      } else {
+        _showDetectedFoodsDialog(foods);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
-  } catch (e) {
-    Navigator.pop(context); // Close loading if open
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Error: ${e.toString()}'),
-        backgroundColor: Colors.red,
-      ),
-    );
   }
-}
 
-void _onScanBarcode() {
-  Navigator.pop(context); // Close dialog
-  
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => BarcodeScannerScreen(
-        mealType: widget.mealType,
-      ),
-    ),
-  );
-}
-
-void _showDetectedFoodsDialog(List<FoodItemModel> foods) {
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('Detected Foods'),
-      content: SizedBox(
-        width: double.maxFinite,
-        child: ListView.builder(
-          shrinkWrap: true,
-          itemCount: foods.length,
-          itemBuilder: (context, index) {
-            final food = foods[index];
-            return ListTile(
-              leading: const Icon(Icons.restaurant, color: Color(0xFF1DAB87)),
-              title: Text(food.foodName),
-              subtitle: Text('${food.calories} cal'),
-              onTap: () {
-                Navigator.pop(context); // Close dialog
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => FoodDetailScreen(
-                      food: food,
-                      mealType: widget.mealType,
-                    ),
-                  ),
-                );
-              },
-            );
-          },
-        ),
-      ),
-    ),
-  );
-}
-
-  void _onFoodTap(FoodItemModel food) {
+  void _onScanBarcode() {
     Navigator.pop(context); // Close dialog
+
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => FoodDetailScreen(
-          food: food,
-          mealType: widget.mealType,
+        builder: (context) => BarcodeScannerScreen(mealType: widget.mealType),
+      ),
+    );
+  }
+
+  void _showDetectedFoodsDialog(List<FoodItemModel> foods) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Detected Foods'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: foods.length,
+            itemBuilder: (context, index) {
+              final food = foods[index];
+              return ListTile(
+                leading: const Icon(Icons.restaurant, color: Color(0xFF1DAB87)),
+                title: Text(food.foodName),
+                subtitle: Text('${food.calories} cal'),
+                onTap: () {
+                  Navigator.pop(context); // Close dialog
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => FoodDetailScreen(
+                        food: food,
+                        mealType: widget.mealType,
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
         ),
       ),
     );
+  }
+
+  void _onFoodTap(FoodItemModel food) async {
+    Navigator.pop(context); // Close dialog
+    final shouldRefresh = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            FoodDetailScreen(food: food, mealType: widget.mealType),
+      ),
+    );
+
+    // Refresh if food was added
+    if (shouldRefresh == true && mounted) {
+      _loadFoods();
+    }
   }
 }
