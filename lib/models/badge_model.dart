@@ -26,6 +26,8 @@ class BadgeModel {
     );
   }
 
+  get color => null;
+
   Map<String, dynamic> toJson() {
     return {
       'badge_id': badgeId,

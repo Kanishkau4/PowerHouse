@@ -6,8 +6,11 @@ import 'package:powerhouse/screens/profile/help_support_screen.dart';
 import 'package:powerhouse/screens/profile/notifications_screen.dart';
 import 'package:powerhouse/services/user_service.dart';
 import 'package:powerhouse/services/badge_service.dart';
+import 'package:powerhouse/services/weight_history_service.dart';
+import 'package:powerhouse/services/workout_service.dart';
 import 'package:powerhouse/models/user_model.dart';
 import 'package:powerhouse/models/user_badge_model.dart';
+import 'package:powerhouse/models/weight_history_model.dart';
 import 'package:powerhouse/core/config/supabase_config.dart';
 import 'package:powerhouse/core/constants/badge_icons.dart';
 import 'package:powerhouse/core/theme/theme_provider.dart';
@@ -24,17 +27,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // Services
   final _userService = UserService();
   final _badgeService = BadgeService();
-  
+  final _weightHistoryService = WeightHistoryService();
+  final _workoutService = WorkoutService();
+
   // User data
   UserModel? _userProfile;
   List<UserBadgeModel> _userBadges = [];
-  
-  // Chart data (BMI over time)
-  List<FlSpot> _chartData = [];
-  
+  List<WeightHistoryModel> _weightHistory = [];
+  Map<DateTime, int> _workoutDuration = {};
+
   // Settings
   String selectedLanguage = 'English';
-  
+
   // Loading state
   bool _isLoading = true;
 
@@ -48,22 +52,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() {
       _isLoading = true;
     });
-    
+
     try {
       // Load user profile
       final profile = await _userService.getCurrentUserProfile();
-      
+
       // Load user badges
       final badges = await _badgeService.getUserBadges();
-      
+
+      // Load weight history (last 30 days)
+      final weightHistory = await _weightHistoryService.getWeightHistory(30);
+
+      // Load workout duration (last 7 days)
+      final workoutDuration = await _workoutService.getWorkoutDurationByDay(7);
+
+      // Check if user logged weight today
+      final hasLoggedToday = await _weightHistoryService.hasLoggedWeightToday();
+
       print('✅ Loaded ${badges.length} badges for user');
-      
+      print('✅ Loaded ${weightHistory.length} weight entries');
+      print('✅ Loaded ${workoutDuration.length} workout days');
+
       setState(() {
         _userProfile = profile;
         _userBadges = badges;
-        _generateBMIChartData();
+        _weightHistory = weightHistory;
+        _workoutDuration = workoutDuration;
         _isLoading = false;
       });
+
+      // Show weight prompt if not logged today
+      if (!hasLoggedToday && mounted) {
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) _showWeightLogDialog();
+        });
+      }
     } catch (e) {
       print('Error loading profile data: $e');
       setState(() {
@@ -72,38 +95,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  void _generateBMIChartData() {
-    final List<FlSpot> data = [];
-    final currentBMI = _userProfile?.bmi ?? 22.0;
-    final random = math.Random();
-    
-    for (int i = 0; i < 7; i++) {
-      final variation = (random.nextDouble() - 0.5) * 2;
-      final bmi = (currentBMI + variation).clamp(15.0, 35.0);
-      data.add(FlSpot(i.toDouble(), bmi));
-    }
-    
-    setState(() {
-      _chartData = data;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Provider.of<ThemeProvider>(context).isDarkMode;
     final theme = Theme.of(context);
-    
+
     if (_isLoading) {
       return Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
         body: const Center(
-          child: CircularProgressIndicator(
-            color: Color(0xFF1DAB87),
-          ),
+          child: CircularProgressIndicator(color: Color(0xFF1DAB87)),
         ),
       );
     }
-    
+
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
@@ -115,7 +120,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 24),
               _buildProfileHeader(isDarkMode),
               const SizedBox(height: 32),
-              
+
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
                 child: Column(
@@ -134,16 +139,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 32),
-              
+
+              // Weight Progress Chart
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'BMI Trend',
+                      'Weight Progress',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w600,
@@ -151,18 +157,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    _buildBMIChart(isDarkMode),
+                    _buildWeightProgressChart(isDarkMode),
                   ],
                 ),
               ),
-              
               const SizedBox(height: 32),
-              
+              // Workout Time Chart
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Workout Time',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: isDarkMode ? Colors.white : Colors.black,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildWorkoutTimeChart(isDarkMode),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 32),
+
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
                 child: _buildSettingsSection(isDarkMode),
               ),
-              
+
               const SizedBox(height: 100),
             ],
           ),
@@ -180,10 +206,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           height: 150,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            border: Border.all(
-              color: const Color(0xFF1DAB87),
-              width: 3,
-            ),
+            border: Border.all(color: const Color(0xFF1DAB87), width: 3),
             boxShadow: [
               BoxShadow(
                 color: const Color(0xFF1DAB87).withOpacity(0.3),
@@ -204,9 +227,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 : _buildPlaceholderAvatar(),
           ),
         ),
-        
+
         const SizedBox(height: 16),
-        
+
         Text(
           _userProfile?.username ?? 'User',
           style: TextStyle(
@@ -215,9 +238,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             color: isDarkMode ? Colors.white : Colors.black,
           ),
         ),
-        
+
         const SizedBox(height: 8),
-        
+
         Text.rich(
           TextSpan(
             children: [
@@ -256,9 +279,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
         ),
-        
+
         const SizedBox(height: 12),
-        
+
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 60),
           child: Stack(
@@ -266,15 +289,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Container(
                 height: 8,
                 decoration: BoxDecoration(
-                  color: isDarkMode 
-                      ? Colors.grey.shade800 
+                  color: isDarkMode
+                      ? Colors.grey.shade800
                       : const Color(0x9ED9D9D9),
                   borderRadius: BorderRadius.circular(20),
                 ),
               ),
               FractionallySizedBox(
-                widthFactor: _userProfile != null 
-                    ? _userProfile!.levelProgress 
+                widthFactor: _userProfile != null
+                    ? _userProfile!.levelProgress
                     : 0.0,
                 child: Container(
                   height: 8,
@@ -326,8 +349,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: _buildStatCard(
             icon: Icons.monitor_weight_outlined,
             label: 'Weight',
-            value: _userProfile?.currentWeight != null 
-                ? _userProfile!.currentWeight!.toStringAsFixed(1) 
+            value: _userProfile?.currentWeight != null
+                ? _userProfile!.currentWeight!.toStringAsFixed(1)
                 : 'N/A',
             unit: 'kg',
             isDarkMode: isDarkMode,
@@ -338,8 +361,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: _buildStatCard(
             icon: Icons.height,
             label: 'Height',
-            value: _userProfile?.height != null 
-                ? _userProfile!.height!.toStringAsFixed(0) 
+            value: _userProfile?.height != null
+                ? _userProfile!.height!.toStringAsFixed(0)
                 : 'N/A',
             unit: 'cm',
             isDarkMode: isDarkMode,
@@ -350,7 +373,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: _buildStatCard(
             icon: Icons.favorite_outline,
             label: 'BMI',
-            value: _userProfile?.bmi != null 
+            value: _userProfile?.bmi != null
                 ? _userProfile!.bmi!.toStringAsFixed(1)
                 : 'N/A',
             unit: '',
@@ -385,11 +408,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            icon,
-            size: 24,
-            color: const Color(0xFF1DAB87),
-          ),
+          Icon(icon, size: 24, color: const Color(0xFF1DAB87)),
           const SizedBox(height: 4),
           Text(
             label,
@@ -438,11 +457,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ==================== BMI CHART ====================
-  Widget _buildBMIChart(bool isDarkMode) {
-    if (_chartData.isEmpty) {
+  // ==================== WEIGHT PROGRESS CHART ====================
+  Widget _buildWeightProgressChart(bool isDarkMode) {
+    if (_weightHistory.isEmpty) {
       return Container(
-        height: 200,
+        height: 250,
         decoration: BoxDecoration(
           color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
           borderRadius: BorderRadius.circular(20),
@@ -454,21 +473,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ],
         ),
-        child: const Center(
-          child: Text(
-            'No BMI data available',
-            style: TextStyle(
-              fontSize: 14,
-              color: Color(0xFF7E7E7E),
-            ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.show_chart, size: 60, color: Colors.grey.shade400),
+              const SizedBox(height: 16),
+              Text(
+                'No weight data yet',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Start logging your weight to see progress',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+              ),
+            ],
           ),
         ),
       );
     }
+    // Prepare data for chart
+    final spots = <FlSpot>[];
+    final targetSpots = <FlSpot>[];
 
+    for (int i = 0; i < _weightHistory.length; i++) {
+      spots.add(FlSpot(i.toDouble(), _weightHistory[i].weight));
+      // Target weight line (you can customize this based on user's goal)
+      final targetWeight = _userProfile?.currentWeight != null
+          ? _userProfile!.currentWeight! -
+                5 // Example: 5kg less than current
+          : _weightHistory[i].weight;
+      targetSpots.add(FlSpot(i.toDouble(), targetWeight));
+    }
+    final minWeight = spots.map((e) => e.y).reduce(math.min) - 2;
+    final maxWeight = spots.map((e) => e.y).reduce(math.max) + 2;
     return Container(
-      height: 220,
-      padding: const EdgeInsets.all(16),
+      height: 250,
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -482,88 +528,99 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       child: Column(
         children: [
+          // Header with current and goal weight
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              if (_userProfile?.bmi != null)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Current BMI',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF7E7E7E),
-                        fontWeight: FontWeight.w600,
-                      ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Current',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w600,
                     ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Text(
-                          _userProfile!.bmi!.toStringAsFixed(1),
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF1DAB87),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _getBMIColor(_userProfile!.bmi!).withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            _userProfile!.bmiCategory ?? 'Normal',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              color: _getBMIColor(_userProfile!.bmi!),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0x261DAB87),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Text(
-                  'Last 7 Days',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF038866),
                   ),
-                ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Container(
+                        width: 12,
+                        height: 12,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF06B6D4), // Cyan
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${_weightHistory.last.weight.toStringAsFixed(1)} kg',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF06B6D4),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    'Goal',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: const Color(0xFFF97316), // Orange
+                            width: 2,
+                          ),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${targetSpots.last.y.toStringAsFixed(1)} kg',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFFF97316),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ],
           ),
-          
-          const SizedBox(height: 16),
-          
+
+          const SizedBox(height: 20),
+
+          // Chart
           Expanded(
             child: LineChart(
               LineChartData(
                 gridData: FlGridData(
                   show: true,
                   drawVerticalLine: false,
-                  horizontalInterval: 5,
+                  horizontalInterval: 2,
                   getDrawingHorizontalLine: (value) {
                     return FlLine(
-                      color: const Color(0x4C979797),
+                      color: Colors.grey.shade300.withOpacity(0.3),
                       strokeWidth: 1,
                     );
                   },
@@ -572,15 +629,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   leftTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      interval: 5,
-                      reservedSize: 35,
+                      interval: 2,
+                      reservedSize: 40,
                       getTitlesWidget: (value, meta) {
                         return Text(
                           value.toInt().toString(),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 10,
-                            color: Color(0xFF979797),
-                            fontWeight: FontWeight.w600,
+                            color: Colors.grey.shade600,
+                            fontWeight: FontWeight.w500,
                           ),
                         );
                       },
@@ -595,18 +652,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
+                      interval: math.max(
+                        1,
+                        (_weightHistory.length / 6).ceil().toDouble(),
+                      ),
                       getTitlesWidget: (value, meta) {
-                        final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
                         final index = value.toInt();
-                        if (index >= 0 && index < days.length) {
+                        if (index >= 0 && index < _weightHistory.length) {
+                          final date = _weightHistory[index].recordedAt;
                           return Padding(
                             padding: const EdgeInsets.only(top: 8.0),
                             child: Text(
-                              days[index],
-                              style: const TextStyle(
+                              '${date.day}/${date.month}',
+                              style: TextStyle(
                                 fontSize: 10,
-                                color: Color(0xFF979797),
-                                fontWeight: FontWeight.w600,
+                                color: Colors.grey.shade600,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           );
@@ -616,29 +677,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                 ),
-                borderData: FlBorderData(
-                  show: true,
-                  border: Border.all(
-                    color: const Color(0xFF1DAB87).withOpacity(0.3),
-                    width: 1,
-                  ),
-                ),
+                borderData: FlBorderData(show: false),
                 minX: 0,
-                maxX: 6,
-                minY: 15,
-                maxY: 35,
+                maxX: (spots.length - 1).toDouble(),
+                minY: minWeight,
+                maxY: maxWeight,
                 lineBarsData: [
+                  // Actual weight line (solid cyan)
                   LineChartBarData(
-                    spots: _chartData,
+                    spots: spots,
                     isCurved: true,
-                    color: const Color(0xFF1DAB87),
+                    color: const Color(0xFF06B6D4), // Cyan
                     barWidth: 3,
                     dotData: FlDotData(
                       show: true,
                       getDotPainter: (spot, percent, barData, index) {
                         return FlDotCirclePainter(
-                          radius: 4,
-                          color: const Color(0xFF1DAB87),
+                          radius: 5,
+                          color: const Color(0xFF06B6D4),
                           strokeWidth: 2,
                           strokeColor: Colors.white,
                         );
@@ -646,8 +702,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     belowBarData: BarAreaData(
                       show: true,
-                      color: const Color(0xFF1DAB87).withOpacity(0.1),
+                      gradient: LinearGradient(
+                        colors: [
+                          const Color(0xFF06B6D4).withOpacity(0.3),
+                          const Color(0xFF06B6D4).withOpacity(0.05),
+                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
                     ),
+                  ),
+                  // Target weight line (dotted orange)
+                  LineChartBarData(
+                    spots: targetSpots,
+                    isCurved: true,
+                    color: const Color(0xFFF97316), // Orange
+                    barWidth: 2,
+                    dashArray: [8, 4],
+                    dotData: FlDotData(show: false),
+                    belowBarData: BarAreaData(show: false),
                   ),
                 ],
               ),
@@ -658,11 +731,265 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Color _getBMIColor(double bmi) {
-    if (bmi < 18.5) return Colors.blue;
-    if (bmi < 25) return Colors.green;
-    if (bmi < 30) return Colors.orange;
-    return Colors.red;
+  // ==================== WORKOUT TIME CHART ====================
+  Widget _buildWorkoutTimeChart(bool isDarkMode) {
+    if (_workoutDuration.isEmpty) {
+      return Container(
+        height: 220,
+        decoration: BoxDecoration(
+          color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.1),
+              blurRadius: 4,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.bar_chart, size: 60, color: Colors.grey.shade400),
+              const SizedBox(height: 16),
+              Text(
+                'No workout data yet',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Complete workouts to see your activity',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    // Prepare data for last 7 days
+    final now = DateTime.now();
+    final barGroups = <BarChartGroupData>[];
+    final dayLabels = <String>[];
+
+    for (int i = 6; i >= 0; i--) {
+      final date = DateTime(
+        now.year,
+        now.month,
+        now.day,
+      ).subtract(Duration(days: i));
+      final duration = _workoutDuration[date] ?? 0;
+
+      barGroups.add(
+        BarChartGroupData(
+          x: 6 - i,
+          barRods: [
+            BarChartRodData(
+              toY: duration.toDouble(),
+              gradient: LinearGradient(
+                colors: [
+                  const Color(0xFF1DAB87),
+                  const Color(0xFF1DAB87).withOpacity(0.7),
+                ],
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
+              ),
+              width: 24,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(6),
+                topRight: Radius.circular(6),
+              ),
+            ),
+          ],
+        ),
+      );
+
+      // Day labels
+      final weekday = [
+        'Mon',
+        'Tue',
+        'Wed',
+        'Thu',
+        'Fri',
+        'Sat',
+        'Sun',
+      ][date.weekday - 1];
+      dayLabels.add(weekday);
+    }
+    final maxDuration = _workoutDuration.values.isEmpty
+        ? 60.0
+        : _workoutDuration.values.reduce(math.max).toDouble();
+    final totalMinutes = _workoutDuration.values.fold(
+      0,
+      (sum, val) => sum + val,
+    );
+    return Container(
+      height: 220,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'This Week',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '$totalMinutes min',
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1DAB87),
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1DAB87).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.trending_up,
+                      size: 16,
+                      color: const Color(0xFF1DAB87),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${_workoutDuration.values.where((v) => v > 0).length} days',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1DAB87),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
+          // Bar Chart
+          Expanded(
+            child: BarChart(
+              BarChartData(
+                alignment: BarChartAlignment.spaceAround,
+                maxY: math.max(60, maxDuration + 10),
+                barTouchData: BarTouchData(
+                  enabled: true,
+                  touchTooltipData: BarTouchTooltipData(
+                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                      return BarTooltipItem(
+                        '${rod.toY.toInt()} min',
+                        const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                titlesData: FlTitlesData(
+                  show: true,
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (value, meta) {
+                        final index = value.toInt();
+                        if (index >= 0 && index < dayLabels.length) {
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 8.0),
+                            child: Text(
+                              dayLabels[index],
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey.shade600,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          );
+                        }
+                        return const Text('');
+                      },
+                    ),
+                  ),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 35,
+                      interval: 20,
+                      getTitlesWidget: (value, meta) {
+                        return Text(
+                          value.toInt().toString(),
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.grey.shade600,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  topTitles: AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  rightTitles: AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                ),
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: 20,
+                  getDrawingHorizontalLine: (value) {
+                    return FlLine(
+                      color: Colors.grey.shade300.withOpacity(0.3),
+                      strokeWidth: 1,
+                    );
+                  },
+                ),
+                borderData: FlBorderData(show: false),
+                barGroups: barGroups,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   // ==================== SETTINGS SECTION ====================
@@ -726,7 +1053,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             trailing: _buildToggleSwitch(
               value: isDarkMode,
               onChanged: (value) {
-                Provider.of<ThemeProvider>(context, listen: false).toggleTheme();
+                Provider.of<ThemeProvider>(
+                  context,
+                  listen: false,
+                ).toggleTheme();
               },
             ),
             isDarkMode: isDarkMode,
@@ -798,7 +1128,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: titleColor ?? (isDarkMode ? Colors.white : Colors.black),
+                      color:
+                          titleColor ??
+                          (isDarkMode ? Colors.white : Colors.black),
                     ),
                   ),
                   if (subtitle != null)
@@ -860,11 +1192,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _onEditProfile() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const EditProfileScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const EditProfileScreen()),
     );
-    
+
     if (result == true) {
       _loadProfileData();
     }
@@ -873,18 +1203,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _onNotifications() {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const NotificationsScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const NotificationsScreen()),
     );
   }
 
   void _onHelpSupport() {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const HelpSupportScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const HelpSupportScreen()),
     );
   }
 
@@ -893,15 +1219,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _onLogout() {
-    final isDarkMode = Provider.of<ThemeProvider>(context, listen: false).isDarkMode;
-    
+    final isDarkMode = Provider.of<ThemeProvider>(
+      context,
+      listen: false,
+    ).isDarkMode;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
           'Logout',
           style: TextStyle(
@@ -912,17 +1239,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         content: Text(
           'Are you sure you want to logout?',
-          style: TextStyle(
-            color: isDarkMode ? Colors.white70 : Colors.black87,
-          ),
+          style: TextStyle(color: isDarkMode ? Colors.white70 : Colors.black87),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: Colors.grey),
-            ),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
           ),
           TextButton(
             onPressed: () async {
@@ -931,10 +1253,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             },
             child: const Text(
               'Logout',
-              style: TextStyle(
-                color: Colors.red,
-                fontWeight: FontWeight.w700,
-              ),
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.w700),
             ),
           ),
         ],
@@ -948,9 +1267,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         context: context,
         barrierDismissible: false,
         builder: (context) => const Center(
-          child: CircularProgressIndicator(
-            color: Color(0xFF1DAB87),
-          ),
+          child: CircularProgressIndicator(color: Color(0xFF1DAB87)),
         ),
       );
 
@@ -967,7 +1284,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     } catch (e) {
       if (mounted) Navigator.pop(context);
-      
+
       print('Logout error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -981,8 +1298,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showAchievementsDialog() {
-    final isDarkMode = Provider.of<ThemeProvider>(context, listen: false).isDarkMode;
-    
+    final isDarkMode = Provider.of<ThemeProvider>(
+      context,
+      listen: false,
+    ).isDarkMode;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1019,10 +1339,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 8),
             Text(
               '${_userBadges.length} badges earned',
-              style: const TextStyle(
-                fontSize: 14,
-                color: Color(0xFF7E7E7E),
-              ),
+              style: const TextStyle(fontSize: 14, color: Color(0xFF7E7E7E)),
             ),
             const SizedBox(height: 20),
             Expanded(
@@ -1059,12 +1376,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     )
                   : GridView.builder(
                       padding: const EdgeInsets.all(20),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        mainAxisSpacing: 20,
-                        crossAxisSpacing: 20,
-                        childAspectRatio: 0.8,
-                      ),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            mainAxisSpacing: 20,
+                            crossAxisSpacing: 20,
+                            childAspectRatio: 0.8,
+                          ),
                       itemCount: _userBadges.length,
                       itemBuilder: (context, index) {
                         return _buildAchievementBadge(_userBadges[index]);
@@ -1080,10 +1398,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildAchievementBadge(UserBadgeModel userBadge) {
     final badge = userBadge.badge;
     if (badge == null) return const SizedBox.shrink();
-    
+
     // Try to get local asset path
     final assetPath = BadgeIcons.getAssetPath(badge.badgeName);
-    
+
     return GestureDetector(
       onTap: () => _showBadgeDetail(badge),
       child: Column(
@@ -1118,22 +1436,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       },
                     )
                   : (badge.iconUrl != null && badge.iconUrl!.isNotEmpty
-                      ? Image.network(
-                          badge.iconUrl!,
-                          color: Colors.white,
-                          errorBuilder: (context, error, stackTrace) {
-                            return const Icon(
-                              Icons.emoji_events,
-                              color: Colors.white,
-                              size: 35,
-                            );
-                          },
-                        )
-                      : const Icon(
-                          Icons.emoji_events,
-                          color: Colors.white,
-                          size: 35,
-                        )),
+                        ? Image.network(
+                            badge.iconUrl!,
+                            color: Colors.white,
+                            errorBuilder: (context, error, stackTrace) {
+                              return const Icon(
+                                Icons.emoji_events,
+                                color: Colors.white,
+                                size: 35,
+                              );
+                            },
+                          )
+                        : const Icon(
+                            Icons.emoji_events,
+                            color: Colors.white,
+                            size: 35,
+                          )),
             ),
           ),
           const SizedBox(height: 8),
@@ -1154,15 +1472,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showBadgeDetail(dynamic badge) {
-    final isDarkMode = Provider.of<ThemeProvider>(context, listen: false).isDarkMode;
-    
+    final isDarkMode = Provider.of<ThemeProvider>(
+      context,
+      listen: false,
+    ).isDarkMode;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
             Container(
@@ -1251,20 +1570,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showLanguageDialog() {
-    final isDarkMode = Provider.of<ThemeProvider>(context, listen: false).isDarkMode;
-    
+    final isDarkMode = Provider.of<ThemeProvider>(
+      context,
+      listen: false,
+    ).isDarkMode;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
           'Select Language',
-          style: TextStyle(
-            color: isDarkMode ? Colors.white : Colors.black,
-          ),
+          style: TextStyle(color: isDarkMode ? Colors.white : Colors.black),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1283,9 +1601,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return ListTile(
       title: Text(
         language,
-        style: TextStyle(
-          color: isDarkMode ? Colors.white : Colors.black,
-        ),
+        style: TextStyle(color: isDarkMode ? Colors.white : Colors.black),
       ),
       trailing: isSelected
           ? const Icon(Icons.check, color: Color(0xFF1DAB87))
@@ -1296,6 +1612,160 @@ class _ProfileScreenState extends State<ProfileScreen> {
         });
         Navigator.pop(context);
       },
+    );
+  }
+
+  // ==================== WEIGHT LOG DIALOG ====================
+  void _showWeightLogDialog() {
+    final isDarkMode = Provider.of<ThemeProvider>(
+      context,
+      listen: false,
+    ).isDarkMode;
+    final weightController = TextEditingController(
+      text: _userProfile?.currentWeight?.toStringAsFixed(1) ?? '',
+    );
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: const Color(0xFF1DAB87).withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.monitor_weight_outlined,
+                color: Color(0xFF1DAB87),
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Log Your Weight',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: isDarkMode ? Colors.white : Colors.black,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Track your progress by logging your current weight',
+              style: TextStyle(
+                fontSize: 14,
+                color: isDarkMode ? Colors.white70 : Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: weightController,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              autofocus: true,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: isDarkMode ? Colors.white : Colors.black,
+              ),
+              decoration: InputDecoration(
+                labelText: 'Weight (kg)',
+                labelStyle: TextStyle(color: Colors.grey.shade600),
+                suffixText: 'kg',
+                suffixStyle: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey.shade600,
+                ),
+                filled: true,
+                fillColor: isDarkMode
+                    ? Colors.grey.shade800.withOpacity(0.3)
+                    : Colors.grey.shade100,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Color(0xFF1DAB87),
+                    width: 2,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Skip',
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final weight = double.tryParse(weightController.text);
+              if (weight != null && weight > 0) {
+                try {
+                  await _weightHistoryService.addWeightEntry(weight);
+                  Navigator.pop(context);
+                  _loadProfileData(); // Reload data
+
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Weight logged successfully!'),
+                        backgroundColor: Color(0xFF1DAB87),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error: ${e.toString()}'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1DAB87),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text(
+              'Save',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

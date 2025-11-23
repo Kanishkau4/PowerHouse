@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:powerhouse/screens/nutrition/barcode_scanner_screen.dart';
@@ -463,66 +464,115 @@ class _AddFoodDialogState extends State<AddFoodDialog>
 
       if (source == null) return;
 
+      // Store the navigator and scaffold messenger before closing dialog
+      final navigator = Navigator.of(context);
+      final scaffoldMessenger = ScaffoldMessenger.of(context);
+
       // Close the add food dialog
       if (mounted) Navigator.pop(context);
 
-      // Scan meal - this returns null if user cancels
+      // Show loading dialog
+      navigator.push(
+        MaterialPageRoute(
+          builder: (context) => Scaffold(
+            backgroundColor: Colors.black54,
+            body: Center(
+              child: Container(
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(color: Color(0xFF1DAB87)),
+                    SizedBox(height: 16),
+                    Text(
+                      'Analyzing your meal...',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          fullscreenDialog: true,
+        ),
+      );
+
+      // Scan meal
       List<FoodItemModel>? foods;
-      foods = source == ImageSource.camera
-          ? await aiScanner.scanMealFromCamera()
-          : await aiScanner.scanMealFromGallery();
-
-      // If user cancelled, foods will be null - just return
-      if (foods == null) return;
-
-      // Show loading only AFTER we have the image
-      if (mounted) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => const Center(
-            child: CircularProgressIndicator(color: Color(0xFF1DAB87)),
+      try {
+        foods = source == ImageSource.camera
+            ? await aiScanner.scanMealFromCamera()
+            : await aiScanner.scanMealFromGallery();
+      } catch (e) {
+        print('Error during scanning: $e');
+        navigator.pop(); // Close loading
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text('Error scanning: ${e.toString()}'),
+            backgroundColor: Colors.red,
           ),
         );
-      }
-
-      // Small delay for loading animation
-      await Future.delayed(const Duration(milliseconds: 500));
-
-      if (mounted) Navigator.pop(context); // Close loading
-
-      if (foods.isEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('No food detected. Try again.'),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        }
         return;
       }
 
+      // Close loading
+      navigator.pop();
+
+      // If user cancelled, foods will be null - just return
+      if (foods == null || foods.isEmpty) {
+        scaffoldMessenger.showSnackBar(
+          const SnackBar(
+            content: Text('No food detected. Try again.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+
+      print('✅ Successfully scanned ${foods.length} food item(s)');
+
       // Show detected foods
       if (foods.length == 1) {
-        if (mounted) {
-          final result = await showDialog(
-            context: context,
+        final result = await navigator.push(
+          MaterialPageRoute(
             builder: (context) => ScannedFoodDialog(
               food: foods!.first,
               initialMealType: widget.mealType,
             ),
-          );
+            fullscreenDialog: true,
+          ),
+        );
 
-          // Refresh if food was added
-          if (result == true && mounted) {
-            _loadFoods();
-          }
+        // Show success message if food was added
+        if (result == true) {
+          scaffoldMessenger.showSnackBar(
+            const SnackBar(
+              content: Text('Food added successfully!'),
+              backgroundColor: Color(0xFF1DAB87),
+            ),
+          );
         }
       } else {
-        _showDetectedFoodsDialog(foods);
+        // Multiple foods detected
+        await navigator.push(
+          MaterialPageRoute(
+            builder: (context) => _MultipleDetectedFoodsScreen(
+              foods: foods!, // Already checked for null above
+              mealType: widget.mealType,
+            ),
+            fullscreenDialog: true,
+          ),
+        );
       }
     } catch (e) {
+      print('❌ Error in _onScanMeal: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -545,42 +595,6 @@ class _AddFoodDialogState extends State<AddFoodDialog>
     );
   }
 
-  void _showDetectedFoodsDialog(List<FoodItemModel> foods) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Detected Foods'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: foods.length,
-            itemBuilder: (context, index) {
-              final food = foods[index];
-              return ListTile(
-                leading: const Icon(Icons.restaurant, color: Color(0xFF1DAB87)),
-                title: Text(food.foodName),
-                subtitle: Text('${food.calories} cal'),
-                onTap: () {
-                  Navigator.pop(context); // Close dialog
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => FoodDetailScreen(
-                        food: food,
-                        mealType: widget.mealType,
-                      ),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
-        ),
-      ),
-    );
-  }
-
   void _onFoodTap(FoodItemModel food) async {
     Navigator.pop(context); // Close dialog
     final shouldRefresh = await Navigator.push(
@@ -595,5 +609,128 @@ class _AddFoodDialogState extends State<AddFoodDialog>
     if (shouldRefresh == true && mounted) {
       _loadFoods();
     }
+  }
+}
+
+// ==================== MULTIPLE DETECTED FOODS SCREEN ====================
+class _MultipleDetectedFoodsScreen extends StatelessWidget {
+  final List<FoodItemModel> foods;
+  final String mealType;
+
+  const _MultipleDetectedFoodsScreen({
+    required this.foods,
+    required this.mealType,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'Detected Foods',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 24,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+      body: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: foods.length,
+        itemBuilder: (context, index) {
+          final food = foods[index];
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: GestureDetector(
+              onTap: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ScannedFoodDialog(
+                      food: food,
+                      initialMealType: mealType,
+                    ),
+                    fullscreenDialog: true,
+                  ),
+                );
+
+                if (result == true && context.mounted) {
+                  Navigator.pop(context, true);
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0x7FD9D9D9),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  children: [
+                    // Food icon
+                    Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: const Color(0xFF1DAB87).withOpacity(0.2),
+                      ),
+                      child: food.localImagePath != null
+                          ? ClipOval(
+                              child: Image.file(
+                                File(food.localImagePath!),
+                                fit: BoxFit.cover,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.restaurant,
+                              color: Color(0xFF1DAB87),
+                              size: 30,
+                            ),
+                    ),
+                    const SizedBox(width: 16),
+                    // Food info
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            food.foodName,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${food.calories} cal | P: ${food.protein.toInt()}g C: ${food.carbs.toInt()}g F: ${food.fat.toInt()}g',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF7E7E7E),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(
+                      Icons.arrow_forward_ios,
+                      size: 16,
+                      color: Color(0xFF7E7E7E),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 }

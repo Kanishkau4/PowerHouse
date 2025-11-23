@@ -3,6 +3,8 @@ import 'package:lottie/lottie.dart';
 import 'dart:math' as math;
 import 'package:powerhouse/models/food_item_model.dart';
 import 'package:powerhouse/services/nutrition_service.dart';
+import 'package:powerhouse/screens/achievements/badge_unlock_screen.dart';
+import 'package:powerhouse/models/badge_model.dart';
 
 class FoodDetailScreen extends StatefulWidget {
   final FoodItemModel food;
@@ -568,6 +570,29 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
       // Check for level up
       if (result['leveled_up'] == true) {
         _showLevelUpDialog(result['current_level']);
+      }
+
+      // Show badge unlock animations for newly earned badges
+      if (result['new_badges'] != null &&
+          (result['new_badges'] as List).isNotEmpty) {
+        final newBadges = (result['new_badges'] as List)
+            .map((badgeData) => BadgeModel.fromJson(badgeData))
+            .toList();
+
+        // Wait a bit after level up dialog
+        await Future.delayed(const Duration(milliseconds: 500));
+
+        // Show each badge unlock screen
+        for (final badge in newBadges) {
+          if (mounted) {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => BadgeUnlockScreen(badge: badge),
+              ),
+            );
+          }
+        }
       }
 
       // Navigate back to nutrition screen with refresh signal

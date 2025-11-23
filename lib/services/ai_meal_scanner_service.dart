@@ -6,7 +6,7 @@ import 'package:powerhouse/models/food_item_model.dart';
 
 class AIMealScannerService {
   // Get your API key from: https://makersuite.google.com/app/apikey
-  static const String _geminiApiKey = 'AIzaSyBR67kwEqmNq2IdqJniLUcCQpErVWgA2XM';
+  static const String _geminiApiKey = 'AIzaSyA-UTkiPX4N6B8fyGeMGtkF6vZCViJVmcM';
 
   final _picker = ImagePicker();
   late final GenerativeModel _model;
@@ -101,7 +101,7 @@ Be realistic with portion sizes and nutritional values.
       print('Response: $responseText');
 
       // Parse JSON response
-      final foods = _parseGeminiResponse(responseText);
+      final foods = _parseGeminiResponse(responseText, imageFile.path);
 
       print('✅ Identified ${foods.length} food items');
       return foods;
@@ -112,7 +112,10 @@ Be realistic with portion sizes and nutritional values.
   }
 
   // ========== PARSE GEMINI RESPONSE ==========
-  List<FoodItemModel> _parseGeminiResponse(String responseText) {
+  List<FoodItemModel> _parseGeminiResponse(
+    String responseText,
+    String? localImagePath,
+  ) {
     try {
       // Extract JSON from response (Gemini sometimes adds markdown)
       String jsonText = responseText.trim();
@@ -142,7 +145,7 @@ Be realistic with portion sizes and nutritional values.
           fat: (item['fat'] as num).toDouble(),
           isSriLankan: _isSriLankanFood(item['name'] as String),
           imageUrl: null,
-          localImagePath: imageFile.path, // Add the image path
+          localImagePath: localImagePath, // Add the image path
           createdAt: DateTime.now(),
         );
       }).toList();

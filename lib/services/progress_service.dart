@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:powerhouse/core/config/supabase_config.dart';
 import 'package:powerhouse/services/badge_service.dart';
+import 'package:powerhouse/models/badge_model.dart';
 
 class ProgressService {
   final SupabaseClient _supabase = SupabaseConfig.client;
@@ -45,16 +46,19 @@ class ProgressService {
       final leveledUp = newLevel > currentLevel;
 
       // Update database
-      await _supabase.from('users').update({
-        'xp_points': newXP,
-        'level': newLevel,
-        'updated_at': DateTime.now().toIso8601String(),
-      }).eq('user_id', userId);
+      await _supabase
+          .from('users')
+          .update({
+            'xp_points': newXP,
+            'level': newLevel,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('user_id', userId);
 
       print('✅ XP added! New XP: $newXP, New Level: $newLevel');
 
-      // Award badges for milestones
-      await _checkAndAwardBadges(newXP, newLevel);
+      // Award badges for milestones and return newly awarded badges
+      final newBadges = await _checkAndAwardBadges(newXP, newLevel);
 
       return {
         'xp_added': points,
@@ -62,6 +66,7 @@ class ProgressService {
         'current_level': newLevel,
         'leveled_up': leveledUp,
         'previous_level': currentLevel,
+        'new_badges': newBadges, // Include newly awarded badges
       };
     } catch (e) {
       print('❌ Error adding XP: $e');
@@ -88,30 +93,38 @@ class ProgressService {
   }
 
   // ========== CHECK AND AWARD BADGES ==========
-  Future<void> _checkAndAwardBadges(int totalXP, int level) async {
+  Future<List<BadgeModel>> _checkAndAwardBadges(int totalXP, int level) async {
+    final newBadges = <BadgeModel>[];
     try {
       // Award badges based on level milestones
       if (level == 5) {
-        await _awardBadgeByName('First 5 Levels');
+        final badge = await _awardBadgeByName('First 5 Levels');
+        if (badge != null) newBadges.add(badge);
       } else if (level == 10) {
-        await _awardBadgeByName('Level 10 Warrior');
+        final badge = await _awardBadgeByName('Level 10 Warrior');
+        if (badge != null) newBadges.add(badge);
       } else if (level == 20) {
-        await _awardBadgeByName('Level 20 Champion');
+        final badge = await _awardBadgeByName('Level 20 Champion');
+        if (badge != null) newBadges.add(badge);
       }
 
       // Award badges based on XP milestones
       if (totalXP >= 1000) {
-        await _awardBadgeByName('First 1000 XP');
-      } else if (totalXP >= 5000) {
-        await _awardBadgeByName('5000 XP Master');
+        final badge = await _awardBadgeByName('First 1000 XP');
+        if (badge != null) newBadges.add(badge);
+      }
+      if (totalXP >= 5000) {
+        final badge = await _awardBadgeByName('5000 XP Master');
+        if (badge != null) newBadges.add(badge);
       }
     } catch (e) {
       print('Error checking badges: $e');
     }
+    return newBadges;
   }
 
   // ========== AWARD BADGE BY NAME ==========
-  Future<void> _awardBadgeByName(String badgeName) async {
+  Future<BadgeModel?> _awardBadgeByName(String badgeName) async {
     try {
       // Find badge by name
       final badges = await _supabase
@@ -122,12 +135,16 @@ class ProgressService {
 
       if (badges != null) {
         final badgeId = badges['badge_id'] as String;
-        await _badgeService.awardBadge(badgeId);
-        print('🏆 Badge awarded: $badgeName');
+        final badge = await _badgeService.awardBadge(badgeId);
+        if (badge != null) {
+          print('🏆 Badge awarded: $badgeName');
+          return badge;
+        }
       }
     } catch (e) {
       print('Error awarding badge: $e');
     }
+    return null;
   }
 
   // ========== AWARD XP FOR SPECIFIC ACTIVITIES ==========

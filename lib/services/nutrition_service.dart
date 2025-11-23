@@ -67,6 +67,7 @@ class NutritionService {
     required String mealType,
     required double quantity,
     required String servingUnit,
+    FoodItemModel? scannedFood, // Optional: for scanned foods
   }) async {
     try {
       final userId = SupabaseConfig.currentUserId;
@@ -74,9 +75,34 @@ class NutritionService {
 
       print('💾 Logging food...');
 
+      String actualFoodId = foodId;
+
+      // If this is a scanned food (temporary ID), insert it into foods table first
+      if (foodId.startsWith('scanned_') && scannedFood != null) {
+        print('📸 Detected scanned food, inserting into database...');
+
+        final insertedFood = await _supabase
+            .from('foods')
+            .insert({
+              'food_name': scannedFood.foodName,
+              'serving_size_description': scannedFood.servingSizeDescription,
+              'calories': scannedFood.calories,
+              'protein': scannedFood.protein,
+              'carbs': scannedFood.carbs,
+              'fat': scannedFood.fat,
+              'is_sri_lankan': scannedFood.isSriLankan,
+              'image_url': scannedFood.imageUrl,
+            })
+            .select('food_id')
+            .single();
+
+        actualFoodId = insertedFood['food_id'] as String;
+        print('✅ Scanned food inserted with ID: $actualFoodId');
+      }
+
       await _supabase.from('food_logs').insert({
         'user_id': userId,
-        'food_id': foodId,
+        'food_id': actualFoodId,
         'meal_type': mealType,
         'quantity': quantity,
         'serving_unit': servingUnit,
@@ -147,11 +173,8 @@ class NutritionService {
   // ========== DELETE FOOD LOG ==========
   Future<void> deleteFoodLog(String logId) async {
     try {
-      await _supabase
-          .from('food_logs')
-          .delete()
-          .eq('log_id', logId);
-      
+      await _supabase.from('food_logs').delete().eq('log_id', logId);
+
       print('✅ Food log deleted');
     } catch (e) {
       print('❌ Error deleting food log: $e');
@@ -164,12 +187,7 @@ class NutritionService {
     try {
       final userId = SupabaseConfig.currentUserId;
       if (userId == null) {
-        return {
-          'calories': 0,
-          'protein': 0.0,
-          'carbs': 0.0,
-          'fat': 0.0,
-        };
+        return {'calories': 0, 'protein': 0.0, 'carbs': 0.0, 'fat': 0.0};
       }
 
       final startOfDay = DateTime(date.year, date.month, date.day);
@@ -207,67 +225,62 @@ class NutritionService {
       };
     } catch (e) {
       print('❌ Error getting nutrition stats: $e');
-      return {
-        'calories': 0,
-        'protein': 0.0,
-        'carbs': 0.0,
-        'fat': 0.0,
-      };
+      return {'calories': 0, 'protein': 0.0, 'carbs': 0.0, 'fat': 0.0};
     }
   }
 
   // Add these methods to the existing NutritionService class
 
-// ========== GET RECIPES ==========
-Future<List<RecipeModel>> getRecipes({int limit = 20}) async {
-  try {
-    final response = await _supabase
-        .from('recipes')
-        .select()
-        .order('created_at', ascending: false)
-        .limit(limit);
+  // ========== GET RECIPES ==========
+  Future<List<RecipeModel>> getRecipes({int limit = 20}) async {
+    try {
+      final response = await _supabase
+          .from('recipes')
+          .select()
+          .order('created_at', ascending: false)
+          .limit(limit);
 
-    return (response as List)
-        .map((json) => RecipeModel.fromJson(json))
-        .toList();
-  } catch (e) {
-    print('❌ Error getting recipes: $e');
-    return [];
+      return (response as List)
+          .map((json) => RecipeModel.fromJson(json))
+          .toList();
+    } catch (e) {
+      print('❌ Error getting recipes: $e');
+      return [];
+    }
   }
-}
 
-// ========== GET SRI LANKAN RECIPES ==========
-Future<List<RecipeModel>> getSriLankanRecipes({int limit = 20}) async {
-  try {
-    final response = await _supabase
-        .from('recipes')
-        .select()
-        .eq('is_sri_lankan', true)
-        .order('created_at', ascending: false)
-        .limit(limit);
+  // ========== GET SRI LANKAN RECIPES ==========
+  Future<List<RecipeModel>> getSriLankanRecipes({int limit = 20}) async {
+    try {
+      final response = await _supabase
+          .from('recipes')
+          .select()
+          .eq('is_sri_lankan', true)
+          .order('created_at', ascending: false)
+          .limit(limit);
 
-    return (response as List)
-        .map((json) => RecipeModel.fromJson(json))
-        .toList();
-  } catch (e) {
-    print('❌ Error getting Sri Lankan recipes: $e');
-    return [];
+      return (response as List)
+          .map((json) => RecipeModel.fromJson(json))
+          .toList();
+    } catch (e) {
+      print('❌ Error getting Sri Lankan recipes: $e');
+      return [];
+    }
   }
-}
 
-// ========== GET RECIPE BY ID ==========
-Future<RecipeModel?> getRecipeById(String recipeId) async {
-  try {
-    final response = await _supabase
-        .from('recipes')
-        .select()
-        .eq('recipe_id', recipeId)
-        .single();
+  // ========== GET RECIPE BY ID ==========
+  Future<RecipeModel?> getRecipeById(String recipeId) async {
+    try {
+      final response = await _supabase
+          .from('recipes')
+          .select()
+          .eq('recipe_id', recipeId)
+          .single();
 
-    return RecipeModel.fromJson(response);
-  } catch (e) {
-    print('❌ Error getting recipe: $e');
-    return null;
+      return RecipeModel.fromJson(response);
+    } catch (e) {
+      print('❌ Error getting recipe: $e');
+      return null;
+    }
   }
-}
 }

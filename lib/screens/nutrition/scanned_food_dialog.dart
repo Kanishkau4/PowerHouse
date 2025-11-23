@@ -288,6 +288,7 @@ class _ScannedFoodDialogState extends State<ScannedFoodDialog> {
         mealType: _selectedMealType,
         quantity: _quantity.toDouble(),
         servingUnit: _selectedServingSize,
+        scannedFood: widget.food, // Pass the scanned food data
       );
 
       if (mounted) {

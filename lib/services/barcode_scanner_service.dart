@@ -33,7 +33,7 @@ class BarcodeScannerService {
 
       // Get product name
       String productName = product['product_name'] ?? 'Unknown Product';
-      
+
       // Prefer local language if available
       if (product['product_name_en'] != null) {
         productName = product['product_name_en'];
@@ -64,6 +64,7 @@ class BarcodeScannerService {
         isSriLankan: false,
         imageUrl: imageUrl,
         createdAt: DateTime.now(),
+        localImagePath: null,
       );
     } catch (e) {
       print('❌ Error fetching barcode data: $e');

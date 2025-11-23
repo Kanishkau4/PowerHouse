@@ -8,6 +8,7 @@ class FoodItemModel {
   final double fat; // grams
   final bool isSriLankan;
   final String? imageUrl;
+  final String? localImagePath; // Path to locally scanned image
   final DateTime createdAt;
 
   FoodItemModel({
@@ -20,6 +21,7 @@ class FoodItemModel {
     required this.fat,
     this.isSriLankan = false,
     this.imageUrl,
+    this.localImagePath,
     required this.createdAt,
   });
 
@@ -34,6 +36,7 @@ class FoodItemModel {
       fat: (json['fat'] as num).toDouble(),
       isSriLankan: json['is_sri_lankan'] as bool? ?? false,
       imageUrl: json['image_url'] as String?,
+      localImagePath: json['local_image_path'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }
@@ -49,6 +52,7 @@ class FoodItemModel {
       'fat': fat,
       'is_sri_lankan': isSriLankan,
       'image_url': imageUrl,
+      'local_image_path': localImagePath,
     };
   }
 
