@@ -1010,21 +1010,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Column(
         children: [
           _buildSettingsItem(
-            icon: Icons.edit_outlined,
             title: 'Edit Profile',
             onTap: () => _onEditProfile(),
             isDarkMode: isDarkMode,
           ),
           const SizedBox(height: 16),
           _buildSettingsItem(
-            icon: Icons.emoji_events_outlined,
             title: 'My Achievements / Badges',
             onTap: () => _onAchievements(),
             isDarkMode: isDarkMode,
           ),
           const SizedBox(height: 16),
           _buildSettingsItem(
-            icon: Icons.notifications_outlined,
             title: 'Notifications',
             onTap: () => _onNotifications(),
             trailing: const Icon(
@@ -1036,7 +1033,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 16),
           _buildSettingsItem(
-            icon: Icons.help_outline,
             title: 'Help & Support',
             onTap: () => _onHelpSupport(),
             trailing: const Icon(
@@ -1048,7 +1044,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 16),
           _buildSettingsItem(
-            icon: Icons.dark_mode_outlined,
             title: 'Dark Mode',
             trailing: _buildToggleSwitch(
               value: isDarkMode,
@@ -1063,7 +1058,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 16),
           _buildSettingsItem(
-            icon: Icons.language_outlined,
             title: 'Language',
             subtitle: '($selectedLanguage)',
             onTap: () => _onLanguageSelect(),
@@ -1076,7 +1070,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 16),
           _buildSettingsItem(
-            icon: Icons.logout,
             title: 'Logout',
             onTap: () => _onLogout(),
             trailing: const Icon(
@@ -1092,31 +1085,55 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  String? _getIconAsset(String title) {
+    switch (title) {
+      case 'Edit Profile':
+        return 'assets/icons/Edit Profile.png';
+      case 'My Achievements / Badges':
+        return 'assets/icons/Trophy.png';
+      case 'Notifications':
+        return 'assets/icons/Notification.png';
+      case 'Help & Support':
+        return 'assets/icons/Help.png';
+      case 'Dark Mode':
+        return 'assets/icons/Dark mode.png';
+      case 'Language':
+        return 'assets/icons/Language.png';
+      case 'Logout':
+        return 'assets/icons/female_icon.png';
+      default:
+        return null;
+    }
+  }
+
   Widget _buildSettingsItem({
-    required IconData icon,
-    required String title,
+    required String title, // 👈 REMOVED 'icon' parameter
     String? subtitle,
     VoidCallback? onTap,
     Widget? trailing,
     Color? titleColor,
     required bool isDarkMode,
   }) {
+    final iconAsset = _getIconAsset(title);
+
     return GestureDetector(
       onTap: onTap,
       child: Row(
         children: [
-          Container(
+          // ✅ NO BACKGROUND CONTAINER — just the icon/image
+          SizedBox(
             width: 30,
             height: 30,
-            decoration: BoxDecoration(
-              color: (titleColor ?? const Color(0xFF1DAB87)).withOpacity(0.2),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              icon,
-              size: 18,
-              color: titleColor ?? const Color(0xFF1DAB87),
-            ),
+            child: iconAsset != null
+                ? Image.asset(
+                    iconAsset,
+                    fit: BoxFit.contain,
+                    // Optional: tint icon if it's monochrome
+                    color:
+                        titleColor ??
+                        (isDarkMode ? Colors.white : Colors.black),
+                  )
+                : const Icon(Icons.help_outline, size: 24, color: Colors.grey),
           ),
           const SizedBox(width: 18),
           Expanded(
