@@ -503,15 +503,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     for (int i = 0; i < _weightHistory.length; i++) {
       spots.add(FlSpot(i.toDouble(), _weightHistory[i].weight));
-      // Target weight line (you can customize this based on user's goal)
+      // Target weight line (2kg less than current weight as goal)
       final targetWeight = _userProfile?.currentWeight != null
           ? _userProfile!.currentWeight! -
-                5 // Example: 5kg less than current
-          : _weightHistory[i].weight;
+                2 // Goal: 2kg less than current
+          : _weightHistory[i].weight - 2;
       targetSpots.add(FlSpot(i.toDouble(), targetWeight));
     }
-    final minWeight = spots.map((e) => e.y).reduce(math.min) - 2;
-    final maxWeight = spots.map((e) => e.y).reduce(math.max) + 2;
+
+    // Calculate min/max including both actual and target weights
+    final allWeights = [
+      ...spots.map((e) => e.y),
+      ...targetSpots.map((e) => e.y),
+    ];
+    final minWeight = allWeights.reduce(math.min) - 2;
+    final maxWeight = allWeights.reduce(math.max) + 2;
     return Container(
       height: 250,
       padding: const EdgeInsets.all(20),
@@ -997,11 +1003,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF1E1E1E) : const Color(0x26D9D9D9),
+        color: const Color(0x26D9D9D9), // Always 15% #D9D9D9, even in dark mode
         borderRadius: BorderRadius.circular(25),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.1),
+            color: Colors.black.withOpacity(0.1), // Consistent soft shadow
             blurRadius: 4,
             offset: const Offset(0, 4),
           ),
@@ -1122,8 +1128,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           // ✅ NO BACKGROUND CONTAINER — just the icon/image
           SizedBox(
-            width: 30,
-            height: 30,
+            width: 26,
+            height: 26,
             child: iconAsset != null
                 ? Image.asset(
                     iconAsset,

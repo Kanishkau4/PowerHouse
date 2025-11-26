@@ -68,7 +68,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   
-  flutter_launcher_icons: ^0.13.1
+  # flutter_launcher_icons: ^0.13.1
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -102,11 +102,11 @@ flutter:
     - assets/icons/Notification.png
     - assets/icons/Trophy.png
 
-flutter_launcher_icons:
-  android: true
-  ios: true
-  image_path: "assets/icons/playstore.png"
-  image_path_ios: "assets/icons/appstore.png"
+# flutter_launcher_icons:
+#   android: "launcher_icon"
+#   ios: true
+#   image_path: "assets/icons/playstore.png"
+#   image_path_ios: "assets/icons/appstore.png"
 
   # Optional: for adaptive icons on Android
   # adaptive_icon_background: "#FFFFFF"  # Your brand color
