@@ -6,6 +6,10 @@ import 'package:powerhouse/services/user_service.dart';
 import 'package:powerhouse/services/workout_service.dart';
 import 'package:powerhouse/services/daily_tasks_service.dart';
 import 'package:powerhouse/services/progress_service.dart';
+import 'package:powerhouse/services/tips_service.dart';
+import 'package:powerhouse/screens/tips/tips_library_screen.dart';
+import 'package:powerhouse/widgets/tips/tip_of_day_card.dart';
+import 'package:powerhouse/models/models.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,7 +24,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final _workoutService = WorkoutService();
   final _dailyTasksService = DailyTasksService();
   final _progressService = ProgressService();
-
+  final _tipsService = TipsService();
   // User data
   String userName = 'User';
   String? profilePictureUrl;
@@ -37,6 +41,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   // Loading state
   bool _isLoading = true;
+
+  // Tip of the day
+  TipModel? tipOfTheDay;
+  bool _isTipLoading = false;
 
   @override
   void initState() {
@@ -62,12 +70,31 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
       // Award daily login XP (once per day)
       await _awardDailyLoginXP();
+
+      // Load tip of the day
+      await _loadTipOfTheDay();
     } catch (e) {
       print('Error loading home data: $e');
     } finally {
       setState(() {
         _isLoading = false;
       });
+    }
+  }
+
+  // ========== LOAD TIP OF THE DAY ==========
+  Future<void> _loadTipOfTheDay() async {
+    setState(() => _isTipLoading = true);
+
+    try {
+      final tip = await _tipsService.getTipOfTheDay();
+      setState(() {
+        tipOfTheDay = tip;
+      });
+    } catch (e) {
+      print('Error loading tip of the day: $e');
+    } finally {
+      setState(() => _isTipLoading = false);
     }
   }
 
@@ -111,15 +138,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       setState(() {
         workouts = workoutList
             .take(5)
-            .map((w) => {
-                  'workout_id': w.workoutId,
-                  'title': w.workoutName,
-                  'subtitle': w.description ?? 'Full body workout',
-                  'duration': '${w.estimatedDuration ?? 30} min',
-                  'calories': '${w.estimatedCaloriesBurned ?? 120} cal',
-                  'color': const Color(0xFF1DAB87),
-                  'image_url': w.imageUrl,
-                })
+            .map(
+              (w) => {
+                'workout_id': w.workoutId,
+                'title': w.workoutName,
+                'subtitle': w.description ?? 'Full body workout',
+                'duration': '${w.estimatedDuration ?? 30} min',
+                'calories': '${w.estimatedCaloriesBurned ?? 120} cal',
+                'color': const Color(0xFF1DAB87),
+                'image_url': w.imageUrl,
+              },
+            )
             .toList();
       });
     } catch (e) {
@@ -148,9 +177,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       return const Scaffold(
         backgroundColor: Colors.white,
         body: Center(
-          child: CircularProgressIndicator(
-            color: Color(0xFF1DAB87),
-          ),
+          child: CircularProgressIndicator(color: Color(0xFF1DAB87)),
         ),
       );
     }
@@ -179,6 +206,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   _buildPlanCard(),
 
                   const SizedBox(height: 30),
+                  // Tip of the Day Card
+                  TipOfDayCard(
+                    tip: tipOfTheDay,
+                    isLoading: _isTipLoading,
+                    onSeeAllTapped: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const TipsLibraryScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 30),
 
                   // Start New Goal Section Header
                   _buildSectionHeader(
@@ -200,10 +241,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   const SizedBox(height: 16),
 
                   // Daily Tasks List
-                  ...dailyTasks.map((task) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _buildTaskItem(task),
-                      )),
+                  ...dailyTasks.map(
+                    (task) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _buildTaskItem(task),
+                    ),
+                  ),
 
                   const SizedBox(height: 100), // Space for bottom nav
                 ],
@@ -239,7 +282,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.w800,
-                  color: context.primaryText
+                  color: context.primaryText,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -255,10 +298,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             height: 50,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(
-                color: const Color(0xFF1DAB87),
-                width: 2,
-              ),
+              border: Border.all(color: const Color(0xFF1DAB87), width: 2),
             ),
             child: ClipOval(
               child: profilePictureUrl != null
@@ -284,11 +324,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       errorBuilder: (context, error, stackTrace) {
         return Container(
           color: const Color(0xFF1DAB87),
-          child: const Icon(
-            Icons.person,
-            color: Colors.white,
-            size: 30,
-          ),
+          child: const Icon(Icons.person, color: Colors.white, size: 30),
         );
       },
     );
@@ -397,7 +433,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   // ==================== SECTION HEADER ====================
-  Widget _buildSectionHeader(String title, String actionText, VoidCallback? onTap) {
+  Widget _buildSectionHeader(
+    String title,
+    String actionText,
+    VoidCallback? onTap,
+  ) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -406,7 +446,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w800,
-            color: context.primaryText
+            color: context.primaryText,
           ),
         ),
         if (actionText.isNotEmpty)
@@ -674,11 +714,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                 ),
                 child: isCompleted
-                    ? const Icon(
-                        Icons.check,
-                        color: Colors.white,
-                        size: 18,
-                      )
+                    ? const Icon(Icons.check, color: Colors.white, size: 18)
                     : null,
               ),
             ),
@@ -748,10 +784,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             // XP Badge
             if (!isCompleted)
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 4,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF97316).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
@@ -759,11 +792,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: const [
-                    Icon(
-                      Icons.star,
-                      size: 12,
-                      color: Color(0xFFF97316),
-                    ),
+                    Icon(Icons.star, size: 12, color: Color(0xFFF97316)),
                     SizedBox(width: 2),
                     Text(
                       '+5',
@@ -856,9 +885,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       repeat: true,
                     ),
                   ),
-                  
+
                   const SizedBox(height: 24),
-                  
+
                   // Title
                   const Text(
                     'LEVEL UP!',
@@ -869,9 +898,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  
+
                   const SizedBox(height: 16),
-                  
+
                   // Level info
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -894,9 +923,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       textAlign: TextAlign.center,
                     ),
                   ),
-                  
+
                   const SizedBox(height: 16),
-                  
+
                   // Motivational message
                   const Text(
                     'Keep crushing your goals!',
@@ -907,9 +936,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  
+
                   const SizedBox(height: 32),
-                  
+
                   // Action button
                   SizedBox(
                     width: double.infinity,
@@ -937,7 +966,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
             ),
           ),
-          
+
           // Confetti Lottie Animation (Full screen overlay)
           Positioned.fill(
             child: IgnorePointer(
@@ -1001,7 +1030,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     try {
       // Fetch full workout details from database
       final workoutId = workout['workout_id'] as String;
-      final fullWorkout = await _workoutService.getWorkoutWithExercises(workoutId);
+      final fullWorkout = await _workoutService.getWorkoutWithExercises(
+        workoutId,
+      );
 
       Navigator.pop(context); // Close loading
 

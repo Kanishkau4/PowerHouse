@@ -1106,7 +1106,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       case 'Language':
         return 'assets/icons/Language.png';
       case 'Logout':
-        return 'assets/icons/female_icon.png';
+        return 'assets/icons/Logout.png';
       default:
         return null;
     }

@@ -12,3 +12,6 @@ export 'food_item_model.dart';
 export 'food_log_model.dart';
 export 'recipe_model.dart';
 export 'weight_history_model.dart';
+export 'tip_model.dart';
+export 'tip_category_model.dart';
+export 'user_tip_progress_model.dart';
