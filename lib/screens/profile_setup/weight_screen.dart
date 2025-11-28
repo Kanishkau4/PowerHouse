@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:powerhouse/core/theme/theme_extensions.dart';
 import 'package:powerhouse/widgets/circular_progress_button.dart';
-import 'package:flutter/services.dart';
 
 class WeightScreen extends StatefulWidget {
   const WeightScreen({super.key});

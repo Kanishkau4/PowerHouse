@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:powerhouse/core/theme/theme_extensions.dart';
 import 'package:powerhouse/models/models.dart';
 import 'package:powerhouse/services/tips_service.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 class TipDetailScreen extends StatefulWidget {
   final TipModel tip;
@@ -19,11 +20,31 @@ class _TipDetailScreenState extends State<TipDetailScreen> {
   bool _isLiked = false;
   bool _isLoading = true;
 
+  YoutubePlayerController? _youtubeController;
   @override
   void initState() {
     super.initState();
     _loadTipProgress();
     _incrementViewCount();
+    _initializeVideoPlayer(); // Add this line
+  }
+
+  @override
+  void dispose() {
+    _youtubeController?.dispose();
+    super.dispose();
+  }
+
+  void _initializeVideoPlayer() {
+    if (widget.tip.videoUrl != null && widget.tip.videoUrl!.isNotEmpty) {
+      final videoId = YoutubePlayer.convertUrlToId(widget.tip.videoUrl!);
+      if (videoId != null) {
+        _youtubeController = YoutubePlayerController(
+          initialVideoId: videoId,
+          flags: const YoutubePlayerFlags(autoPlay: false, mute: false),
+        );
+      }
+    }
   }
 
   Future<void> _loadTipProgress() async {
@@ -186,7 +207,24 @@ class _TipDetailScreenState extends State<TipDetailScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
+
+                    // Video Player (if available, shown after content)
+                    if (widget.tip.hasVideo && _youtubeController != null) ...[
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: YoutubePlayer(
+                          controller: _youtubeController!,
+                          showVideoProgressIndicator: true,
+                          progressIndicatorColor: const Color(0xFF1DAB87),
+                          progressColors: const ProgressBarColors(
+                            playedColor: Color(0xFF1DAB87),
+                            handleColor: Color(0xFF1DAB87),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
 
                     // Stats Row
                     _buildStatsRow(),

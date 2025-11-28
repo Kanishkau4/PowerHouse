@@ -2,69 +2,41 @@ import 'package:flutter/material.dart';
 import 'package:powerhouse/core/theme/theme_extensions.dart';
 import 'package:powerhouse/models/models.dart';
 import 'package:powerhouse/services/tips_service.dart';
-import 'package:powerhouse/widgets/tips/category_chip.dart';
 import 'package:powerhouse/widgets/tips/tip_card.dart';
 
-class TipsLibraryScreen extends StatefulWidget {
-  const TipsLibraryScreen({super.key});
-
+class BookmarkedTipsScreen extends StatefulWidget {
+  const BookmarkedTipsScreen({super.key});
   @override
-  State<TipsLibraryScreen> createState() => _TipsLibraryScreenState();
+  State<BookmarkedTipsScreen> createState() => _BookmarkedTipsScreenState();
 }
 
-class _TipsLibraryScreenState extends State<TipsLibraryScreen> {
+class _BookmarkedTipsScreenState extends State<BookmarkedTipsScreen> {
   final _tipsService = TipsService();
-
-  List<TipCategoryModel> _categories = [];
-  List<TipModel> _allTips = [];
-  List<TipModel> _filteredTips = [];
-
-  String? _selectedCategory; // null means "All"
+  List<TipModel> _bookmarkedTips = [];
   bool _isLoading = true;
-
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _loadBookmarkedTips();
   }
 
-  Future<void> _loadData() async {
+  Future<void> _loadBookmarkedTips() async {
     setState(() => _isLoading = true);
 
     try {
-      final categories = await _tipsService.getCategories();
-      final tips = await _tipsService.getAllTips();
-
+      final tips = await _tipsService.getBookmarkedTips();
       setState(() {
-        _categories = categories;
-        _allTips = tips;
-        _filteredTips = tips;
+        _bookmarkedTips = tips;
       });
     } catch (e) {
-      print('Error loading tips library data: $e');
+      print('Error loading bookmarked tips: $e');
     } finally {
       setState(() => _isLoading = false);
     }
   }
 
-  void _filterByCategory(String? category) {
-    setState(() {
-      _selectedCategory = category;
-
-      if (category == null) {
-        // Show all tips
-        _filteredTips = _allTips;
-      } else {
-        // Filter by category
-        _filteredTips = _allTips
-            .where((tip) => tip.category == category)
-            .toList();
-      }
-    });
-  }
-
   Future<void> _refreshData() async {
-    await _loadData();
+    await _loadBookmarkedTips();
   }
 
   @override
@@ -74,13 +46,9 @@ class _TipsLibraryScreenState extends State<TipsLibraryScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Custom App Bar
+            // App Bar
             _buildAppBar(),
-
-            // Category Filter Chips
-            if (!_isLoading) _buildCategoryFilters(),
-
-            // Tips List
+            // Content
             Expanded(
               child: _isLoading
                   ? const Center(
@@ -88,7 +56,7 @@ class _TipsLibraryScreenState extends State<TipsLibraryScreen> {
                         color: Color(0xFF1DAB87),
                       ),
                     )
-                  : _buildTipsList(),
+                  : _buildContent(),
             ),
           ],
         ),
@@ -101,7 +69,6 @@ class _TipsLibraryScreenState extends State<TipsLibraryScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Row(
         children: [
-          // Back Button
           GestureDetector(
             onTap: () => Navigator.pop(context),
             child: Container(
@@ -121,12 +88,9 @@ class _TipsLibraryScreenState extends State<TipsLibraryScreen> {
               child: Icon(Icons.arrow_back, color: context.primaryText),
             ),
           ),
-
           const SizedBox(width: 16),
-
-          // Title
           Text(
-            'Tips Library',
+            'Bookmarked Tips',
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w800,
@@ -138,53 +102,16 @@ class _TipsLibraryScreenState extends State<TipsLibraryScreen> {
     );
   }
 
-  Widget _buildCategoryFilters() {
-    return Container(
-      height: 60,
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        children: [
-          // "All" Chip
-          CategoryChip(
-            isAllCategory: true,
-            isSelected: _selectedCategory == null,
-            onTap: () => _filterByCategory(null),
-          ),
-
-          const SizedBox(width: 8),
-
-          // Category Chips
-          ..._categories.map((category) {
-            return Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: CategoryChip(
-                category: category,
-                isSelected: _selectedCategory == category.name,
-                onTap: () => _filterByCategory(category.name),
-              ),
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTipsList() {
-    if (_filteredTips.isEmpty) {
+  Widget _buildContent() {
+    if (_bookmarkedTips.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.tips_and_updates_outlined,
-              size: 80,
-              color: Colors.grey.shade300,
-            ),
+            Icon(Icons.bookmark_border, size: 80, color: Colors.grey.shade300),
             const SizedBox(height: 16),
             Text(
-              'No tips available',
+              'No bookmarked tips yet',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -193,22 +120,21 @@ class _TipsLibraryScreenState extends State<TipsLibraryScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Check back later for new content!',
+              'Bookmark tips to save them for later!',
               style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
             ),
           ],
         ),
       );
     }
-
     return RefreshIndicator(
       onRefresh: _refreshData,
       color: const Color(0xFF1DAB87),
       child: ListView.builder(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        itemCount: _filteredTips.length,
+        itemCount: _bookmarkedTips.length,
         itemBuilder: (context, index) {
-          return TipCard(tip: _filteredTips[index]);
+          return TipCard(tip: _bookmarkedTips[index]);
         },
       ),
     );

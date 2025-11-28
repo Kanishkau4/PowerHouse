@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:powerhouse/services/notification_service.dart';
 import 'package:provider/provider.dart';
 import 'package:powerhouse/core/config/supabase_config.dart';
 import 'package:powerhouse/core/routes/app_routes.dart';
@@ -19,10 +20,14 @@ import 'package:powerhouse/screens/profile_setup/congratulations_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Initialize Supabase
   await SupabaseConfig.initialize();
-  
+
+  // Initialize notifications
+  await NotificationService().initialize();
+  await NotificationService().requestPermissions();
+
   runApp(const MyApp());
 }
 
@@ -55,7 +60,9 @@ class PowerHouseApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           theme: themeProvider.lightTheme,
           darkTheme: themeProvider.darkTheme,
-          themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+          themeMode: themeProvider.isDarkMode
+              ? ThemeMode.dark
+              : ThemeMode.light,
           initialRoute: AppRoutes.splash,
           routes: {
             AppRoutes.splash: (context) => const SplashScreen(),
@@ -69,7 +76,8 @@ class PowerHouseApp extends StatelessWidget {
             AppRoutes.weight: (context) => const WeightScreen(),
             AppRoutes.height: (context) => const HeightScreen(),
             AppRoutes.goal: (context) => const GoalScreen(),
-            AppRoutes.congratulations: (context) => const CongratulationsScreen(),
+            AppRoutes.congratulations: (context) =>
+                const CongratulationsScreen(),
             AppRoutes.MainNavigation: (context) => const MainNavigation(),
           },
         );

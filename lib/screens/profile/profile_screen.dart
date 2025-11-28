@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:powerhouse/screens/tips/bookmarked_tips_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:powerhouse/screens/profile/edit_profile_screen.dart';
 import 'package:powerhouse/screens/profile/help_support_screen.dart';
@@ -1018,18 +1019,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _buildSettingsItem(
             title: 'Edit Profile',
             onTap: () => _onEditProfile(),
+            trailing: const Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: Color(0xFF979797),
+            ),
             isDarkMode: isDarkMode,
           ),
           const SizedBox(height: 16),
           _buildSettingsItem(
             title: 'My Achievements / Badges',
             onTap: () => _onAchievements(),
+            trailing: const Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: Color(0xFF979797),
+            ),
             isDarkMode: isDarkMode,
           ),
           const SizedBox(height: 16),
           _buildSettingsItem(
             title: 'Notifications',
             onTap: () => _onNotifications(),
+            trailing: const Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: Color(0xFF979797),
+            ),
+            isDarkMode: isDarkMode,
+          ),
+          const SizedBox(height: 16),
+          _buildSettingsItem(
+            title: 'Bookmark',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const BookmarkedTipsScreen(),
+                ),
+              );
+            },
             trailing: const Icon(
               Icons.arrow_forward_ios,
               size: 16,
@@ -1099,6 +1128,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return 'assets/icons/Trophy.png';
       case 'Notifications':
         return 'assets/icons/Notification.png';
+      case 'Bookmark':
+        return 'assets/icons/Bookmark.png';
       case 'Help & Support':
         return 'assets/icons/Help.png';
       case 'Dark Mode':
@@ -1113,7 +1144,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildSettingsItem({
-    required String title, // 👈 REMOVED 'icon' parameter
+    required String title,
     String? subtitle,
     VoidCallback? onTap,
     Widget? trailing,

@@ -21,7 +21,7 @@ class _ScannedFoodDialogState extends State<ScannedFoodDialog> {
   final _nutritionService = NutritionService();
 
   late String _selectedMealType;
-  String _selectedServingSize = 'Serving';
+  final String _selectedServingSize = 'Serving';
   int _quantity = 1;
   bool _isSaving = false;
 

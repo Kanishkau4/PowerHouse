@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:powerhouse/services/user_service.dart';
 import 'package:powerhouse/core/theme/theme_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:powerhouse/services/notification_service.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -12,18 +14,18 @@ class NotificationsScreen extends StatefulWidget {
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
   final _userService = UserService();
-  
+
   // General Notifications
   bool _pushNotifications = true;
   bool _emailNotifications = true;
   bool _smsNotifications = false;
-  
+
   // Workout Notifications
   bool _workoutReminders = true;
   bool _restDayReminders = true;
   bool _workoutCompletionCelebration = true;
   String _workoutReminderTime = '07:00 AM';
-  
+
   // Nutrition Notifications
   bool _mealReminders = true;
   bool _waterReminders = true;
@@ -31,7 +33,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   String _breakfastTime = '08:00 AM';
   String _lunchTime = '12:30 PM';
   String _dinnerTime = '07:00 PM';
-  
+
   // Challenge & Progress Notifications
   bool _challengeUpdates = true;
   bool _challengeStartReminders = true;
@@ -39,18 +41,22 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   bool _achievementNotifications = true;
   bool _levelUpNotifications = true;
   bool _xpMilestoneNotifications = true;
-  
+
   // Social Notifications
   bool _socialNotifications = false;
   bool _friendRequestNotifications = true;
   bool _commentNotifications = true;
   bool _likeNotifications = false;
-  
+
   // Weekly Summary
   bool _weeklyProgressReport = true;
   bool _monthlyReport = true;
   String _weeklyReportDay = 'Sunday';
-  
+
+  // Daily Tips
+  bool _dailyTipsEnabled = false;
+  TimeOfDay _notificationTime = const TimeOfDay(hour: 9, minute: 0);
+
   bool _isLoading = true;
 
   @override
@@ -64,10 +70,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       final user = await _userService.getCurrentUserProfile();
       if (user != null) {
         // In a real app, these settings would be stored in the database
-        setState(() {
-          _isLoading = false;
-        });
       }
+
+      // Load daily tips settings
+      final prefs = await SharedPreferences.getInstance();
+      _dailyTipsEnabled = prefs.getBool('daily_tips_enabled') ?? false;
+      final hour = prefs.getInt('notification_hour') ?? 9;
+      final minute = prefs.getInt('notification_minute') ?? 0;
+      _notificationTime = TimeOfDay(hour: hour, minute: minute);
+
+      setState(() {
+        _isLoading = false;
+      });
     } catch (e) {
       print('Error loading notification settings: $e');
       setState(() {
@@ -82,18 +96,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => const Center(
-        child: CircularProgressIndicator(
-          color: Color(0xFF1DAB87),
-        ),
+        child: CircularProgressIndicator(color: Color(0xFF1DAB87)),
       ),
     );
 
     // Simulate saving
     await Future.delayed(const Duration(milliseconds: 800));
-    
+
     if (mounted) {
       Navigator.pop(context); // Close loading
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('✅ Notification settings saved!'),
@@ -101,7 +113,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           duration: Duration(seconds: 2),
         ),
       );
-      
+
       Navigator.pop(context);
     }
   }
@@ -110,18 +122,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Widget build(BuildContext context) {
     final isDarkMode = Provider.of<ThemeProvider>(context).isDarkMode;
     final theme = Theme.of(context);
-    
+
     if (_isLoading) {
       return Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
         body: const Center(
-          child: CircularProgressIndicator(
-            color: Color(0xFF1DAB87),
-          ),
+          child: CircularProgressIndicator(color: Color(0xFF1DAB87)),
         ),
       );
     }
-    
+
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
@@ -151,7 +161,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           // General Notifications
           _buildSectionTitle('General Notifications', isDarkMode),
           const SizedBox(height: 16),
-          
+
           _buildSwitchTile(
             title: 'Push Notifications',
             subtitle: 'Receive notifications on your device',
@@ -164,9 +174,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             icon: Icons.notifications_active_outlined,
             isDarkMode: isDarkMode,
           ),
-          
+
           const SizedBox(height: 12),
-          
+
           _buildSwitchTile(
             title: 'Email Notifications',
             subtitle: 'Receive updates via email',
@@ -179,9 +189,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             icon: Icons.email_outlined,
             isDarkMode: isDarkMode,
           ),
-          
+
           const SizedBox(height: 12),
-          
+
           _buildSwitchTile(
             title: 'SMS Notifications',
             subtitle: 'Receive text message alerts',
@@ -194,13 +204,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             icon: Icons.sms_outlined,
             isDarkMode: isDarkMode,
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           // Workout Notifications
           _buildSectionTitle('Workout Notifications', isDarkMode),
           const SizedBox(height: 16),
-          
+
           _buildSwitchTile(
             title: 'Workout Reminders',
             subtitle: 'Daily reminders to complete your workout',
@@ -213,27 +223,24 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             icon: Icons.fitness_center,
             isDarkMode: isDarkMode,
           ),
-          
+
           if (_workoutReminders) ...[
             const SizedBox(height: 12),
             _buildTimePicker(
               title: 'Reminder Time',
               time: _workoutReminderTime,
-              onTap: () => _selectTime(
-                context,
-                _workoutReminderTime,
-                (newTime) {
-                  setState(() {
-                    _workoutReminderTime = newTime;
-                  });
-                },
-              ),
+              onTap: () =>
+                  _selectTime(context, _workoutReminderTime, (newTime) {
+                    setState(() {
+                      _workoutReminderTime = newTime;
+                    });
+                  }),
               isDarkMode: isDarkMode,
             ),
           ],
-          
+
           const SizedBox(height: 12),
-          
+
           _buildSwitchTile(
             title: 'Rest Day Reminders',
             subtitle: 'Reminders to take rest days',
@@ -246,9 +253,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             icon: Icons.hotel_outlined,
             isDarkMode: isDarkMode,
           ),
-          
+
           const SizedBox(height: 12),
-          
+
           _buildSwitchTile(
             title: 'Workout Completion',
             subtitle: 'Celebrate when you complete workouts',
@@ -261,13 +268,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             icon: Icons.celebration_outlined,
             isDarkMode: isDarkMode,
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           // Nutrition Notifications
           _buildSectionTitle('Nutrition Notifications', isDarkMode),
           const SizedBox(height: 16),
-          
+
           _buildSwitchTile(
             title: 'Meal Reminders',
             subtitle: 'Reminders to log your meals',
@@ -280,57 +287,45 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             icon: Icons.restaurant,
             isDarkMode: isDarkMode,
           ),
-          
+
           if (_mealReminders) ...[
             const SizedBox(height: 12),
             _buildTimePicker(
               title: 'Breakfast Time',
               time: _breakfastTime,
-              onTap: () => _selectTime(
-                context,
-                _breakfastTime,
-                (newTime) {
-                  setState(() {
-                    _breakfastTime = newTime;
-                  });
-                },
-              ),
+              onTap: () => _selectTime(context, _breakfastTime, (newTime) {
+                setState(() {
+                  _breakfastTime = newTime;
+                });
+              }),
               isDarkMode: isDarkMode,
             ),
             const SizedBox(height: 8),
             _buildTimePicker(
               title: 'Lunch Time',
               time: _lunchTime,
-              onTap: () => _selectTime(
-                context,
-                _lunchTime,
-                (newTime) {
-                  setState(() {
-                    _lunchTime = newTime;
-                  });
-                },
-              ),
+              onTap: () => _selectTime(context, _lunchTime, (newTime) {
+                setState(() {
+                  _lunchTime = newTime;
+                });
+              }),
               isDarkMode: isDarkMode,
             ),
             const SizedBox(height: 8),
             _buildTimePicker(
               title: 'Dinner Time',
               time: _dinnerTime,
-              onTap: () => _selectTime(
-                context,
-                _dinnerTime,
-                (newTime) {
-                  setState(() {
-                    _dinnerTime = newTime;
-                  });
-                },
-              ),
+              onTap: () => _selectTime(context, _dinnerTime, (newTime) {
+                setState(() {
+                  _dinnerTime = newTime;
+                });
+              }),
               isDarkMode: isDarkMode,
             ),
           ],
-          
+
           const SizedBox(height: 12),
-          
+
           _buildSwitchTile(
             title: 'Water Reminders',
             subtitle: 'Hourly reminders to drink water',
@@ -343,9 +338,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             icon: Icons.water_drop_outlined,
             isDarkMode: isDarkMode,
           ),
-          
+
           const SizedBox(height: 12),
-          
+
           _buildSwitchTile(
             title: 'Calorie Goal Reminders',
             subtitle: 'Alerts when approaching daily calorie goal',
@@ -358,13 +353,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             icon: Icons.local_fire_department,
             isDarkMode: isDarkMode,
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           // Challenge & Progress Notifications
           _buildSectionTitle('Challenges & Progress', isDarkMode),
           const SizedBox(height: 16),
-          
+
           _buildSwitchTile(
             title: 'Challenge Updates',
             subtitle: 'Updates on your active challenges',
@@ -377,9 +372,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             icon: Icons.emoji_events,
             isDarkMode: isDarkMode,
           ),
-          
+
           const SizedBox(height: 12),
-          
+
           _buildSwitchTile(
             title: 'Challenge Start Reminders',
             subtitle: 'When new challenges become available',
@@ -392,9 +387,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             icon: Icons.flag_outlined,
             isDarkMode: isDarkMode,
           ),
-          
+
           const SizedBox(height: 12),
-          
+
           _buildSwitchTile(
             title: 'Challenge Deadline Alerts',
             subtitle: 'Reminders before challenge deadlines',
@@ -407,9 +402,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             icon: Icons.alarm,
             isDarkMode: isDarkMode,
           ),
-          
+
           const SizedBox(height: 12),
-          
+
           _buildSwitchTile(
             title: 'Achievement Notifications',
             subtitle: 'When you unlock new achievements',
@@ -422,9 +417,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             icon: Icons.military_tech,
             isDarkMode: isDarkMode,
           ),
-          
+
           const SizedBox(height: 12),
-          
+
           _buildSwitchTile(
             title: 'Level Up Notifications',
             subtitle: 'When you reach a new level',
@@ -437,9 +432,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             icon: Icons.trending_up,
             isDarkMode: isDarkMode,
           ),
-          
+
           const SizedBox(height: 12),
-          
+
           _buildSwitchTile(
             title: 'XP Milestone Alerts',
             subtitle: 'When you reach XP milestones',
@@ -452,13 +447,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             icon: Icons.stars,
             isDarkMode: isDarkMode,
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           // Social Notifications
           _buildSectionTitle('Social Notifications', isDarkMode),
           const SizedBox(height: 16),
-          
+
           _buildSwitchTile(
             title: 'Social Notifications',
             subtitle: 'All social activity notifications',
@@ -471,7 +466,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             icon: Icons.people,
             isDarkMode: isDarkMode,
           ),
-          
+
           if (_socialNotifications) ...[
             const SizedBox(height: 12),
             _buildSwitchTile(
@@ -513,13 +508,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               isDarkMode: isDarkMode,
             ),
           ],
-          
+
           const SizedBox(height: 24),
-          
+
           // Reports
           _buildSectionTitle('Progress Reports', isDarkMode),
           const SizedBox(height: 16),
-          
+
           _buildSwitchTile(
             title: 'Weekly Progress Report',
             subtitle: 'Summary of your weekly progress',
@@ -532,13 +527,21 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             icon: Icons.assessment,
             isDarkMode: isDarkMode,
           ),
-          
+
           if (_weeklyProgressReport) ...[
             const SizedBox(height: 12),
             _buildDropdownPicker(
               title: 'Report Day',
               value: _weeklyReportDay,
-              items: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+              items: [
+                'Monday',
+                'Tuesday',
+                'Wednesday',
+                'Thursday',
+                'Friday',
+                'Saturday',
+                'Sunday',
+              ],
               onChanged: (value) {
                 setState(() {
                   _weeklyReportDay = value!;
@@ -547,9 +550,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               isDarkMode: isDarkMode,
             ),
           ],
-          
+
           const SizedBox(height: 12),
-          
+
           _buildSwitchTile(
             title: 'Monthly Progress Report',
             subtitle: 'Summary of your monthly progress',
@@ -562,14 +565,87 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             icon: Icons.calendar_month,
             isDarkMode: isDarkMode,
           ),
-          
+
+          const SizedBox(height: 24),
+
+          // Daily Tips Section
+          _buildSectionTitle('Daily Tips', isDarkMode),
+          const SizedBox(height: 16),
+          _buildSwitchTile(
+            title: 'Daily Fitness Tips',
+            subtitle: _dailyTipsEnabled
+                ? 'Enabled at ${_notificationTime.format(context)}'
+                : 'Get daily fitness tips and educational content',
+            value: _dailyTipsEnabled,
+            onChanged: (value) async {
+              if (value) {
+                final time = await showTimePicker(
+                  context: context,
+                  initialTime: _notificationTime,
+                  builder: (context, child) {
+                    return Theme(
+                      data: Theme.of(context).copyWith(
+                        colorScheme: const ColorScheme.light(
+                          primary: Color(0xFF1DAB87),
+                        ),
+                      ),
+                      child: child!,
+                    );
+                  },
+                );
+
+                if (time != null) {
+                  setState(() {
+                    _dailyTipsEnabled = true;
+                    _notificationTime = time;
+                  });
+
+                  await NotificationService().scheduleDailyTipNotification(
+                    hour: time.hour,
+                    minute: time.minute,
+                  );
+
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.setBool('daily_tips_enabled', true);
+                  await prefs.setInt('notification_hour', time.hour);
+                  await prefs.setInt('notification_minute', time.minute);
+
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('✅ Daily tip notifications enabled!'),
+                        backgroundColor: Color(0xFF1DAB87),
+                      ),
+                    );
+                  }
+                }
+              } else {
+                setState(() => _dailyTipsEnabled = false);
+                await NotificationService().cancelDailyNotifications();
+
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setBool('daily_tips_enabled', false);
+
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Daily tip notifications disabled'),
+                      backgroundColor: Colors.grey,
+                    ),
+                  );
+                }
+              }
+            },
+            icon: Icons.lightbulb_outline,
+            isDarkMode: isDarkMode,
+          ),
           const SizedBox(height: 32),
-          
+
           // Save Button
           _buildSaveButton(),
-          
+
           const SizedBox(height: 16),
-          
+
           // Reset to Default Button
           _buildResetButton(isDarkMode),
         ],
@@ -667,16 +743,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         decoration: BoxDecoration(
           color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: const Color(0xFF1DAB87).withOpacity(0.3),
-          ),
+          border: Border.all(color: const Color(0xFF1DAB87).withOpacity(0.3)),
         ),
         child: Row(
           children: [
-            const Icon(
-              Icons.access_time,
-              color: Color(0xFF1DAB87),
-            ),
+            const Icon(Icons.access_time, color: Color(0xFF1DAB87)),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -721,17 +792,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       decoration: BoxDecoration(
         color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFF1DAB87).withOpacity(0.3),
-        ),
+        border: Border.all(color: const Color(0xFF1DAB87).withOpacity(0.3)),
       ),
       child: Row(
         children: [
-          const Icon(
-            Icons.calendar_today,
-            color: Color(0xFF1DAB87),
-            size: 20,
-          ),
+          const Icon(Icons.calendar_today, color: Color(0xFF1DAB87), size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -753,10 +818,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               color: Color(0xFF1DAB87),
             ),
             items: items.map((String item) {
-              return DropdownMenuItem<String>(
-                value: item,
-                child: Text(item),
-              );
+              return DropdownMenuItem<String>(value: item, child: Text(item));
             }).toList(),
             onChanged: onChanged,
           ),
@@ -776,9 +838,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF1DAB87),
-            ),
+            colorScheme: const ColorScheme.light(primary: Color(0xFF1DAB87)),
           ),
           child: child!,
         );
@@ -807,10 +867,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         ),
         child: const Text(
           'Save Settings',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-          ),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
         ),
       ),
     );
@@ -825,7 +882,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           showDialog(
             context: context,
             builder: (context) => AlertDialog(
-              backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+              backgroundColor: isDarkMode
+                  ? const Color(0xFF1E1E1E)
+                  : Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
@@ -857,6 +916,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       _waterReminders = true;
                       _challengeUpdates = true;
                       _achievementNotifications = true;
+                      _dailyTipsEnabled = false;
                     });
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
