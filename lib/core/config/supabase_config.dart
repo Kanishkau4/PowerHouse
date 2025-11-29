@@ -1,10 +1,23 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class SupabaseConfig {
-  static const String supabaseUrl = 'https://ulyqupxmrmwtxprvnciz.supabase.co';
-  static const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVseXF1cHhtcm13dHhwcnZuY2l6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwNDI5NzYsImV4cCI6MjA3NjYxODk3Nn0.usqd1XpykEExn8gNfVowRkPcGXXJ0CaShLTeOB5MxAs';
+  static String get supabaseUrl => dotenv.env['SUPABASE_URL'] ?? '';
+  static String get supabaseAnonKey => dotenv.env['SUPABASE_ANON_KEY'] ?? '';
 
   static Future<void> initialize() async {
+    // Debug: Print environment variables to verify they're loaded
+    print('🔧 DEBUG: SUPABASE_URL = $supabaseUrl');
+    print(
+      '🔧 DEBUG: SUPABASE_ANON_KEY = ${supabaseAnonKey.isNotEmpty ? "✅ Loaded" : "❌ Empty"}',
+    );
+
+    if (supabaseUrl.isEmpty || supabaseAnonKey.isEmpty) {
+      throw Exception(
+        '❌ Environment variables not loaded! Make sure .env file exists and is configured in pubspec.yaml',
+      );
+    }
+
     await Supabase.initialize(
       url: supabaseUrl,
       anonKey: supabaseAnonKey,
@@ -14,10 +27,10 @@ class SupabaseConfig {
       realtimeClientOptions: const RealtimeClientOptions(
         logLevel: RealtimeLogLevel.info,
       ),
-      storageOptions: const StorageClientOptions(
-        retryAttempts: 10,
-      ),
+      storageOptions: const StorageClientOptions(retryAttempts: 10),
     );
+
+    print('✅ Supabase initialized successfully');
   }
 
   static SupabaseClient get client => Supabase.instance.client;

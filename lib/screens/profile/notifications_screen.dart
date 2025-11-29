@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:powerhouse/widgets/animated_message.dart';
 import 'package:provider/provider.dart';
 import 'package:powerhouse/services/user_service.dart';
 import 'package:powerhouse/core/theme/theme_provider.dart';
@@ -106,12 +107,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     if (mounted) {
       Navigator.pop(context); // Close loading
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('✅ Notification settings saved!'),
-          backgroundColor: Color(0xFF1DAB87),
-          duration: Duration(seconds: 2),
-        ),
+      AnimatedMessage.show(
+        context,
+        message: 'Notification settings saved!',
+        backgroundColor: Color(0xFF1DAB87),
+        icon: Icons.check_circle_rounded,
+        duration: const Duration(seconds: 2),
       );
 
       Navigator.pop(context);
@@ -611,11 +612,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   await prefs.setInt('notification_minute', time.minute);
 
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('✅ Daily tip notifications enabled!'),
-                        backgroundColor: Color(0xFF1DAB87),
-                      ),
+                    AnimatedMessage.show(
+                      context,
+                      message: 'Daily tip notifications enabled!',
+                      backgroundColor: Color(0xFF1DAB87),
+                      icon: Icons.check_circle_rounded,
+                      duration: const Duration(seconds: 2),
                     );
                   }
                 }
@@ -627,11 +629,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 await prefs.setBool('daily_tips_enabled', false);
 
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Daily tip notifications disabled'),
-                      backgroundColor: Colors.grey,
-                    ),
+                  AnimatedMessage.show(
+                    context,
+                    message: 'Daily tip notifications disabled',
+                    backgroundColor: Colors.grey,
+                    icon: Icons.error,
+                    duration: const Duration(seconds: 2),
                   );
                 }
               }
@@ -918,11 +921,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       _achievementNotifications = true;
                       _dailyTipsEnabled = false;
                     });
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Settings reset to default'),
-                        backgroundColor: Color(0xFF1DAB87),
-                      ),
+                    AnimatedMessage.show(
+                      context,
+                      message: 'Settings reset to default',
+                      backgroundColor: Color(0xFF1DAB87),
+                      icon: Icons.check_circle_rounded,
+                      duration: const Duration(seconds: 2),
                     );
                   },
                   child: const Text(

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart'; // Changed from confetti to lottie
+import 'package:lottie/lottie.dart';
 import 'dart:async';
 import 'package:powerhouse/models/workout_model.dart';
 import 'package:powerhouse/services/workout_service.dart';
+import 'package:powerhouse/widgets/animated_message.dart';
+import 'package:powerhouse/core/theme/theme_extensions.dart'; // ✅ ADD THIS
 
 class WorkoutCompletionScreen extends StatefulWidget {
   final WorkoutModel workout;
@@ -27,7 +29,7 @@ class _WorkoutCompletionScreenState extends State<WorkoutCompletionScreen>
     with TickerProviderStateMixin {
   late AnimationController _scaleController;
   late AnimationController _xpController;
-  late AnimationController _lottieController; // For trophy animation
+  late AnimationController _lottieController;
   late Animation<double> _scaleAnimation;
   late Animation<double> _xpAnimation;
 
@@ -117,11 +119,11 @@ class _WorkoutCompletionScreenState extends State<WorkoutCompletionScreen>
     } catch (e) {
       print('❌ Error saving workout: $e');
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to save workout: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
+      AnimatedMessage.show(
+        context,
+        message: 'Failed to save workout: ${e.toString()}',
+        backgroundColor: Colors.red,
+        icon: Icons.error,
       );
     } finally {
       setState(() {
@@ -131,10 +133,12 @@ class _WorkoutCompletionScreenState extends State<WorkoutCompletionScreen>
   }
 
   void _showLevelUpDialog(int newLevel) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => Stack(
+      builder: (dialogContext) => Stack(
         children: [
           // Dialog content
           Dialog(
@@ -143,7 +147,7 @@ class _WorkoutCompletionScreenState extends State<WorkoutCompletionScreen>
             child: Container(
               padding: const EdgeInsets.all(32),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: context.cardBackground, // ✅ DARK MODE
                 borderRadius: BorderRadius.circular(25),
               ),
               child: Column(
@@ -159,22 +163,22 @@ class _WorkoutCompletionScreenState extends State<WorkoutCompletionScreen>
                       repeat: true,
                     ),
                   ),
-                  
+
                   const SizedBox(height: 24),
-                  
+
                   // Title
-                  const Text(
+                  Text(
                     'LEVEL UP!',
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF1DAB87),
+                      color: context.primaryColor, // ✅ DARK MODE
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  
+
                   const SizedBox(height: 16),
-                  
+
                   // Level info
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -182,8 +186,8 @@ class _WorkoutCompletionScreenState extends State<WorkoutCompletionScreen>
                       vertical: 12,
                     ),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF1DAB87), Color(0xFF2DD4A3)],
+                      gradient: LinearGradient(
+                        colors: [context.primaryColor, const Color(0xFF2DD4A3)],
                       ),
                       borderRadius: BorderRadius.circular(20),
                     ),
@@ -197,30 +201,30 @@ class _WorkoutCompletionScreenState extends State<WorkoutCompletionScreen>
                       textAlign: TextAlign.center,
                     ),
                   ),
-                  
+
                   const SizedBox(height: 16),
-                  
+
                   // Motivational message
-                  const Text(
+                  Text(
                     'Keep crushing your goals!',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF7E7E7E),
+                      color: context.secondaryText, // ✅ DARK MODE
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  
+
                   const SizedBox(height: 32),
-                  
+
                   // Action button
                   SizedBox(
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () => Navigator.pop(dialogContext),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1DAB87),
+                        backgroundColor: context.primaryColor, // ✅ DARK MODE
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(28),
                         ),
@@ -240,7 +244,7 @@ class _WorkoutCompletionScreenState extends State<WorkoutCompletionScreen>
               ),
             ),
           ),
-          
+
           // Confetti Lottie Animation (Full screen overlay)
           Positioned.fill(
             child: IgnorePointer(
@@ -273,7 +277,7 @@ class _WorkoutCompletionScreenState extends State<WorkoutCompletionScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.surfaceColor, // ✅ DARK MODE
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -296,24 +300,24 @@ class _WorkoutCompletionScreenState extends State<WorkoutCompletionScreen>
                           const SizedBox(height: 40),
 
                           // Title
-                          const Text(
+                          Text(
                             'Awesome!',
                             style: TextStyle(
                               fontSize: 40,
                               fontWeight: FontWeight.w800,
-                              color: Color(0xFF1DAB87),
+                              color: context.primaryColor, // ✅ DARK MODE
                             ),
                           ),
 
                           const SizedBox(height: 8),
 
-                          const Text(
+                          Text(
                             'You are almost finish it',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.w500,
-                              color: Color(0xFF7E7E7E),
+                              color: context.secondaryText, // ✅ DARK MODE
                             ),
                           ),
 
@@ -379,6 +383,15 @@ class _WorkoutCompletionScreenState extends State<WorkoutCompletionScreen>
 
   // ==================== XP BAR ====================
   Widget _buildXPBar() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // XP bar background color
+    final xpBarBgColor = isDark
+        ? Colors
+              .grey
+              .shade800 // Dark mode
+        : const Color(0x9ED9D9D9); // Light mode
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 74.0),
       child: Column(
@@ -390,7 +403,7 @@ class _WorkoutCompletionScreenState extends State<WorkoutCompletionScreen>
               Container(
                 height: 30,
                 decoration: BoxDecoration(
-                  color: const Color(0x9ED9D9D9),
+                  color: xpBarBgColor, // ✅ DARK MODE
                   borderRadius: BorderRadius.circular(20),
                 ),
               ),
@@ -403,8 +416,11 @@ class _WorkoutCompletionScreenState extends State<WorkoutCompletionScreen>
                     child: Container(
                       height: 30,
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF1DAB87), Color(0xFF2DD4A3)],
+                        gradient: LinearGradient(
+                          colors: [
+                            this.context.primaryColor,
+                            const Color(0xFF2DD4A3),
+                          ],
                         ),
                         borderRadius: BorderRadius.circular(20),
                       ),
@@ -428,10 +444,10 @@ class _WorkoutCompletionScreenState extends State<WorkoutCompletionScreen>
           // XP Text
           Text(
             '$earnedXP / $maxXP XP',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: Color(0xFF7E7E7E),
+              color: context.secondaryText, // ✅ DARK MODE
             ),
           ),
         ],
@@ -464,19 +480,19 @@ class _WorkoutCompletionScreenState extends State<WorkoutCompletionScreen>
       children: [
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 36,
             fontWeight: FontWeight.w600,
-            color: Colors.black,
+            color: context.primaryText, // ✅ DARK MODE
           ),
         ),
         const SizedBox(height: 8),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w500,
-            color: Colors.black,
+            color: context.primaryText, // ✅ DARK MODE
           ),
         ),
       ],
@@ -484,7 +500,11 @@ class _WorkoutCompletionScreenState extends State<WorkoutCompletionScreen>
   }
 
   Widget _buildDivider() {
-    return Container(width: 1, height: 61, color: const Color(0xFF7E7E7E));
+    return Container(
+      width: 1,
+      height: 61,
+      color: context.dividerColor, // ✅ DARK MODE
+    );
   }
 
   // ==================== ACTION BUTTONS ====================
@@ -500,7 +520,7 @@ class _WorkoutCompletionScreenState extends State<WorkoutCompletionScreen>
             child: ElevatedButton(
               onPressed: _onStartNextWorkout,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1DAB87),
+                backgroundColor: context.primaryColor, // ✅ DARK MODE
                 foregroundColor: Colors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
@@ -530,7 +550,7 @@ class _WorkoutCompletionScreenState extends State<WorkoutCompletionScreen>
             child: ElevatedButton(
               onPressed: _onBackToHome,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF844B),
+                backgroundColor: context.accentColor, // ✅ DARK MODE (Orange)
                 foregroundColor: Colors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
@@ -562,11 +582,11 @@ class _WorkoutCompletionScreenState extends State<WorkoutCompletionScreen>
     // Then navigate to workouts screen
     Navigator.pushNamed(context, '/workouts');
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Starting next workout...'),
-        backgroundColor: Color(0xFF1DAB87),
-      ),
+    AnimatedMessage.show(
+      context,
+      message: 'Starting next workout...',
+      backgroundColor: Colors.green,
+      icon: Icons.check_circle_rounded,
     );
   }
 

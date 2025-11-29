@@ -1,3 +1,5 @@
+// lib/screens/nutrition/nutrition_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:powerhouse/core/theme/theme_extensions.dart';
@@ -10,6 +12,9 @@ import 'package:powerhouse/models/recipe_model.dart';
 import 'package:powerhouse/models/user_model.dart';
 import 'package:powerhouse/services/user_service.dart';
 import 'dart:math';
+
+import 'package:powerhouse/widgets/animated_message.dart';
+import 'package:powerhouse/widgets/skeleton_widgets.dart';
 
 class NutritionScreen extends StatefulWidget {
   const NutritionScreen({super.key});
@@ -24,11 +29,11 @@ class _NutritionScreenState extends State<NutritionScreen> {
 
   DateTime selectedDate = DateTime.now();
 
-  // Daily targets
-  final int targetCalories = 2000;
-  final int targetCarbs = 250;
-  final int targetFat = 50;
-  final int targetProtein = 100;
+  // Daily targets (these could come from user settings)
+  int targetCalories = 2000;
+  int targetCarbs = 250;
+  int targetFat = 50;
+  int targetProtein = 100;
 
   // Current consumed (will be fetched from database)
   int consumedCalories = 0;
@@ -75,7 +80,6 @@ class _NutritionScreenState extends State<NutritionScreen> {
 
       // Get food logs for selected date
       final logs = await _nutritionService.getFoodLogsByDate(selectedDate);
-
       print('✅ Loaded ${logs.length} food logs');
 
       // Reset consumed values
@@ -124,6 +128,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
       print('📊 Breakfast items: ${mealsByType['Breakfast']!.length}');
       print('📊 Lunch items: ${mealsByType['Lunch']!.length}');
       print('📊 Dinner items: ${mealsByType['Dinner']!.length}');
+      print('📊 Snack items: ${mealsByType['Snack']!.length}');
     } catch (e) {
       print('❌ Error loading food logs: $e');
     }
@@ -135,11 +140,9 @@ class _NutritionScreenState extends State<NutritionScreen> {
       final loadedRecipes = await _nutritionService.getSriLankanRecipes(
         limit: 5,
       );
-
       setState(() {
         recipes = loadedRecipes;
       });
-
       print('✅ Loaded ${recipes.length} recipes');
     } catch (e) {
       print('❌ Error loading recipes: $e');
@@ -151,10 +154,37 @@ class _NutritionScreenState extends State<NutritionScreen> {
       final profile = await UserService().getCurrentUserProfile();
       setState(() {
         _userProfile = profile;
+        // Update targets based on user profile if available
+        if (profile != null) {
+          _updateNutritionTargets(profile);
+        }
       });
     } catch (e) {
       print('❌ Error loading user profile: $e');
-      // Optionally set a default or leave as null
+    }
+  }
+
+  void _updateNutritionTargets(UserModel profile) {
+    // You can customize targets based on user's fitness goal
+    switch (profile.fitnessGoal?.toLowerCase()) {
+      case 'lose weight':
+        targetCalories = 1800;
+        targetCarbs = 200;
+        targetFat = 45;
+        targetProtein = 120;
+        break;
+      case 'build muscle':
+        targetCalories = 2500;
+        targetCarbs = 300;
+        targetFat = 60;
+        targetProtein = 150;
+        break;
+      case 'maintain':
+      default:
+        targetCalories = 2000;
+        targetCarbs = 250;
+        targetFat = 50;
+        targetProtein = 100;
     }
   }
 
@@ -165,6 +195,15 @@ class _NutritionScreenState extends State<NutritionScreen> {
   double get fatProgress => (consumedFat / targetFat).clamp(0.0, 1.0);
   double get proteinProgress =>
       (consumedProtein / targetProtein).clamp(0.0, 1.0);
+
+  // Check if date is today
+  bool get _isToday =>
+      DateFormat('yyyy-MM-dd').format(selectedDate) ==
+      DateFormat('yyyy-MM-dd').format(DateTime.now());
+
+  // Get remaining calories
+  int get _remainingCalories =>
+      (targetCalories - consumedCalories).clamp(0, targetCalories);
 
   @override
   Widget build(BuildContext context) {
@@ -187,40 +226,72 @@ class _NutritionScreenState extends State<NutritionScreen> {
 
                       // Header
                       _buildHeader(),
-
                       const SizedBox(height: 16),
 
                       // Date Selector
                       _buildDateSelector(),
-
                       const SizedBox(height: 24),
 
-                      if (_isLoading)
-                        const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(40.0),
-                            child: CircularProgressIndicator(
-                              color: Color(0xFF1DAB87),
-                            ),
+                      if (_isLoading) ...[
+                        // Calorie Chart Skeleton
+                        const Center(child: SkeletonCircle(size: 220)),
+                        const SizedBox(height: 24),
+
+                        // Macros Breakdown Skeleton
+                        Row(
+                          children: const [
+                            Expanded(child: SkeletonMacroCard()),
+                            SizedBox(width: 12),
+                            Expanded(child: SkeletonMacroCard()),
+                            SizedBox(width: 12),
+                            Expanded(child: SkeletonMacroCard()),
+                          ],
+                        ),
+                        const SizedBox(height: 32),
+
+                        // Meals Section Header Skeleton
+                        const SkeletonText(width: 150, height: 20),
+                        const SizedBox(height: 16),
+
+                        // Meal Cards Skeleton
+                        ...List.generate(
+                          4,
+                          (index) => const Padding(
+                            padding: EdgeInsets.only(bottom: 16),
+                            child: SkeletonCard(height: 120),
                           ),
-                        )
-                      else ...[
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Recipe Section Header Skeleton
+                        const SkeletonText(width: 180, height: 20),
+                        const SizedBox(height: 16),
+
+                        // Recipe Cards Skeleton
+                        ...List.generate(
+                          3,
+                          (index) => const Padding(
+                            padding: EdgeInsets.only(bottom: 16),
+                            child: SkeletonCard(height: 100),
+                          ),
+                        ),
+                      ] else ...[
                         // Calorie Donut Chart
                         _buildCalorieChart(),
-
                         const SizedBox(height: 24),
 
                         // Macros Breakdown
                         _buildMacrosBreakdown(),
-
                         const SizedBox(height: 32),
 
                         // Today's Meals Section
-                        _buildSectionTitle('Today\'s Meals', ''),
-
+                        _buildSectionTitle(
+                          _isToday ? "Today's Meals" : "Meals",
+                          '',
+                        ),
                         const SizedBox(height: 16),
 
-                        // Meal Cards
+                        // Meal Cards (ORIGINAL DESIGN)
                         ...['Breakfast', 'Lunch', 'Dinner', 'Snack'].map((
                           mealType,
                         ) {
@@ -229,12 +300,10 @@ class _NutritionScreenState extends State<NutritionScreen> {
                             child: _buildMealCard(mealType),
                           );
                         }),
-
                         const SizedBox(height: 16),
 
                         // Recipe of the Day Section
                         _buildSectionTitle('Recipe of the Day', 'See all'),
-
                         const SizedBox(height: 16),
 
                         // Recipe Cards
@@ -269,13 +338,18 @@ class _NutritionScreenState extends State<NutritionScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          'Nutrition',
-          style: TextStyle(
-            fontSize: 32,
-            fontWeight: FontWeight.w800,
-            color: context.primaryText,
-          ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Nutrition',
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.w800,
+                color: context.primaryText,
+              ),
+            ),
+          ],
         ),
         GestureDetector(
           onTap: () => _onProfileTap(),
@@ -285,6 +359,13 @@ class _NutritionScreenState extends State<NutritionScreen> {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(color: const Color(0xFF1DAB87), width: 2),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF1DAB87).withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
             child: ClipOval(
               child: _userProfile?.profilePictureUrl != null
@@ -292,88 +373,158 @@ class _NutritionScreenState extends State<NutritionScreen> {
                       _userProfile!.profilePictureUrl!,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          color: const Color(0xFF1DAB87),
-                          child: const Icon(
-                            Icons.person,
-                            color: Colors.white,
-                            size: 30,
-                          ),
-                        );
+                        return _buildProfileFallback();
                       },
                     )
-                  : Image.asset(
-                      'assets/images/profile_male.png',
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          color: const Color(0xFF1DAB87),
-                          child: const Icon(
-                            Icons.person,
-                            color: Colors.white,
-                            size: 30,
-                          ),
-                        );
-                      },
-                    ),
+                  : _buildProfileFallback(),
             ),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildProfileFallback() {
+    return Image.asset(
+      'assets/images/profile_male.png',
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        return Container(
+          color: const Color(0xFF1DAB87),
+          child: const Icon(Icons.person, color: Colors.white, size: 30),
+        );
+      },
     );
   }
 
   // ==================== DATE SELECTOR ====================
   Widget _buildDateSelector() {
-    final isToday =
-        DateFormat('yyyy-MM-dd').format(selectedDate) ==
-        DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final now = DateTime.now();
+    final todayDate = DateTime(now.year, now.month, now.day);
+    String getDateLabel(DateTime date) {
+      final dateOnly = DateTime(date.year, date.month, date.day);
+      if (dateOnly == todayDate) return 'Today';
+      if (dateOnly == todayDate.subtract(const Duration(days: 1)))
+        return 'Yesterday';
+      if (dateOnly == todayDate.add(const Duration(days: 1))) return 'Tomorrow';
+      return DateFormat('MMM dd').format(date);
+    }
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        GestureDetector(
-          onTap: () => _changeDate(-1),
-          child: const Text(
-            '<  Yesterday  |  ',
-            style: TextStyle(
-              color: Color(0xFF7E7E7E),
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: context.cardBackground, // ✅
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: context.shadowColor, // ✅
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Previous Day
+          GestureDetector(
+            onTap: () => _changeDate(-1),
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: context.borderColor.withOpacity(0.3), // ✅
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                Icons.chevron_left,
+                color: context.secondaryText, // ✅
+                size: 24,
+              ),
             ),
           ),
-        ),
-        Text(
-          isToday ? 'Today' : DateFormat('MMM dd').format(selectedDate),
-          style: const TextStyle(
-            color: Color(0xFF1DAB87),
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        GestureDetector(
-          onTap: () => _changeDate(1),
-          child: const Text(
-            '  |  Tomorrow  >',
-            style: TextStyle(
-              color: Color(0xFF7E7E7E),
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
+          // Current Date
+          GestureDetector(
+            onTap: () => _showDatePicker(),
+            child: Column(
+              children: [
+                Text(
+                  getDateLabel(selectedDate),
+                  style: TextStyle(
+                    color: context.primaryColor, // ✅
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                Text(
+                  DateFormat('EEEE, MMM dd').format(selectedDate),
+                  style: TextStyle(
+                    color: context.secondaryText, // ✅
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
           ),
-        ),
-      ],
+          // Next Day
+          GestureDetector(
+            onTap: () => _changeDate(1),
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: context.borderColor.withOpacity(0.3), // ✅
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                Icons.chevron_right,
+                color: context.secondaryText, // ✅
+                size: 24,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
+  }
+
+  Future<void> _showDatePicker() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: selectedDate,
+      firstDate: DateTime(2024),
+      lastDate: DateTime.now().add(const Duration(days: 7)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF1DAB87),
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null && picked != selectedDate) {
+      setState(() {
+        selectedDate = picked;
+      });
+      _loadData();
+    }
   }
 
   // ==================== CALORIE DONUT CHART ====================
   Widget _buildCalorieChart() {
     final progress = calorieProgress;
+    final isOverTarget = consumedCalories > targetCalories;
 
     return Center(
       child: SizedBox(
-        width: 200,
-        height: 200,
+        width: 220,
+        height: 220,
         child: Stack(
           alignment: Alignment.center,
           children: [
@@ -382,12 +533,17 @@ class _NutritionScreenState extends State<NutritionScreen> {
               PieChartData(
                 startDegreeOffset: -90,
                 sectionsSpace: 0,
-                centerSpaceRadius: 75,
+                centerSpaceRadius: 80,
                 sections: [
                   PieChartSectionData(
-                    value: consumedCalories.toDouble(),
-                    color: const Color(0xFF1DAB87),
-                    radius: 18,
+                    value: consumedCalories.toDouble().clamp(
+                      0,
+                      targetCalories.toDouble(),
+                    ),
+                    color: isOverTarget
+                        ? Colors.orange
+                        : const Color(0xFF1DAB87),
+                    radius: 20,
                     showTitle: false,
                   ),
                   PieChartSectionData(
@@ -396,7 +552,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
                       targetCalories.toDouble(),
                     ),
                     color: const Color(0xFFC8E6DD),
-                    radius: 18,
+                    radius: 20,
                     showTitle: false,
                   ),
                 ],
@@ -405,8 +561,8 @@ class _NutritionScreenState extends State<NutritionScreen> {
 
             // Donut Chart with custom painter for dot indicator
             CustomPaint(
-              size: const Size(200, 200),
-              painter: _DonutChartPainter(progress),
+              size: const Size(220, 220),
+              painter: _DonutChartPainter(progress.clamp(0.0, 1.0)),
             ),
 
             // Center Text
@@ -416,18 +572,43 @@ class _NutritionScreenState extends State<NutritionScreen> {
                 Text(
                   consumedCalories.toString(),
                   style: TextStyle(
-                    fontSize: 40,
+                    fontSize: 42,
                     fontWeight: FontWeight.w800,
-                    color: context.primaryText,
+                    color: isOverTarget ? Colors.orange : context.primaryText,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '🔥/$targetCalories kcal',
+                  '🔥 / $targetCalories kcal',
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                     color: Color(0xFF7E7E7E),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isOverTarget
+                        ? Colors.orange.withOpacity(0.1)
+                        : const Color(0xFF1DAB87).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    isOverTarget
+                        ? '+${consumedCalories - targetCalories} over'
+                        : '$_remainingCalories left',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isOverTarget
+                          ? Colors.orange
+                          : const Color(0xFF1DAB87),
+                    ),
                   ),
                 ),
               ],
@@ -492,37 +673,46 @@ class _NutritionScreenState extends State<NutritionScreen> {
     IconData icon,
   ) {
     final progress = (consumed / target).clamp(0.0, 1.0);
+    final isOver = consumed > target;
 
     return Container(
-      height: 96,
+      height: 100,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: bgColor.withOpacity(0.6),
         borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: bgColor.withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, size: 20, color: Colors.black),
+              Icon(icon, size: 18, color: context.primaryText.withOpacity(0.8)),
               const SizedBox(width: 6),
-              Text(
-                name,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black,
+              Expanded(
+                child: Text(
+                  name,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: context.primaryText.withOpacity(0.8),
+                  ),
                 ),
               ),
             ],
           ),
           const Spacer(),
-          // Progress Bar
           Container(
             height: 8,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: context.cardBackground, // ✅ background adapts
               borderRadius: BorderRadius.circular(20),
             ),
             child: FractionallySizedBox(
@@ -530,7 +720,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
               widthFactor: progress,
               child: Container(
                 decoration: BoxDecoration(
-                  color: progressColor,
+                  color: isOver ? Colors.orange : progressColor,
                   borderRadius: BorderRadius.circular(20),
                 ),
               ),
@@ -538,11 +728,11 @@ class _NutritionScreenState extends State<NutritionScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            '$consumed$unit',
-            style: const TextStyle(
-              fontSize: 10,
+            '$consumed / $target$unit',
+            style: TextStyle(
+              fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF7E7E7E),
+              color: isOver ? Colors.orange.shade700 : context.primaryText,
             ),
           ),
         ],
@@ -566,12 +756,19 @@ class _NutritionScreenState extends State<NutritionScreen> {
         if (actionText.isNotEmpty)
           GestureDetector(
             onTap: () => _onSeeAllRecipes(),
-            child: Text(
-              actionText,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFFF15223),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF15223).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                actionText,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFFF15223),
+                ),
               ),
             ),
           ),
@@ -579,7 +776,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
     );
   }
 
-  // ==================== MEAL CARD ====================
+  // ==================== MEAL CARD (ORIGINAL DESIGN) ====================
   Widget _buildMealCard(String mealType) {
     final mealItems = mealsByType[mealType] ?? [];
     final mealCalories = mealItems.fold<int>(
@@ -590,12 +787,15 @@ class _NutritionScreenState extends State<NutritionScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.cardBackground,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0x21979797)),
+        border: Border.all(
+          color: context.borderColor.withOpacity(0.15), // ✅
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: context.shadowColor,
             blurRadius: 4,
             offset: const Offset(0, 4),
           ),
@@ -609,33 +809,31 @@ class _NutritionScreenState extends State<NutritionScreen> {
             children: [
               Text(
                 mealType,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
-                  color: Colors.black,
+                  color: context.primaryText,
                 ),
               ),
               if (mealItems.isNotEmpty)
                 Text(
                   '$mealCalories kcal',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF1DAB87),
+                    color: context.primaryColor,
                   ),
                 ),
             ],
           ),
           const SizedBox(height: 12),
-
-          // Food Items
           if (mealItems.isEmpty)
             Center(
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Text(
                   'No items added',
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                  style: TextStyle(fontSize: 14, color: context.secondaryText),
                 ),
               ),
             )
@@ -648,8 +846,6 @@ class _NutritionScreenState extends State<NutritionScreen> {
                 );
               }).toList(),
             ),
-
-          // Add More Button
           GestureDetector(
             onTap: () => _onAddFoodToMeal(mealType),
             child: Row(
@@ -658,21 +854,17 @@ class _NutritionScreenState extends State<NutritionScreen> {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1DAB87).withOpacity(0.1),
+                    color: context.primaryColor.withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
-                    Icons.add,
-                    color: Color(0xFF1DAB87),
-                    size: 20,
-                  ),
+                  child: Icon(Icons.add, color: context.primaryColor, size: 20),
                 ),
                 const SizedBox(width: 8),
-                const Text(
+                Text(
                   'Add item',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Color(0xFF1DAB87),
+                    color: context.primaryColor,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -684,7 +876,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
     );
   }
 
-  // ==================== FOOD ITEM ====================
+  // ==================== FOOD ITEM (ORIGINAL DESIGN) ====================
   Widget _buildFoodItem(Map<String, dynamic> item) {
     return Row(
       children: [
@@ -692,7 +884,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
           width: 50,
           height: 50,
           decoration: BoxDecoration(
-            color: const Color(0xFF1DAB87).withOpacity(0.2),
+            color: context.primaryColor.withOpacity(0.2),
             borderRadius: BorderRadius.circular(12),
           ),
           child: item['image_url'] != null
@@ -702,19 +894,15 @@ class _NutritionScreenState extends State<NutritionScreen> {
                     item['image_url'],
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) {
-                      return const Icon(
+                      return Icon(
                         Icons.restaurant,
-                        color: Color(0xFF1DAB87),
+                        color: context.primaryColor,
                         size: 24,
                       );
                     },
                   ),
                 )
-              : const Icon(
-                  Icons.restaurant,
-                  color: Color(0xFF1DAB87),
-                  size: 24,
-                ),
+              : Icon(Icons.restaurant, color: context.primaryColor, size: 24),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -723,25 +911,29 @@ class _NutritionScreenState extends State<NutritionScreen> {
             children: [
               Text(
                 item['food_name'],
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: Colors.black,
+                  color: context.primaryText,
                 ),
               ),
               Text(
                 '${item['quantity']} ${item['serving_unit']} • ${item['calories']} kcal',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFF7E7E7E),
+                  color: context.secondaryText,
                 ),
               ),
             ],
           ),
         ),
         IconButton(
-          icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
+          icon: Icon(
+            Icons.delete_outline,
+            size: 20,
+            color: Colors.red,
+          ), // keep red for delete
           onPressed: () => _onDeleteFoodItem(item['log_id']),
         ),
       ],
@@ -755,13 +947,16 @@ class _NutritionScreenState extends State<NutritionScreen> {
       child: Container(
         height: 190,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.cardBackground,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0x21979797)),
+          border: Border.all(
+            color: context.borderColor.withOpacity(0.15),
+            width: 1,
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 4,
+              color: context.shadowColor,
+              blurRadius: 10,
               offset: const Offset(0, 4),
             ),
           ],
@@ -805,6 +1000,24 @@ class _NutritionScreenState extends State<NutritionScreen> {
                   ),
                 ),
 
+                // Sri Lankan Badge
+                if (recipe.isSriLankan)
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text('🇱🇰', style: TextStyle(fontSize: 16)),
+                    ),
+                  ),
+
                 // Play Button
                 if (recipe.videoUrl != null)
                   Positioned(
@@ -842,22 +1055,29 @@ class _NutritionScreenState extends State<NutritionScreen> {
                 children: [
                   Text(
                     recipe.recipeName,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
-                      color: Colors.black,
+                      color: context.primaryText,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    '🕒 ${recipe.totalTime} min  🔥 ${recipe.caloriesPerServing} kcal  💪 ${recipe.difficulty}',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF7E7E7E),
-                    ),
+                  Row(
+                    children: [
+                      _buildRecipeTag(
+                        Icons.access_time,
+                        '${recipe.totalTime} min',
+                      ),
+                      const SizedBox(width: 12),
+                      _buildRecipeTag(
+                        Icons.local_fire_department,
+                        '${recipe.caloriesPerServing} kcal',
+                      ),
+                      const SizedBox(width: 12),
+                      _buildRecipeTag(Icons.fitness_center, recipe.difficulty),
+                    ],
                   ),
                 ],
               ),
@@ -868,17 +1088,40 @@ class _NutritionScreenState extends State<NutritionScreen> {
     );
   }
 
+  Widget _buildRecipeTag(IconData icon, String text) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: context.secondaryText),
+        const SizedBox(width: 4),
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: context.secondaryText,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildNoRecipesMessage() {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(40.0),
         child: Column(
           children: [
-            Icon(Icons.restaurant_menu, size: 60, color: Colors.grey.shade300),
+            Icon(Icons.restaurant_menu, size: 60, color: context.dividerColor),
             const SizedBox(height: 16),
             Text(
               'No recipes available',
-              style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+              style: TextStyle(fontSize: 16, color: context.primaryText),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Check back later for delicious recipes!',
+              style: TextStyle(fontSize: 12, color: context.secondaryText),
             ),
           ],
         ),
@@ -888,21 +1131,40 @@ class _NutritionScreenState extends State<NutritionScreen> {
 
   // ==================== ADD BUTTON (FAB) ====================
   Widget _buildAddButton() {
-    return FloatingActionButton(
-      onPressed: () => _onAddFood(),
-      backgroundColor: const Color(0xFF1DAB87),
-      child: const Icon(Icons.add, size: 32, color: Colors.white),
+    return Container(
+      decoration: BoxDecoration(
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF1DAB87).withOpacity(0.4),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: FloatingActionButton.extended(
+        onPressed: () => _onAddFood(),
+        backgroundColor: const Color(0xFF1DAB87),
+        icon: const Icon(Icons.add, size: 24, color: Colors.white),
+        label: const Text(
+          'Add Food',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+      ),
     );
   }
 
   // ==================== HANDLERS ====================
-
   void _onProfileTap() {
-    print('Profile tapped');
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const ProfileScreen()),
-    );
+    ).then((_) {
+      _loadData();
+    });
   }
 
   void _changeDate(int days) {
@@ -919,7 +1181,6 @@ class _NutritionScreenState extends State<NutritionScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) => const AddFoodDialog(mealType: 'Breakfast'),
     ).then((_) {
-      // Refresh data when dialog closes
       _loadData();
     });
   }
@@ -932,7 +1193,6 @@ class _NutritionScreenState extends State<NutritionScreen> {
       builder: (context) => AddFoodDialog(mealType: mealType),
     );
 
-    // Refresh data when dialog closes
     if (mounted) {
       _loadData();
     }
@@ -960,27 +1220,31 @@ class _NutritionScreenState extends State<NutritionScreen> {
     if (confirm == true) {
       try {
         await _nutritionService.deleteFoodLog(logId);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Food item removed'),
-            backgroundColor: Color(0xFF1DAB87),
-          ),
+        AnimatedMessage.show(
+          context,
+          message: 'Food item removed',
+          backgroundColor: const Color(0xFF1DAB87),
+          icon: Icons.check_circle_rounded,
         );
         _loadData();
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
+        AnimatedMessage.show(
+          context,
+          message: 'Error: ${e.toString()}',
+          backgroundColor: Colors.red,
+          icon: Icons.error_rounded,
         );
       }
     }
   }
 
   void _onSeeAllRecipes() {
-    print('See all recipes');
-    // TODO: Navigate to recipes list screen
+    AnimatedMessage.show(
+      context,
+      message: 'Recipes screen coming soon!',
+      backgroundColor: const Color(0xFF1DAB87),
+      icon: Icons.info_rounded,
+    );
   }
 
   void _onRecipeTap(RecipeModel recipe) {
@@ -1002,21 +1266,25 @@ class _DonutChartPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final radius = 84.0; // Radius to the middle of the ring (75 + 18/2 = 84)
+    final radius = 90.0;
 
-    // Calculate the angle for the progress (starting from top, going clockwise)
-    final angle = -90 + (360 * progress); // -90 to start from top
+    final angle = -90 + (360 * progress);
     final radians = angle * (pi / 180);
 
-    // Calculate position of the dot
     final dotX = center.dx + radius * cos(radians);
     final dotY = center.dy + radius * sin(radians);
+
+    // Draw outer glow
+    final glowPaint = Paint()
+      ..color = const Color(0xFF1DAB87).withOpacity(0.3)
+      ..style = PaintingStyle.fill
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
+    canvas.drawCircle(Offset(dotX, dotY), 14, glowPaint);
 
     // Draw the circular indicator dot
     final paint = Paint()
       ..color = const Color(0xFF1DAB87)
       ..style = PaintingStyle.fill;
-
     canvas.drawCircle(Offset(dotX, dotY), 10, paint);
 
     // Draw white border around the dot
@@ -1024,7 +1292,6 @@ class _DonutChartPainter extends CustomPainter {
       ..color = Colors.white
       ..style = PaintingStyle.stroke
       ..strokeWidth = 4;
-
     canvas.drawCircle(Offset(dotX, dotY), 10, borderPaint);
   }
 

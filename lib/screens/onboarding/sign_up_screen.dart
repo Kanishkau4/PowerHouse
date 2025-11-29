@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:powerhouse/core/theme/theme_extensions.dart';
 import 'package:powerhouse/services/auth_service.dart';
+import 'package:powerhouse/widgets/animated_message.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -379,12 +380,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
         if (response.user != null) {
           // Show success message
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('✅ Verification code sent to your email!'),
-              backgroundColor: Color(0xFF1DAB87),
-              duration: Duration(seconds: 3),
-            ),
+          AnimatedMessage.show(
+            context,
+            message: 'Verification code sent to your email!',
+            backgroundColor: const Color(0xFF1DAB87),
+            icon: Icons.check_circle_rounded,
           );
 
           // Navigate to verification screen with email
@@ -412,23 +412,22 @@ class _SignUpScreenState extends State<SignUpScreen> {
           errorMessage = e.message;
         }
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 4),
-          ),
+        AnimatedMessage.show(
+          context,
+          message: errorMessage,
+          backgroundColor: Colors.red,
+          icon: Icons.error_rounded,
         );
       } catch (e) {
         setState(() {
           _isLoading = false;
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
+        AnimatedMessage.show(
+          context,
+          message: 'Error: ${e.toString()}',
+          backgroundColor: Colors.red,
+          icon: Icons.error_rounded,
         );
       }
     }

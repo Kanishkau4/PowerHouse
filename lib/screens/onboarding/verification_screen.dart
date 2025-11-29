@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
 import 'package:powerhouse/services/auth_service.dart';
+import 'package:powerhouse/widgets/animated_message.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class VerificationScreen extends StatefulWidget {
@@ -13,7 +14,7 @@ class VerificationScreen extends StatefulWidget {
 
 class _VerificationScreenState extends State<VerificationScreen> {
   final _authService = AuthService();
-  
+
   // OTP Controllers (Changed to 6 digits)
   final List<TextEditingController> _otpControllers = List.generate(
     6, // Changed from 4 to 6
@@ -21,10 +22,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
   );
 
   // Focus Nodes
-  final List<FocusNode> _focusNodes = List.generate(
-    6,
-    (index) => FocusNode(),
-  );
+  final List<FocusNode> _focusNodes = List.generate(6, (index) => FocusNode());
 
   // Loading state
   bool _isLoading = false;
@@ -90,9 +88,9 @@ class _VerificationScreenState extends State<VerificationScreen> {
               children: [
                 // Top Bar
                 _buildTopBar(context),
-                
+
                 const SizedBox(height: 40),
-                
+
                 // Title
                 const Text(
                   'Verification',
@@ -102,9 +100,9 @@ class _VerificationScreenState extends State<VerificationScreen> {
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                
+
                 const SizedBox(height: 8),
-                
+
                 // Subtitle with email
                 Text(
                   'We sent a 6-digit code to\n$_email',
@@ -114,19 +112,19 @@ class _VerificationScreenState extends State<VerificationScreen> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                
+
                 const SizedBox(height: 60),
-                
+
                 // OTP Input Fields
                 _buildOTPFields(),
-                
+
                 const SizedBox(height: 40),
-                
+
                 // Continue Button
                 _buildContinueButton(),
-                
+
                 const SizedBox(height: 40),
-                
+
                 // Resend Code
                 _buildResendCode(),
               ],
@@ -208,17 +206,12 @@ class _VerificationScreenState extends State<VerificationScreen> {
               textAlign: TextAlign.center,
               keyboardType: TextInputType.number,
               maxLength: 1,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
-              ),
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
               decoration: const InputDecoration(
                 counterText: '',
                 border: InputBorder.none,
               ),
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-              ],
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               onChanged: (value) {
                 if (value.length == 1 && index < 5) {
                   _focusNodes[index + 1].requestFocus();
@@ -235,8 +228,8 @@ class _VerificationScreenState extends State<VerificationScreen> {
   }
 
   Widget _buildContinueButton() {
-    final isComplete = _otpControllers.every((controller) => 
-      controller.text.isNotEmpty
+    final isComplete = _otpControllers.every(
+      (controller) => controller.text.isNotEmpty,
     );
 
     return GestureDetector(
@@ -245,8 +238,8 @@ class _VerificationScreenState extends State<VerificationScreen> {
         width: double.infinity,
         height: 56,
         decoration: BoxDecoration(
-          color: isComplete 
-              ? const Color(0xFF1DAB87) 
+          color: isComplete
+              ? const Color(0xFF1DAB87)
               : const Color(0xFF1DAB87).withOpacity(0.5),
           borderRadius: BorderRadius.circular(16),
           boxShadow: isComplete
@@ -280,17 +273,15 @@ class _VerificationScreenState extends State<VerificationScreen> {
       child: GestureDetector(
         onTap: _canResend ? _resendCode : null,
         child: Text(
-          _canResend 
-              ? 'Resend Code' 
-              : 'Resend Code in ${_resendTimer}s',
+          _canResend ? 'Resend Code' : 'Resend Code in ${_resendTimer}s',
           style: TextStyle(
-            color: _canResend 
-                ? const Color(0xFF1DAB87) 
+            color: _canResend
+                ? const Color(0xFF1DAB87)
                 : const Color(0xFF7E7E7E),
             fontSize: 16,
             fontWeight: FontWeight.w500,
-            decoration: _canResend 
-                ? TextDecoration.underline 
+            decoration: _canResend
+                ? TextDecoration.underline
                 : TextDecoration.none,
           ),
         ),
@@ -301,7 +292,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
   // ========== HANDLE VERIFICATION (REAL SUPABASE) ==========
   void _handleVerification() async {
     final otp = _otpControllers.map((c) => c.text).join();
-    
+
     if (otp.length != 6) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -318,10 +309,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
 
     try {
       // Verify OTP with Supabase
-      final response = await _authService.verifyOTP(
-        email: _email,
-        token: otp,
-      );
+      final response = await _authService.verifyOTP(email: _email, token: otp);
 
       setState(() {
         _isLoading = false;
@@ -329,11 +317,11 @@ class _VerificationScreenState extends State<VerificationScreen> {
 
       if (response.user != null) {
         // Success!
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Email verified successfully!'),
-            backgroundColor: Color(0xFF1DAB87),
-          ),
+        AnimatedMessage.show(
+          context,
+          message: 'Email verified successfully!',
+          backgroundColor: const Color(0xFF1DAB87),
+          icon: Icons.check_circle_rounded,
         );
 
         // Navigate to gender screen (profile setup)
@@ -345,19 +333,18 @@ class _VerificationScreenState extends State<VerificationScreen> {
       });
 
       String errorMessage = 'Invalid verification code';
-      
+
       if (e.message.contains('expired')) {
         errorMessage = 'Code expired. Please request a new one.';
       } else if (e.message.contains('invalid')) {
         errorMessage = 'Invalid code. Please try again.';
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorMessage),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 4),
-        ),
+      AnimatedMessage.show(
+        context,
+        message: errorMessage,
+        backgroundColor: Colors.red,
+        icon: Icons.error_rounded,
       );
 
       // Clear OTP fields
@@ -365,17 +352,16 @@ class _VerificationScreenState extends State<VerificationScreen> {
         controller.clear();
       }
       _focusNodes[0].requestFocus();
-      
     } catch (e) {
       setState(() {
         _isLoading = false;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
+      AnimatedMessage.show(
+        context,
+        message: 'Error: ${e.toString()}',
+        backgroundColor: Colors.red,
+        icon: Icons.error_rounded,
       );
     }
   }
@@ -389,27 +375,27 @@ class _VerificationScreenState extends State<VerificationScreen> {
       for (var controller in _otpControllers) {
         controller.clear();
       }
-      
+
       // Focus first field
       _focusNodes[0].requestFocus();
-      
+
       // Restart timer
       _startTimer();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('✅ New verification code sent!'),
-          backgroundColor: Color(0xFF1DAB87),
-        ),
+      AnimatedMessage.show(
+        context,
+        message: 'New verification code sent!',
+        backgroundColor: const Color(0xFF1DAB87),
+        icon: Icons.check_circle_rounded,
       );
 
       setState(() {});
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to resend code: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
+      AnimatedMessage.show(
+        context,
+        message: 'Failed to resend code: ${e.toString()}',
+        backgroundColor: Colors.red,
+        icon: Icons.error_rounded,
       );
     }
   }
@@ -418,9 +404,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Need Help?'),
         content: const Text(
           'If you didn\'t receive the code:\n\n'
@@ -433,10 +417,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'OK',
-              style: TextStyle(color: Color(0xFF1DAB87)),
-            ),
+            child: const Text('OK', style: TextStyle(color: Color(0xFF1DAB87))),
           ),
         ],
       ),

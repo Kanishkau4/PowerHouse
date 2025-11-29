@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:powerhouse/services/user_service.dart';
 import 'package:powerhouse/models/user_model.dart';
-import 'package:powerhouse/core/constants/goals.dart'; // ← Add this import
+import 'package:powerhouse/core/constants/goals.dart';
 import 'dart:io';
+
+import 'package:powerhouse/widgets/animated_message.dart';
+import 'package:powerhouse/core/theme/theme_extensions.dart'; // ✅ ADD THIS
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -24,7 +27,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   String? _selectedGender;
   String? _selectedActivityLevel;
-  String? _selectedGoal; // This will store the goal ID
+  String? _selectedGoal;
   File? _profileImage;
   bool _isLoading = false;
   UserModel? _currentUser;
@@ -61,35 +64,27 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           _weightController.text = user.currentWeight?.toString() ?? '';
           _heightController.text = user.height?.toString() ?? '';
 
-          // 🐛 DEBUG: Print values from database
           print('📊 Database Values:');
           print('Gender: "${user.gender}"');
           print('Activity Level: "${user.activityLevel}"');
           print('Fitness Goal: "${user.fitnessGoal}"');
 
-          // ✅ Set gender
           _selectedGender = _findMatchingValue(user.gender, _genders);
-
-          // ✅ Set activity level
           _selectedActivityLevel = _findMatchingValue(
             user.activityLevel,
             _activityLevels,
           );
 
-          // ✅ Set fitness goal - check if it's already an ID or display name
           if (user.fitnessGoal != null) {
             if (GoalConstants.allGoalIds.contains(user.fitnessGoal)) {
-              // It's already an ID
               _selectedGoal = user.fitnessGoal;
             } else {
-              // Try to find ID from display name
               _selectedGoal = GoalConstants.getIdFromDisplayName(
                 user.fitnessGoal,
               );
             }
           }
 
-          // 🐛 DEBUG: Print selected values
           print('🎯 Selected Values:');
           print('Gender: $_selectedGender');
           print('Activity Level: $_selectedActivityLevel');
@@ -102,11 +97,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     } catch (e) {
       print('❌ Error loading user profile: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to load profile: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
+        AnimatedMessage.show(
+          context,
+          message: 'Failed to load profile: ${e.toString()}',
+          backgroundColor: Colors.red,
+          icon: Icons.error,
         );
       }
     } finally {
@@ -142,253 +137,288 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _pickImage() async {
-  final ImagePicker picker = ImagePicker();
-  
-  showModalBottomSheet(
-    context: context,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-    ),
-    builder: (context) => SafeArea(
-      child: Wrap(
-        children: [
-          ListTile(
-            leading: const Icon(Icons.photo_camera, color: Color(0xFF1DAB87)),
-            title: const Text('Take Photo'),
-            onTap: () async {
-              Navigator.pop(context);
-              final XFile? photo = await picker.pickImage(
-                source: ImageSource.camera,
-                imageQuality: 80,
-                maxWidth: 1024,
-                maxHeight: 1024,
-              );
-              if (photo != null) {
-                setState(() {
-                  _profileImage = File(photo.path);
-                });
-              }
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.photo_library, color: Color(0xFF1DAB87)),
-            title: const Text('Choose from Gallery'),
-            onTap: () async {
-              Navigator.pop(context);
-              final XFile? image = await picker.pickImage(
-                source: ImageSource.gallery,
-                imageQuality: 80,
-                maxWidth: 1024,
-                maxHeight: 1024,
-              );
-              if (image != null) {
-                setState(() {
-                  _profileImage = File(image.path);
-                });
-              }
-            },
-          ),
-          if (_profileImage != null || _currentUser?.profilePictureUrl != null)
+    final ImagePicker picker = ImagePicker();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: context.cardBackground, // ✅ DARK MODE
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
             ListTile(
-              leading: const Icon(Icons.delete, color: Colors.red),
-              title: const Text('Remove Photo'),
+              leading: Icon(
+                Icons.photo_camera,
+                color: context.primaryColor, // ✅ DARK MODE
+              ),
+              title: Text(
+                'Take Photo',
+                style: TextStyle(color: context.primaryText), // ✅ DARK MODE
+              ),
               onTap: () async {
                 Navigator.pop(context);
-                
-                // Show confirmation dialog
-                final confirm = await showDialog<bool>(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    title: const Text('Remove Photo'),
-                    content: const Text('Are you sure you want to remove your profile picture?'),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, false),
-                        child: const Text('Cancel'),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, true),
-                        child: const Text(
-                          'Remove',
-                          style: TextStyle(color: Colors.red),
-                        ),
-                      ),
-                    ],
-                  ),
+                final XFile? photo = await picker.pickImage(
+                  source: ImageSource.camera,
+                  imageQuality: 80,
+                  maxWidth: 1024,
+                  maxHeight: 1024,
                 );
-
-                if (confirm == true) {
+                if (photo != null) {
                   setState(() {
-                    _profileImage = null;
+                    _profileImage = File(photo.path);
                   });
-                  
-                  // Delete from database
-                  try {
-                    await _userService.deleteProfilePicture(_currentUser?.profilePictureUrl);
-                    await _userService.updateUserProfile({
-                      'profile_picture_url': null,
-                    });
-                    
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Profile picture removed'),
-                          backgroundColor: Color(0xFF1DAB87),
-                        ),
-                      );
-                    }
-                  } catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Failed to remove picture: $e'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    }
-                  }
                 }
               },
             ),
-        ],
+            ListTile(
+              leading: Icon(
+                Icons.photo_library,
+                color: context.primaryColor, // ✅ DARK MODE
+              ),
+              title: Text(
+                'Choose from Gallery',
+                style: TextStyle(color: context.primaryText), // ✅ DARK MODE
+              ),
+              onTap: () async {
+                Navigator.pop(context);
+                final XFile? image = await picker.pickImage(
+                  source: ImageSource.gallery,
+                  imageQuality: 80,
+                  maxWidth: 1024,
+                  maxHeight: 1024,
+                );
+                if (image != null) {
+                  setState(() {
+                    _profileImage = File(image.path);
+                  });
+                }
+              },
+            ),
+            if (_profileImage != null ||
+                _currentUser?.profilePictureUrl != null)
+              ListTile(
+                leading: const Icon(Icons.delete, color: Colors.red),
+                title: Text(
+                  'Remove Photo',
+                  style: TextStyle(color: context.primaryText), // ✅ DARK MODE
+                ),
+                onTap: () async {
+                  Navigator.pop(context);
+
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      backgroundColor: context.cardBackground, // ✅ DARK MODE
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      title: Text(
+                        'Remove Photo',
+                        style: TextStyle(
+                          color: context.primaryText, // ✅ DARK MODE
+                        ),
+                      ),
+                      content: Text(
+                        'Are you sure you want to remove your profile picture?',
+                        style: TextStyle(
+                          color: context.secondaryText, // ✅ DARK MODE
+                        ),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: Text(
+                            'Cancel',
+                            style: TextStyle(
+                              color: context.secondaryText, // ✅ DARK MODE
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          child: const Text(
+                            'Remove',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirm == true) {
+                    setState(() {
+                      _profileImage = null;
+                    });
+
+                    try {
+                      await _userService.deleteProfilePicture(
+                        _currentUser?.profilePictureUrl,
+                      );
+                      await _userService.updateUserProfile({
+                        'profile_picture_url': null,
+                      });
+
+                      if (mounted) {
+                        AnimatedMessage.show(
+                          context,
+                          message: 'Profile picture removed',
+                          backgroundColor: const Color(0xFF1DAB87),
+                          icon: Icons.check_circle_rounded,
+                        );
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        AnimatedMessage.show(
+                          context,
+                          message: 'Failed to remove picture: $e',
+                          backgroundColor: Colors.red,
+                          icon: Icons.error,
+                        );
+                      }
+                    }
+                  }
+                },
+              ),
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
-Future<void> _saveProfile() async {
-  if (_formKey.currentState!.validate()) {
-    setState(() {
-      _isLoading = true;
-    });
+  Future<void> _saveProfile() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isLoading = true;
+      });
 
-    try {
-      String? uploadedImageUrl;
+      try {
+        String? uploadedImageUrl;
 
-      // ✅ Upload profile picture if a new one was selected
-      if (_profileImage != null) {
-        try {
-          // Delete old profile picture if exists
-          if (_currentUser?.profilePictureUrl != null) {
-            await _userService.deleteProfilePicture(_currentUser!.profilePictureUrl);
-          }
+        if (_profileImage != null) {
+          try {
+            if (_currentUser?.profilePictureUrl != null) {
+              await _userService.deleteProfilePicture(
+                _currentUser!.profilePictureUrl,
+              );
+            }
 
-          // Upload new profile picture
-          uploadedImageUrl = await _userService.uploadProfilePicture(_profileImage!);
-          
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('✅ Profile picture uploaded!'),
-                backgroundColor: Color(0xFF1DAB87),
-                duration: Duration(seconds: 2),
-              ),
+            uploadedImageUrl = await _userService.uploadProfilePicture(
+              _profileImage!,
             );
-          }
-        } catch (e) {
-          print('Error uploading profile picture: $e');
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Failed to upload picture: ${e.toString()}'),
+
+            if (mounted) {
+              AnimatedMessage.show(
+                context,
+                message: '✅ Profile picture uploaded!',
+                backgroundColor: const Color(0xFF1DAB87),
+                icon: Icons.check_circle_rounded,
+                duration: const Duration(seconds: 2),
+              );
+            }
+          } catch (e) {
+            print('Error uploading profile picture: $e');
+            if (mounted) {
+              AnimatedMessage.show(
+                context,
+                message: 'Failed to upload picture: ${e.toString()}',
                 backgroundColor: Colors.orange,
+                icon: Icons.error,
                 duration: const Duration(seconds: 3),
-              ),
-            );
+              );
+            }
           }
-          // Continue with other updates even if image upload fails
         }
-      }
 
-      // Prepare update data
-      final Map<String, dynamic> updates = {
-        'username': _nameController.text.trim(),
-        'updated_at': DateTime.now().toIso8601String(),
-      };
+        final Map<String, dynamic> updates = {
+          'username': _nameController.text.trim(),
+          'updated_at': DateTime.now().toIso8601String(),
+        };
 
-      // Add profile picture URL if uploaded
-      if (uploadedImageUrl != null) {
-        updates['profile_picture_url'] = uploadedImageUrl;
-      }
+        if (uploadedImageUrl != null) {
+          updates['profile_picture_url'] = uploadedImageUrl;
+        }
 
-      // Add optional fields
-      if (_selectedGender != null) {
-        updates['gender'] = _selectedGender;
-      }
+        if (_selectedGender != null) {
+          updates['gender'] = _selectedGender;
+        }
 
-      if (_selectedActivityLevel != null) {
-        updates['activity_level'] = _selectedActivityLevel;
-      }
+        if (_selectedActivityLevel != null) {
+          updates['activity_level'] = _selectedActivityLevel;
+        }
 
-      if (_selectedGoal != null) {
-        updates['fitness_goal'] = _selectedGoal;
-      }
+        if (_selectedGoal != null) {
+          updates['fitness_goal'] = _selectedGoal;
+        }
 
-      final age = int.tryParse(_ageController.text);
-      if (age != null) updates['age'] = age;
+        final age = int.tryParse(_ageController.text);
+        if (age != null) updates['age'] = age;
 
-      final weight = double.tryParse(_weightController.text);
-      if (weight != null) updates['current_weight'] = weight;
+        final weight = double.tryParse(_weightController.text);
+        if (weight != null) updates['current_weight'] = weight;
 
-      final height = double.tryParse(_heightController.text);
-      if (height != null) updates['height'] = height;
+        final height = double.tryParse(_heightController.text);
+        if (height != null) updates['height'] = height;
 
-      print('📤 Updating profile with: $updates');
+        print('📤 Updating profile with: $updates');
 
-      // Update user profile
-      await _userService.updateUserProfile(updates);
+        await _userService.updateUserProfile(updates);
 
-      setState(() {
-        _isLoading = false;
-      });
+        setState(() {
+          _isLoading = false;
+        });
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Profile updated successfully!'),
-            backgroundColor: Color(0xFF1DAB87),
-            duration: Duration(seconds: 2),
-          ),
-        );
-        Navigator.pop(context, true);
-      }
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
+        if (mounted) {
+          AnimatedMessage.show(
+            context,
+            message: 'Profile updated successfully!',
+            backgroundColor: const Color(0xFF1DAB87),
+            icon: Icons.check_circle_rounded,
+            duration: const Duration(seconds: 2),
+          );
+          Navigator.pop(context, true);
+        }
+      } catch (e) {
+        setState(() {
+          _isLoading = false;
+        });
 
-      print('❌ Error saving profile: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to update profile: ${e.toString()}'),
+        print('❌ Error saving profile: $e');
+        if (mounted) {
+          AnimatedMessage.show(
+            context,
+            message: 'Failed to update profile: ${e.toString()}',
             backgroundColor: Colors.red,
+            icon: Icons.error,
             duration: const Duration(seconds: 3),
-          ),
-        );
+          );
+        }
       }
     }
   }
-}
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.surfaceColor, // ✅ DARK MODE
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: context.surfaceColor, // ✅ DARK MODE
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(
+            Icons.arrow_back,
+            color: context.primaryText, // ✅ DARK MODE
+          ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           'Edit Profile',
           style: TextStyle(
-            color: Colors.black,
+            color: context.primaryText, // ✅ DARK MODE
             fontSize: 24,
             fontWeight: FontWeight.w800,
           ),
@@ -543,7 +573,6 @@ Future<void> _saveProfile() async {
                       _buildSectionTitle('Fitness Goal'),
                       const SizedBox(height: 16),
 
-                      // ✅ Updated Goal Dropdown with custom widget
                       _buildGoalDropdown(),
 
                       const SizedBox(height: 32),
@@ -558,18 +587,22 @@ Future<void> _saveProfile() async {
               ),
             )
           else
-            const Center(
+            Center(
               child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1DAB87)),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  context.primaryColor, // ✅ DARK MODE
+                ),
               ),
             ),
 
           if (_isLoading)
             Container(
               color: Colors.black.withOpacity(0.5),
-              child: const Center(
+              child: Center(
                 child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1DAB87)),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    context.primaryColor, // ✅ DARK MODE
+                  ),
                 ),
               ),
             ),
@@ -578,9 +611,10 @@ Future<void> _saveProfile() async {
     );
   }
 
-  // ==================== GOAL DROPDOWN (Simplified) ====================
+  // ==================== GOAL DROPDOWN ====================
   Widget _buildGoalDropdown() {
-    // Map of goal IDs to display names
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     final Map<String, String> goalOptions = {
       'lose_weight': 'Lose Weight',
       'gain_muscle': 'Build Muscle',
@@ -589,13 +623,24 @@ Future<void> _saveProfile() async {
     };
 
     return DropdownButtonFormField<String>(
-      initialValue: _selectedGoal,
+      value: _selectedGoal,
+      dropdownColor: context.cardBackground, // ✅ DARK MODE
+      style: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
+        color: context.primaryText, // ✅ DARK MODE
+      ),
       decoration: InputDecoration(
         labelText: 'Primary Goal',
-        labelStyle: const TextStyle(color: Color(0xFF7E7E7E)),
-        prefixIcon: const Icon(Icons.flag_outlined, color: Color(0xFF1DAB87)),
+        labelStyle: TextStyle(
+          color: context.secondaryText, // ✅ DARK MODE
+        ),
+        prefixIcon: Icon(
+          Icons.flag_outlined,
+          color: context.primaryColor, // ✅ DARK MODE
+        ),
         filled: true,
-        fillColor: const Color(0xFFF5F5F5),
+        fillColor: context.inputBackground, // ✅ DARK MODE
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -606,13 +651,21 @@ Future<void> _saveProfile() async {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF1DAB87), width: 2),
+          borderSide: BorderSide(
+            color: context.primaryColor, // ✅ DARK MODE
+            width: 2,
+          ),
         ),
       ),
       items: goalOptions.entries.map((entry) {
         return DropdownMenuItem<String>(
           value: entry.key,
-          child: Text(entry.value),
+          child: Text(
+            entry.value,
+            style: TextStyle(
+              color: context.primaryText, // ✅ DARK MODE
+            ),
+          ),
         );
       }).toList(),
       onChanged: (value) {
@@ -639,10 +692,13 @@ Future<void> _saveProfile() async {
             height: 120,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFF1DAB87), width: 3),
+              border: Border.all(
+                color: context.primaryColor, // ✅ DARK MODE
+                width: 3,
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF1DAB87).withOpacity(0.3),
+                  color: context.primaryColor.withOpacity(0.3), // ✅ DARK MODE
                   blurRadius: 15,
                   offset: const Offset(0, 5),
                 ),
@@ -671,9 +727,12 @@ Future<void> _saveProfile() async {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1DAB87),
+                  color: context.primaryColor, // ✅ DARK MODE
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
+                  border: Border.all(
+                    color: context.surfaceColor, // ✅ DARK MODE
+                    width: 2,
+                  ),
                 ),
                 child: const Icon(
                   Icons.camera_alt,
@@ -690,7 +749,7 @@ Future<void> _saveProfile() async {
 
   Widget _buildPlaceholderAvatar() {
     return Container(
-      color: const Color(0xFF1DAB87),
+      color: context.primaryColor, // ✅ DARK MODE
       child: Center(
         child: Text(
           _currentUser?.username.substring(0, 1).toUpperCase() ?? 'U',
@@ -709,10 +768,10 @@ Future<void> _saveProfile() async {
       alignment: Alignment.centerLeft,
       child: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.w700,
-          color: Colors.black,
+          color: context.primaryText, // ✅ DARK MODE
         ),
       ),
     );
@@ -726,23 +785,44 @@ Future<void> _saveProfile() async {
     String? Function(String?)? validator,
     bool enabled = true,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Disabled colors
+    final disabledFillColor = isDark
+        ? Colors.grey.shade800
+        : Colors.grey.shade200;
+    final disabledTextColor = isDark ? Colors.grey.shade500 : Colors.grey;
+
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       validator: validator,
       enabled: enabled,
-      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+      style: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
+        color: enabled ? context.primaryText : disabledTextColor, // ✅ DARK MODE
+      ),
       decoration: InputDecoration(
         labelText: label,
         labelStyle: TextStyle(
-          color: enabled ? const Color(0xFF7E7E7E) : Colors.grey,
+          color: enabled
+              ? context
+                    .secondaryText // ✅ DARK MODE
+              : disabledTextColor,
         ),
         prefixIcon: Icon(
           icon,
-          color: enabled ? const Color(0xFF1DAB87) : Colors.grey,
+          color: enabled
+              ? context
+                    .primaryColor // ✅ DARK MODE
+              : disabledTextColor,
         ),
         filled: true,
-        fillColor: enabled ? const Color(0xFFF5F5F5) : Colors.grey.shade200,
+        fillColor: enabled
+            ? context
+                  .inputBackground // ✅ DARK MODE
+            : disabledFillColor,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -753,9 +833,16 @@ Future<void> _saveProfile() async {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF1DAB87), width: 2),
+          borderSide: BorderSide(
+            color: context.primaryColor, // ✅ DARK MODE
+            width: 2,
+          ),
         ),
         errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.red, width: 2),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Colors.red, width: 2),
         ),
@@ -775,13 +862,24 @@ Future<void> _saveProfile() async {
     required void Function(String?) onChanged,
   }) {
     return DropdownButtonFormField<String>(
-      initialValue: value,
+      value: value,
+      dropdownColor: context.cardBackground, // ✅ DARK MODE
+      style: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
+        color: context.primaryText, // ✅ DARK MODE
+      ),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Color(0xFF7E7E7E)),
-        prefixIcon: Icon(icon, color: const Color(0xFF1DAB87)),
+        labelStyle: TextStyle(
+          color: context.secondaryText, // ✅ DARK MODE
+        ),
+        prefixIcon: Icon(
+          icon,
+          color: context.primaryColor, // ✅ DARK MODE
+        ),
         filled: true,
-        fillColor: const Color(0xFFF5F5F5),
+        fillColor: context.inputBackground, // ✅ DARK MODE
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -792,11 +890,22 @@ Future<void> _saveProfile() async {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF1DAB87), width: 2),
+          borderSide: BorderSide(
+            color: context.primaryColor, // ✅ DARK MODE
+            width: 2,
+          ),
         ),
       ),
       items: items.map((String item) {
-        return DropdownMenuItem<String>(value: item, child: Text(item));
+        return DropdownMenuItem<String>(
+          value: item,
+          child: Text(
+            item,
+            style: TextStyle(
+              color: context.primaryText, // ✅ DARK MODE
+            ),
+          ),
+        );
       }).toList(),
       onChanged: onChanged,
       validator: (value) {
@@ -809,15 +918,24 @@ Future<void> _saveProfile() async {
   }
 
   Widget _buildSaveButton() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return SizedBox(
       width: double.infinity,
       height: 56,
       child: ElevatedButton(
         onPressed: _isLoading ? null : _saveProfile,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF1DAB87),
+          backgroundColor: context.primaryColor, // ✅ DARK MODE
           foregroundColor: Colors.white,
-          disabledBackgroundColor: Colors.grey.shade300,
+          disabledBackgroundColor: isDark
+              ? Colors
+                    .grey
+                    .shade700 // ✅ DARK MODE
+              : Colors.grey.shade300,
+          disabledForegroundColor: isDark
+              ? Colors.grey.shade500
+              : Colors.grey.shade500,
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(28),
@@ -857,23 +975,36 @@ Future<void> _saveProfile() async {
   void _showDeleteAccountDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: context.cardBackground, // ✅ DARK MODE
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
+        title: Text(
           '⚠️ Delete Account',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            color: context.primaryText, // ✅ DARK MODE
+          ),
         ),
-        content: const Text(
+        content: Text(
           'Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently removed.',
+          style: TextStyle(
+            color: context.secondaryText, // ✅ DARK MODE
+          ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: context.secondaryText, // ✅ DARK MODE
+              ),
+            ),
           ),
           TextButton(
             onPressed: () {
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Account deletion requested'),

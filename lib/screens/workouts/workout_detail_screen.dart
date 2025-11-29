@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:powerhouse/screens/workouts/ready_workout_screen.dart';
 import 'package:powerhouse/models/workout_model.dart';
+import 'package:powerhouse/widgets/animated_message.dart';
+import 'package:powerhouse/core/theme/theme_extensions.dart';
 
 class WorkoutDetailScreen extends StatefulWidget {
   final WorkoutModel workout;
 
-  const WorkoutDetailScreen({
-    super.key,
-    required this.workout,
-  });
+  const WorkoutDetailScreen({super.key, required this.workout});
 
   @override
   State<WorkoutDetailScreen> createState() => _WorkoutDetailScreenState();
@@ -18,12 +17,12 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final exercises = widget.workout.exercises ?? [];
-    
+
     print('Building workout detail screen for: ${widget.workout.workoutName}');
     print('Number of exercises: ${exercises.length}');
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.surfaceColor,
       body: Stack(
         children: [
           // Main Content
@@ -182,10 +181,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
         decoration: BoxDecoration(
           color: Colors.white.withOpacity(0.3),
           shape: BoxShape.circle,
-          border: Border.all(
-            color: Colors.white.withOpacity(0.5),
-            width: 1,
-          ),
+          border: Border.all(color: Colors.white.withOpacity(0.5), width: 1),
         ),
         child: const Icon(
           Icons.arrow_back_ios_new,
@@ -203,10 +199,10 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
       child: Text(
         widget.workout.description ?? 'No description available',
         textAlign: TextAlign.center,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w400,
-          color: Color(0xFF7E7E7E),
+          color: context.secondaryText,
           height: 1.5,
         ),
       ),
@@ -262,19 +258,15 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   }) {
     return Column(
       children: [
-        Icon(
-          icon,
-          size: 20,
-          color: const Color(0xFF1DAB87),
-        ),
+        Icon(icon, size: 20, color: context.primaryColor),
         const SizedBox(height: 8),
         Text(
           value,
           textAlign: TextAlign.center,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w700,
-            color: Colors.black,
+            color: context.primaryText,
           ),
         ),
         if (label.isNotEmpty) ...[
@@ -282,10 +274,10 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
           Text(
             label,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w400,
-              color: Colors.black,
+              color: context.primaryText,
             ),
           ),
         ],
@@ -297,7 +289,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
     return Container(
       width: 1,
       height: 44,
-      color: const Color(0xFF979797),
+      color: context.dividerColor,
       margin: const EdgeInsets.symmetric(horizontal: 8),
     );
   }
@@ -309,14 +301,14 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(left: 8, bottom: 16),
+          Padding(
+            padding: const EdgeInsets.only(left: 8, bottom: 16),
             child: Text(
               'Exercises',
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w800,
-                color: Colors.black,
+                color: context.primaryText,
               ),
             ),
           ),
@@ -342,8 +334,12 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
         height: 90,
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: const Color(0x7CD9D9D9),
+          color: context.cardBackground,
           borderRadius: BorderRadius.circular(25),
+          border: Border.all(
+            color: context.borderColor.withOpacity(0.5),
+            width: 1,
+          ),
         ),
         child: Row(
           children: [
@@ -353,9 +349,10 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
               height: 69,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(10),
-                color: const Color(0xFF1DAB87).withOpacity(0.2),
+                color: context.primaryColor.withOpacity(0.2),
               ),
-              child: exercise.animationUrl != null &&
+              child:
+                  exercise.animationUrl != null &&
                       exercise.animationUrl!.isNotEmpty
                   ? ClipRRect(
                       borderRadius: BorderRadius.circular(10),
@@ -363,17 +360,17 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                         exercise.animationUrl!,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
-                          return const Icon(
+                          return Icon(
                             Icons.fitness_center,
-                            color: Color(0xFF1DAB87),
+                            color: context.primaryColor,
                             size: 30,
                           );
                         },
                       ),
                     )
-                  : const Icon(
+                  : Icon(
                       Icons.fitness_center,
-                      color: Color(0xFF1DAB87),
+                      color: context.primaryColor,
                       size: 30,
                     ),
             ),
@@ -388,10 +385,10 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                 children: [
                   Text(
                     exercise.exerciseName,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
-                      color: Colors.black,
+                      color: context.primaryText,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -400,45 +397,45 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                   Row(
                     children: [
                       if (exerciseDetails.reps != null) ...[
-                        const Icon(
+                        Icon(
                           Icons.repeat,
                           size: 16,
-                          color: Color(0xFF7E7E7E),
+                          color: context.secondaryText,
                         ),
                         const SizedBox(width: 6),
                         Text(
                           '${exerciseDetails.reps} reps',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w500,
-                            color: Color(0xFF7E7E7E),
+                            color: context.secondaryText,
                           ),
                         ),
                         if (exerciseDetails.sets != null) ...[
                           const SizedBox(width: 4),
                           Text(
                             'x ${exerciseDetails.sets}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
-                              color: Color(0xFF7E7E7E),
+                              color: context.secondaryText,
                             ),
                           ),
                         ],
                       ],
                       if (exerciseDetails.duration != null) ...[
-                        const Icon(
+                        Icon(
                           Icons.access_time,
                           size: 16,
-                          color: Color(0xFF7E7E7E),
+                          color: context.secondaryText,
                         ),
                         const SizedBox(width: 6),
                         Text(
                           exerciseDetails.durationFormatted,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w500,
-                            color: Color(0xFF7E7E7E),
+                            color: context.secondaryText,
                           ),
                         ),
                       ],
@@ -453,12 +450,12 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: const Color(0xFF1DAB87).withOpacity(0.2),
+                color: context.primaryColor.withOpacity(0.2),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.play_arrow,
-                color: Color(0xFF1DAB87),
+                color: context.primaryColor,
                 size: 24,
               ),
             ),
@@ -478,24 +475,18 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
             Icon(
               Icons.fitness_center,
               size: 60,
-              color: Colors.grey.shade300,
+              color: context.secondaryText.withOpacity(0.5),
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'No exercises available for this workout',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
-              ),
+              style: TextStyle(fontSize: 16, color: context.secondaryText),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Please check back later or try another workout',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey,
-              ),
+              style: TextStyle(fontSize: 14, color: context.secondaryText),
               textAlign: TextAlign.center,
             ),
           ],
@@ -515,16 +506,19 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
         decoration: BoxDecoration(
           gradient: exercises.isEmpty
               ? null
-              : const LinearGradient(
-                  colors: [Color(0xFF1DAB87), Color(0xFF2DD4A3)],
+              : LinearGradient(
+                  colors: [
+                    context.primaryColor,
+                    context.primaryColor.withOpacity(0.8),
+                  ],
                 ),
-          color: exercises.isEmpty ? Colors.grey : null,
+          color: exercises.isEmpty ? context.secondaryText : null,
           borderRadius: BorderRadius.circular(38),
           boxShadow: exercises.isEmpty
               ? null
               : [
                   BoxShadow(
-                    color: const Color(0xFF1DAB87).withOpacity(0.4),
+                    color: context.primaryColor.withOpacity(0.4),
                     blurRadius: 15,
                     offset: const Offset(0, 8),
                   ),
@@ -543,11 +537,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                 ),
               ),
               SizedBox(width: 12),
-              Icon(
-                Icons.arrow_forward,
-                color: Colors.white,
-                size: 24,
-              ),
+              Icon(Icons.arrow_forward, color: Colors.white, size: 24),
             ],
           ),
         ),
@@ -565,13 +555,12 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   void _onStartWorkout() {
     print('Start workout tapped');
 
-    if (widget.workout.exercises == null ||
-        widget.workout.exercises!.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No exercises available for this workout'),
-          backgroundColor: Colors.red,
-        ),
+    if (widget.workout.exercises == null || widget.workout.exercises!.isEmpty) {
+      AnimatedMessage.show(
+        context,
+        message: 'No exercises available for this workout',
+        backgroundColor: Colors.red,
+        icon: Icons.error,
       );
       return;
     }
@@ -579,10 +568,8 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ReadyWorkoutScreen(
-          workout: widget.workout,
-          countdownSeconds: 10,
-        ),
+        builder: (context) =>
+            ReadyWorkoutScreen(workout: widget.workout, countdownSeconds: 10),
       ),
     );
   }

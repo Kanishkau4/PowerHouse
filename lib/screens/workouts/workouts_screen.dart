@@ -4,6 +4,8 @@ import 'package:powerhouse/screens/workouts/workout_detail_screen.dart';
 import 'package:powerhouse/services/workout_service.dart';
 import 'package:powerhouse/services/user_service.dart';
 import 'package:powerhouse/models/workout_model.dart';
+import 'package:powerhouse/widgets/animated_message.dart';
+import 'package:powerhouse/widgets/skeleton_widgets.dart';
 
 class WorkoutsScreen extends StatefulWidget {
   const WorkoutsScreen({super.key});
@@ -59,11 +61,11 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
       _filterWorkouts();
     } catch (e) {
       print('Error loading workouts: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error loading workouts: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
+      AnimatedMessage.show(
+        context,
+        message: 'Error loading workouts: ${e.toString()}',
+        backgroundColor: Colors.red,
+        icon: Icons.error,
       );
     } finally {
       setState(() {
@@ -88,8 +90,13 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
       // Filter by search query
       if (_searchQuery.isNotEmpty) {
         filteredWorkouts = filteredWorkouts.where((w) {
-          return w.workoutName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-              (w.description?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false);
+          return w.workoutName.toLowerCase().contains(
+                _searchQuery.toLowerCase(),
+              ) ||
+              (w.description?.toLowerCase().contains(
+                    _searchQuery.toLowerCase(),
+                  ) ??
+                  false);
         }).toList();
       }
     });
@@ -123,9 +130,16 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
             // Workout List
             Expanded(
               child: _isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(
-                        color: Color(0xFF1DAB87),
+                  ? Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                      child: ListView.separated(
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: 6,
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 16),
+                        itemBuilder: (context, index) {
+                          return const SkeletonCard(height: 151);
+                        },
                       ),
                     )
                   : _buildWorkoutList(),
@@ -158,10 +172,7 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
               height: 50,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(
-                  color: const Color(0xFF1DAB87),
-                  width: 2,
-                ),
+                border: Border.all(color: const Color(0xFF1DAB87), width: 2),
               ),
               child: ClipOval(
                 child: profilePictureUrl != null
@@ -188,11 +199,7 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
       errorBuilder: (context, error, stackTrace) {
         return Container(
           color: const Color(0xFF1DAB87),
-          child: const Icon(
-            Icons.person,
-            color: Colors.white,
-            size: 30,
-          ),
+          child: const Icon(Icons.person, color: Colors.white, size: 30),
         );
       },
     );
@@ -205,7 +212,7 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
       child: Container(
         height: 55,
         decoration: BoxDecoration(
-          color: const Color(0x99D9D9D9),
+          color: context.inputBackground, // ✅ theme-aware
           borderRadius: BorderRadius.circular(25),
         ),
         child: TextField(
@@ -215,16 +222,17 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
             });
             _filterWorkouts();
           },
+          style: TextStyle(color: context.primaryText), // ✅ text color
           decoration: InputDecoration(
             hintText: 'Search',
             hintStyle: TextStyle(
-              color: Colors.black.withOpacity(0.5),
+              color: context.secondaryText, // ✅
               fontSize: 20,
               fontWeight: FontWeight.w400,
             ),
             prefixIcon: Icon(
               Icons.search,
-              color: Colors.black.withOpacity(0.5),
+              color: context.secondaryText, // ✅
             ),
             border: InputBorder.none,
             contentPadding: const EdgeInsets.symmetric(
@@ -249,16 +257,12 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
         separatorBuilder: (context, index) => const SizedBox(width: 12),
         itemBuilder: (context, index) {
           final isSelected = selectedCategoryIndex == index;
-          return _buildCategoryTab(
-            categories[index],
-            isSelected,
-            () {
-              setState(() {
-                selectedCategoryIndex = index;
-              });
-              _filterWorkouts();
-            },
-          );
+          return _buildCategoryTab(categories[index], isSelected, () {
+            setState(() {
+              selectedCategoryIndex = index;
+            });
+            _filterWorkouts();
+          });
         },
       ),
     );
@@ -271,15 +275,24 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xE01DAB87) : const Color(0xD3D7D7D7),
+          color: isSelected
+              ? context.primaryColor
+              : context.cardBackground.withOpacity(
+                  0.5,
+                ), // ✅ adaptive unselected
           borderRadius: BorderRadius.circular(25),
+          border: Border.all(
+            color: isSelected
+                ? context.primaryColor
+                : context.dividerColor, // ✅ border adapts
+            width: isSelected ? 0 : 1,
+          ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: const Color(0x4C1DAB87),
+                    color: context.primaryColor.withOpacity(0.3),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
-                    spreadRadius: 5,
                   ),
                 ]
               : null,
@@ -290,7 +303,7 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w800,
-              color: isSelected ? Colors.white : context.primaryText,
+              color: isSelected ? Colors.white : context.primaryText, // ✅
             ),
           ),
         ),
@@ -320,7 +333,7 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
             width: 72,
             height: 3,
             decoration: BoxDecoration(
-              color: const Color(0xFF1DAB87),
+              color: context.primaryColor, // ✅
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -466,11 +479,7 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
   Widget _buildWorkoutFallback(WorkoutModel workout) {
     return Container(
       color: workout.difficultyColor.withOpacity(0.5),
-      child: Icon(
-        Icons.fitness_center,
-        size: 60,
-        color: Colors.white,
-      ),
+      child: Icon(Icons.fitness_center, size: 60, color: Colors.white),
     );
   }
 
@@ -483,7 +492,7 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
           Icon(
             Icons.fitness_center,
             size: 80,
-            color: Colors.grey.shade300,
+            color: context.dividerColor, // ✅ subtle icon
           ),
           const SizedBox(height: 16),
           Text(
@@ -492,7 +501,7 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
                 : 'No workouts available',
             style: TextStyle(
               fontSize: 18,
-              color: Colors.grey.shade600,
+              color: context.primaryText, // ✅ main text
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -501,7 +510,7 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
             'Try selecting a different category',
             style: TextStyle(
               fontSize: 14,
-              color: Colors.grey.shade500,
+              color: context.secondaryText, // ✅ secondary text
             ),
           ),
         ],
@@ -531,38 +540,40 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
     try {
       // Fetch workout with exercises
       print('Fetching workout with exercises...');
-      final fullWorkout = await _workoutService.getWorkoutWithExercises(workout.workoutId);
-      
+      final fullWorkout = await _workoutService.getWorkoutWithExercises(
+        workout.workoutId,
+      );
+
       Navigator.pop(context); // Close loading
 
       if (fullWorkout != null) {
-        print('Successfully fetched workout with ${fullWorkout.exercises?.length ?? 0} exercises');
+        print(
+          'Successfully fetched workout with ${fullWorkout.exercises?.length ?? 0} exercises',
+        );
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => WorkoutDetailScreen(
-              workout: fullWorkout,
-            ),
+            builder: (context) => WorkoutDetailScreen(workout: fullWorkout),
           ),
         );
       } else {
         print('Failed to fetch workout details');
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to load workout details. Please try again.'),
-            backgroundColor: Colors.red,
-          ),
+        AnimatedMessage.show(
+          context,
+          message: 'Failed to load workout details. Please try again.',
+          backgroundColor: Colors.red,
+          icon: Icons.error,
         );
       }
     } catch (e, stackTrace) {
       Navigator.pop(context); // Close loading
       print('Error fetching workout: $e');
       print('Stack trace: $stackTrace');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error loading workout: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
+      AnimatedMessage.show(
+        context,
+        message: 'Error loading workout: ${e.toString()}',
+        backgroundColor: Colors.red,
+        icon: Icons.error,
       );
     }
   }

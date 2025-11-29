@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:powerhouse/models/food_item_model.dart';
 import 'package:powerhouse/services/nutrition_service.dart';
+import 'package:powerhouse/widgets/animated_message.dart';
 
 class ScannedFoodDialog extends StatefulWidget {
   final FoodItemModel food;
@@ -293,20 +294,20 @@ class _ScannedFoodDialogState extends State<ScannedFoodDialog> {
 
       if (mounted) {
         Navigator.pop(context, true); // Return true to signal success
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Added to $_selectedMealType!'),
-            backgroundColor: const Color(0xFF1DAB87),
-          ),
+        AnimatedMessage.show(
+          context,
+          message: 'Added to $_selectedMealType!',
+          backgroundColor: const Color(0xFF1DAB87),
+          icon: Icons.check_circle_rounded,
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
+        AnimatedMessage.show(
+          context,
+          message: 'Error: ${e.toString()}',
+          backgroundColor: Colors.red,
+          icon: Icons.error_rounded,
         );
       }
     } finally {

@@ -1,14 +1,17 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:powerhouse/models/food_item_model.dart';
+import 'package:powerhouse/services/storage_service.dart';
 
 class AIMealScannerService {
   // Get your API key from: https://makersuite.google.com/app/apikey
-  static const String _geminiApiKey = 'AIzaSyA-UTkiPX4N6B8fyGeMGtkF6vZCViJVmcM';
+  static String get _geminiApiKey => dotenv.env['GEMINI_API_KEY'] ?? '';
 
   final _picker = ImagePicker();
+  final _storageService = StorageService();
   late final GenerativeModel _model;
 
   AIMealScannerService() {
@@ -100,8 +103,22 @@ Be realistic with portion sizes and nutritional values.
       print('✅ Gemini response received');
       print('Response: $responseText');
 
+      // Upload image to Supabase Storage
+      String? imageUrl;
+      try {
+        imageUrl = await _storageService.uploadFoodImage(imageFile);
+        print('✅ Image uploaded to storage: $imageUrl');
+      } catch (e) {
+        print('⚠️ Failed to upload image, will use local path: $e');
+      }
+
       // Parse JSON response
-      final foods = _parseGeminiResponse(responseText, imageFile.path);
+      final foods = _parseGeminiResponse(
+        responseText,
+        imageUrl ??
+            imageFile.path, // Use storage URL if available, else local path
+        imageUrl != null, // Flag to indicate if it's a URL or local path
+      );
 
       print('✅ Identified ${foods.length} food items');
       return foods;
@@ -114,7 +131,8 @@ Be realistic with portion sizes and nutritional values.
   // ========== PARSE GEMINI RESPONSE ==========
   List<FoodItemModel> _parseGeminiResponse(
     String responseText,
-    String? localImagePath,
+    String imagePath,
+    bool isUrl,
   ) {
     try {
       // Extract JSON from response (Gemini sometimes adds markdown)
@@ -144,8 +162,10 @@ Be realistic with portion sizes and nutritional values.
           carbs: (item['carbs'] as num).toDouble(),
           fat: (item['fat'] as num).toDouble(),
           isSriLankan: _isSriLankanFood(item['name'] as String),
-          imageUrl: null,
-          localImagePath: localImagePath, // Add the image path
+          imageUrl: isUrl ? imagePath : null, // Set imageUrl if it's a URL
+          localImagePath: isUrl
+              ? null
+              : imagePath, // Set localImagePath if it's local
           createdAt: DateTime.now(),
         );
       }).toList();

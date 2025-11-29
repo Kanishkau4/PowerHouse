@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:powerhouse/core/theme/theme_extensions.dart';
 import 'package:powerhouse/services/auth_service.dart';
+import 'package:powerhouse/widgets/animated_message.dart'; // Add this import
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SignInScreen extends StatefulWidget {
@@ -308,7 +309,6 @@ class _SignInScreenState extends State<SignInScreen> {
             color: Color(0xFFF15223),
             fontSize: 15,
             fontWeight: FontWeight.w500,
-            //decoration: TextDecoration.underline,
           ),
         ),
       ),
@@ -338,7 +338,6 @@ class _SignInScreenState extends State<SignInScreen> {
                 color: Color(0xFF1DAB87),
                 fontSize: 15,
                 fontWeight: FontWeight.bold,
-                //decoration: TextDecoration.underline,
               ),
             ),
           ),
@@ -347,7 +346,6 @@ class _SignInScreenState extends State<SignInScreen> {
     );
   }
 
-  // ========== HANDLE SIGN IN (REAL SUPABASE) ==========
   void _handleSignIn() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
@@ -365,41 +363,40 @@ class _SignInScreenState extends State<SignInScreen> {
         });
 
         if (response.user != null) {
-          // Check if user has completed profile setup
           final hasProfile = await _authService.doesProfileExist();
 
           if (!hasProfile) {
-            // Profile doesn't exist, go to profile setup
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('⚠️ Please complete your profile setup'),
-                backgroundColor: Color(0xFFF97316),
-              ),
+            AnimatedMessage.show(
+              context,
+              message: 'Please complete your profile setup',
+              backgroundColor: const Color(0xFFF97316),
+              icon: Icons.warning_rounded,
             );
             Navigator.pushReplacementNamed(context, '/gender');
           } else {
-            // Check if profile is complete (has height, weight, goal)
             final profile = await _authService.getUserProfile();
 
             if (profile != null &&
                 profile['height'] != null &&
                 profile['current_weight'] != null &&
                 profile['fitness_goal'] != null) {
-              // Profile is complete, go to home
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('✅ Welcome back!'),
-                  backgroundColor: Color(0xFF1DAB87),
-                ),
+              AnimatedMessage.show(
+                context,
+                message: 'Welcome back!',
+                backgroundColor: const Color(0xFF1DAB87),
+                icon: Icons.check_circle_rounded,
               );
-              Navigator.pushReplacementNamed(context, '/home');
+
+              // Delay navigation to show the animation
+              Future.delayed(const Duration(milliseconds: 500), () {
+                Navigator.pushReplacementNamed(context, '/home');
+              });
             } else {
-              // Profile exists but incomplete, go to setup
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('⚠️ Please complete your profile setup'),
-                  backgroundColor: Color(0xFFF97316),
-                ),
+              AnimatedMessage.show(
+                context,
+                message: 'Please complete your profile setup',
+                backgroundColor: const Color(0xFFF97316),
+                icon: Icons.warning_rounded,
               );
               Navigator.pushReplacementNamed(context, '/gender');
             }
@@ -413,30 +410,29 @@ class _SignInScreenState extends State<SignInScreen> {
         String errorMessage = 'Sign in failed';
 
         if (e.message.contains('Invalid login credentials')) {
-          errorMessage = 'Invalid email or password. Please try again.';
+          errorMessage = 'Invalid email or password';
         } else if (e.message.contains('Email not confirmed')) {
-          errorMessage = 'Please verify your email first.';
+          errorMessage = 'Please verify your email first';
         } else {
           errorMessage = e.message;
         }
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 4),
-          ),
+        AnimatedMessage.show(
+          context,
+          message: errorMessage,
+          backgroundColor: Colors.red,
+          icon: Icons.error_rounded,
         );
       } catch (e) {
         setState(() {
           _isLoading = false;
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
+        AnimatedMessage.show(
+          context,
+          message: 'Something went wrong. Please try again',
+          backgroundColor: Colors.red,
+          icon: Icons.error_rounded,
         );
       }
     }
@@ -498,19 +494,21 @@ class _SignInScreenState extends State<SignInScreen> {
               try {
                 await _authService.resetPassword(emailController.text.trim());
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Password reset link sent to your email!'),
-                    backgroundColor: Color(0xFF1DAB87),
-                  ),
+
+                AnimatedMessage.show(
+                  context,
+                  message: 'Password reset link sent to your email!',
+                  backgroundColor: const Color(0xFF1DAB87),
+                  icon: Icons.check_circle_rounded,
                 );
               } catch (e) {
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Error: ${e.toString()}'),
-                    backgroundColor: Colors.red,
-                  ),
+
+                AnimatedMessage.show(
+                  context,
+                  message: 'Failed to send reset link',
+                  backgroundColor: Colors.red,
+                  icon: Icons.error_rounded,
                 );
               }
             },

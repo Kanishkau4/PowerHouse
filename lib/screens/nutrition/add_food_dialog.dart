@@ -1,12 +1,13 @@
-import 'dart:io';
+// lib/screens/nutrition/add_food_dialog.dart
+
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:powerhouse/screens/nutrition/barcode_scanner_screen.dart';
-import 'package:powerhouse/screens/nutrition/food_detail_screen.dart';
-import 'package:powerhouse/screens/nutrition/scanned_food_dialog.dart';
-import 'package:powerhouse/services/ai_meal_scanner_service.dart';
-import 'package:powerhouse/services/nutrition_service.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:powerhouse/models/food_item_model.dart';
+import 'package:powerhouse/services/nutrition_service.dart';
+import 'package:powerhouse/services/ai_meal_scanner_service.dart';
+import 'package:powerhouse/screens/nutrition/food_detail_screen.dart';
+import 'package:powerhouse/widgets/animated_message.dart';
+import 'package:powerhouse/core/theme/theme_extensions.dart';
 
 class AddFoodDialog extends StatefulWidget {
   final String mealType;
@@ -19,62 +20,26 @@ class AddFoodDialog extends StatefulWidget {
 
 class _AddFoodDialogState extends State<AddFoodDialog>
     with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  final TextEditingController _searchController = TextEditingController();
   final _nutritionService = NutritionService();
+  final _aiScannerService = AIMealScannerService();
+  final _searchController = TextEditingController();
 
-  int _selectedTab = 0;
-  List<FoodItemModel> _foods = [];
-  List<FoodItemModel> _filteredFoods = [];
+  late TabController _tabController;
+
+  List<FoodItemModel> _sriLankanFoods = [];
+  List<FoodItemModel> _otherFoods = [];
+  List<FoodItemModel> _searchResults = [];
+
   bool _isLoading = true;
+  bool _isSearching = false;
+  bool _isScanning = false;
+  bool _showBarcodeScanner = false;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-    _tabController.addListener(() {
-      setState(() {
-        _selectedTab = _tabController.index;
-      });
-    });
-
+    _tabController = TabController(length: 2, vsync: this);
     _loadFoods();
-  }
-
-  Future<void> _loadFoods() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      // Load Sri Lankan foods for Search tab
-      final foods = await _nutritionService.getSriLankanFoods();
-      setState(() {
-        _foods = foods;
-        _filteredFoods = foods;
-        _isLoading = false;
-      });
-    } catch (e) {
-      print('Error loading foods: $e');
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  void _filterFoods(String query) {
-    setState(() {
-      if (query.isEmpty) {
-        _filteredFoods = _foods;
-      } else {
-        _filteredFoods = _foods
-            .where(
-              (food) =>
-                  food.foodName.toLowerCase().contains(query.toLowerCase()),
-            )
-            .toList();
-      }
-    });
   }
 
   @override
@@ -84,12 +49,398 @@ class _AddFoodDialogState extends State<AddFoodDialog>
     super.dispose();
   }
 
+  Future<void> _loadFoods() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final results = await Future.wait([
+        _nutritionService.getSriLankanFoods(),
+        _nutritionService.getNonSriLankanFoods(),
+      ]);
+
+      setState(() {
+        _sriLankanFoods = results[0];
+        _otherFoods = results[1];
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('❌ Error loading foods: $e');
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _searchFoods(String query) async {
+    if (query.isEmpty) {
+      setState(() {
+        _searchResults = [];
+        _isSearching = false;
+      });
+      return;
+    }
+
+    setState(() => _isSearching = true);
+
+    try {
+      final results = await _nutritionService.searchFoods(query);
+      setState(() {
+        _searchResults = results;
+        _isSearching = false;
+      });
+    } catch (e) {
+      print('❌ Error searching foods: $e');
+      setState(() => _isSearching = false);
+    }
+  }
+
+  Future<void> _scanMeal({required bool fromCamera}) async {
+    setState(() => _isScanning = true);
+
+    try {
+      final foods = fromCamera
+          ? await _aiScannerService.scanMealFromCamera()
+          : await _aiScannerService.scanMealFromGallery();
+
+      if (foods != null && foods.isNotEmpty && mounted) {
+        Navigator.pop(context); // Close dialog
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => FoodDetailScreen(
+              food: foods.first,
+              mealType: widget.mealType,
+              isScannedFood: true,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      AnimatedMessage.show(
+        context,
+        message: 'Error scanning meal: ${e.toString()}',
+        backgroundColor: Colors.red,
+        icon: Icons.error_rounded,
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isScanning = false);
+      }
+    }
+  }
+
+  void _onBarcodeDetected(BarcodeCapture capture) {
+    final List<Barcode> barcodes = capture.barcodes;
+
+    if (barcodes.isNotEmpty) {
+      final String? barcode = barcodes.first.rawValue;
+
+      if (barcode != null) {
+        setState(() => _showBarcodeScanner = false);
+        _searchFoodByBarcode(barcode);
+      }
+    }
+  }
+
+  Future<void> _searchFoodByBarcode(String barcode) async {
+    print('🔍 Searching for barcode: $barcode');
+
+    // Show loading
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 2,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text('Searching for barcode: $barcode'),
+          ],
+        ),
+        backgroundColor: context.primaryColor,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+
+    // TODO: Implement barcode search in your database or API
+    // For now, show a message that barcode was detected
+    await Future.delayed(const Duration(seconds: 1));
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Barcode detected: $barcode\nProduct search coming soon!',
+          ),
+          backgroundColor: context.accentColor,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_showBarcodeScanner) {
+      return _buildBarcodeScanner();
+    }
+
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.85,
+      decoration: BoxDecoration(
+        color: context.cardBackground,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(25),
+          topRight: Radius.circular(25),
+        ),
+      ),
+      child: Column(
+        children: [
+          // Handle bar
+          Container(
+            margin: const EdgeInsets.only(top: 12),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: context.borderColor,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+
+          // Header
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Add to ${widget.mealType}',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                    color: context.primaryText,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: Icon(Icons.close, color: context.primaryText),
+                ),
+              ],
+            ),
+          ),
+
+          // Search Bar
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: TextField(
+              controller: _searchController,
+              onChanged: _searchFoods,
+              style: TextStyle(color: context.primaryText),
+              decoration: InputDecoration(
+                hintText: 'Search foods...',
+                hintStyle: TextStyle(color: context.secondaryText),
+                prefixIcon: Icon(Icons.search, color: context.primaryColor),
+                filled: true,
+                fillColor: context.inputBackground,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  borderSide: BorderSide(
+                    color: context.borderColor.withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  borderSide: BorderSide(color: context.primaryColor, width: 2),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Scan Buttons Row
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                // AI Scan Camera
+                Expanded(
+                  child: _buildScanButton(
+                    icon: Icons.camera_alt,
+                    label: 'AI Scan',
+                    color: context.primaryColor,
+                    onTap: () => _scanMeal(fromCamera: true),
+                  ),
+                ),
+                const SizedBox(width: 8),
+
+                // Gallery
+                Expanded(
+                  child: _buildScanButton(
+                    icon: Icons.photo_library,
+                    label: 'Gallery',
+                    color: context.primaryColor,
+                    onTap: () => _scanMeal(fromCamera: false),
+                  ),
+                ),
+                const SizedBox(width: 8),
+
+                // Barcode Scanner
+                Expanded(
+                  child: _buildScanButton(
+                    icon: Icons.qr_code_scanner,
+                    label: 'Barcode',
+                    color: context.accentColor,
+                    onTap: () {
+                      setState(() => _showBarcodeScanner = true);
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Tab Bar
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 20),
+            decoration: BoxDecoration(
+              color: context.inputBackground,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: context.borderColor.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            child: TabBar(
+              controller: _tabController,
+              indicator: BoxDecoration(
+                color: context.primaryColor,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              labelColor: Colors.white,
+              unselectedLabelColor: context.secondaryText,
+              labelStyle: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+              dividerColor: Colors.transparent,
+              tabs: [
+                Tab(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Image.asset(
+                        'assets/images/sri_lanka_flag.png',
+                        width: 20,
+                        height: 20,
+                        errorBuilder: (_, __, ___) => const Text('🇱🇰'),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text('Sri Lankan'),
+                    ],
+                  ),
+                ),
+                const Tab(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.public, size: 20),
+                      SizedBox(width: 8),
+                      Text('Other Foods'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Content
+          Expanded(
+            child: _isScanning
+                ? _buildScanningIndicator()
+                : _isLoading
+                ? Center(
+                    child: CircularProgressIndicator(
+                      color: context.primaryColor,
+                    ),
+                  )
+                : _searchController.text.isNotEmpty
+                ? _buildSearchResults()
+                : TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildFoodList(_sriLankanFoods),
+                      _buildFoodList(_otherFoods),
+                    ],
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScanButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: _isScanning ? null : onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(colors: [color, color.withOpacity(0.8)]),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: Colors.white, size: 24),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBarcodeScanner() {
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: Colors.black, // Keep black for camera preview
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(25),
           topRight: Radius.circular(25),
@@ -97,640 +448,240 @@ class _AddFoodDialogState extends State<AddFoodDialog>
       ),
       child: Column(
         children: [
-          const SizedBox(height: 12),
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade300,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 20),
-
           // Header
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(color: Colors.black.withOpacity(0.5)),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: const Icon(Icons.close, size: 28),
-                ),
-                const SizedBox(width: 16),
                 const Text(
-                  "Add Today's Food",
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
+                  'Scan Barcode',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () {
+                    setState(() => _showBarcodeScanner = false);
+                  },
+                  icon: const Icon(Icons.close, color: Colors.white),
                 ),
               ],
             ),
           ),
 
-          const SizedBox(height: 20),
-
-          // Search Bar
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search',
-                hintStyle: TextStyle(
-                  color: Colors.black.withOpacity(0.5),
-                  fontSize: 20,
-                ),
-                prefixIcon: const Icon(Icons.search, size: 26),
-                filled: true,
-                fillColor: const Color(0x99D9D9D9),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(25),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-              onChanged: _filterFoods,
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          // Tabs
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: Row(
-              children: [
-                _buildTab('Search', 0),
-                _buildTabDivider(),
-                _buildTab('My Foods', 1),
-                _buildTabDivider(),
-                _buildTab('Recent', 2),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          // Quick Actions
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _buildQuickAction(
-                    Icons.camera_alt,
-                    'Scan Meal',
-                    () => _onScanMeal(),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildQuickAction(
-                    Icons.qr_code_scanner,
-                    'Barcode',
-                    () => _onScanBarcode(),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          // Country Selector
-          if (_selectedTab == 0) ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Sri Lankan Foods',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildCountryCard(),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-          ],
-
-          // Food List
+          // Scanner
           Expanded(
-            child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(color: Color(0xFF1DAB87)),
-                  )
-                : _buildFoodList(),
+            child: Stack(
+              children: [
+                MobileScanner(onDetect: _onBarcodeDetected),
+
+                // Scan overlay
+                Center(
+                  child: Container(
+                    width: 280,
+                    height: 280,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: context.primaryColor, width: 3),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.qr_code_scanner,
+                          size: 60,
+                          color: Colors.white.withOpacity(0.5),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Position barcode within frame',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.8),
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Bottom hint
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(color: Colors.black.withOpacity(0.5)),
+            child: const Text(
+              'Scan product barcode to quickly add food',
+              style: TextStyle(color: Colors.white70, fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
           ),
         ],
       ),
     );
   }
 
-  // ==================== TAB ====================
-  Widget _buildTab(String title, int index) {
-    final isSelected = _selectedTab == index;
-    return GestureDetector(
-      onTap: () {
-        _tabController.animateTo(index);
-      },
+  Widget _buildScanningIndicator() {
+    return Center(
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          CircularProgressIndicator(color: context.primaryColor),
+          const SizedBox(height: 24),
           Text(
-            title,
+            '🤖 AI is analyzing your meal...',
             style: TextStyle(
-              fontSize: 20,
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-              color: isSelected ? const Color(0xFF1DAB87) : Colors.black,
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: context.primaryText,
             ),
           ),
           const SizedBox(height: 8),
-          if (isSelected)
-            Container(
-              width: title.length * 10.0,
-              height: 4,
-              decoration: BoxDecoration(
-                color: const Color(0xFF1DAB87),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
+          Text(
+            'This may take a few seconds',
+            style: TextStyle(fontSize: 14, color: context.secondaryText),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildTabDivider() {
-    return Container(
-      width: 1,
-      height: 21,
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      color: Colors.black.withOpacity(0.2),
-    );
-  }
+  Widget _buildSearchResults() {
+    if (_isSearching) {
+      return Center(
+        child: CircularProgressIndicator(color: context.primaryColor),
+      );
+    }
 
-  // ==================== QUICK ACTION ====================
-  Widget _buildQuickAction(IconData icon, String label, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1DAB87).withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFF1DAB87)),
-        ),
+    if (_searchResults.isEmpty) {
+      return Center(
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: const Color(0xFF1DAB87), size: 32),
+            Icon(
+              Icons.search_off,
+              size: 60,
+              color: context.secondaryText.withOpacity(0.5),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No foods found',
+              style: TextStyle(fontSize: 16, color: context.secondaryText),
+            ),
             const SizedBox(height: 8),
             Text(
-              label,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF1DAB87),
+              'Try scanning your meal with AI instead!',
+              style: TextStyle(
+                fontSize: 12,
+                color: context.secondaryText.withOpacity(0.7),
               ),
             ),
           ],
         ),
-      ),
-    );
+      );
+    }
+
+    return _buildFoodList(_searchResults);
   }
 
-  // ==================== COUNTRY CARD ====================
-  Widget _buildCountryCard() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-      decoration: BoxDecoration(
-        color: const Color(0x7FD9D9D9),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 75,
-            height: 52,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              image: const DecorationImage(
-                image: NetworkImage(
-                  'https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Flag_of_Sri_Lanka.svg/320px-Flag_of_Sri_Lanka.svg.png',
-                ),
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-          const SizedBox(width: 22),
-          const Text(
-            'Our Foods (Sri Lankan\nFoods)',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ==================== FOOD LIST ====================
-  Widget _buildFoodList() {
-    if (_filteredFoods.isEmpty) {
+  Widget _buildFoodList(List<FoodItemModel> foods) {
+    if (foods.isEmpty) {
       return Center(
-        child: Text(
-          _searchController.text.isEmpty
-              ? 'No foods available'
-              : 'No foods found for "${_searchController.text}"',
-          style: const TextStyle(fontSize: 16, color: Colors.grey),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.restaurant_menu,
+              size: 60,
+              color: context.secondaryText.withOpacity(0.5),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No foods available',
+              style: TextStyle(fontSize: 16, color: context.secondaryText),
+            ),
+          ],
         ),
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      itemCount: _filteredFoods.length,
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      itemCount: foods.length,
+      separatorBuilder: (_, __) =>
+          Divider(height: 1, color: context.dividerColor),
       itemBuilder: (context, index) {
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: _buildFoodItem(_filteredFoods[index]),
-        );
+        final food = foods[index];
+        return _buildFoodTile(food);
       },
     );
   }
 
-  Widget _buildFoodItem(FoodItemModel food) {
-    return GestureDetector(
-      onTap: () => _onFoodTap(food),
-      child: Container(
-        height: 75,
+  Widget _buildFoodTile(FoodItemModel food) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+      leading: Container(
+        width: 56,
+        height: 56,
         decoration: BoxDecoration(
-          color: const Color(0x7FD9D9D9),
-          borderRadius: BorderRadius.circular(20),
+          color: context.primaryColor.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: context.primaryColor.withOpacity(0.2),
+            width: 1,
+          ),
         ),
-        child: Row(
-          children: [
-            const SizedBox(width: 20),
-            // Food Image
-            Container(
-              width: 65,
-              height: 61,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFF1DAB87).withOpacity(0.2),
-              ),
-              child: food.imageUrl != null
-                  ? ClipOval(
-                      child: Image.network(
-                        food.imageUrl!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Icon(
-                            Icons.restaurant,
-                            color: Color(0xFF1DAB87),
-                            size: 30,
-                          );
-                        },
-                      ),
-                    )
-                  : const Icon(
-                      Icons.restaurant,
-                      color: Color(0xFF1DAB87),
-                      size: 30,
-                    ),
-            ),
-            const SizedBox(width: 26),
-            // Food Info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    food.foodName,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${food.calories} cal | P: ${food.protein.toInt()}g C: ${food.carbs.toInt()}g F: ${food.fat.toInt()}g',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF7E7E7E),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(
-              Icons.arrow_forward_ios,
-              size: 16,
-              color: Color(0xFF7E7E7E),
-            ),
-            const SizedBox(width: 16),
-          ],
+        child: food.imageUrl != null
+            ? ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  food.imageUrl!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) =>
+                      Icon(Icons.restaurant, color: context.primaryColor),
+                ),
+              )
+            : Icon(Icons.restaurant, color: context.primaryColor),
+      ),
+      title: Text(
+        food.foodName,
+        style: TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 16,
+          color: context.primaryText,
         ),
       ),
-    );
-  }
-
-  // ==================== HANDLERS ====================
-
-  void _onScanMeal() async {
-    try {
-      final aiScanner = AIMealScannerService();
-
-      // Show camera or gallery option
-      final source = await showDialog<ImageSource>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Scan Meal'),
-          content: const Text('Choose image source:'),
-          actions: [
-            TextButton.icon(
-              onPressed: () => Navigator.pop(context, ImageSource.camera),
-              icon: const Icon(Icons.camera_alt),
-              label: const Text('Camera'),
-            ),
-            TextButton.icon(
-              onPressed: () => Navigator.pop(context, ImageSource.gallery),
-              icon: const Icon(Icons.photo_library),
-              label: const Text('Gallery'),
-            ),
-          ],
+      subtitle: Text(
+        '${food.calories} kcal • P: ${food.protein.toInt()}g • C: ${food.carbs.toInt()}g • F: ${food.fat.toInt()}g',
+        style: TextStyle(fontSize: 12, color: context.secondaryText),
+      ),
+      trailing: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: context.primaryColor.withOpacity(0.1),
+          shape: BoxShape.circle,
         ),
-      );
-
-      if (source == null) return;
-
-      // Store the navigator and scaffold messenger before closing dialog
-      final navigator = Navigator.of(context);
-      final scaffoldMessenger = ScaffoldMessenger.of(context);
-
-      // Close the add food dialog
-      if (mounted) Navigator.pop(context);
-
-      // Show loading dialog
-      navigator.push(
-        MaterialPageRoute(
-          builder: (context) => Scaffold(
-            backgroundColor: Colors.black54,
-            body: Center(
-              child: Container(
-                padding: const EdgeInsets.all(32),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(color: Color(0xFF1DAB87)),
-                    SizedBox(height: 16),
-                    Text(
-                      'Analyzing your meal...',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          fullscreenDialog: true,
-        ),
-      );
-
-      // Scan meal
-      List<FoodItemModel>? foods;
-      try {
-        foods = source == ImageSource.camera
-            ? await aiScanner.scanMealFromCamera()
-            : await aiScanner.scanMealFromGallery();
-      } catch (e) {
-        print('Error during scanning: $e');
-        navigator.pop(); // Close loading
-        scaffoldMessenger.showSnackBar(
-          SnackBar(
-            content: Text('Error scanning: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
-
-      // Close loading
-      navigator.pop();
-
-      // If user cancelled, foods will be null - just return
-      if (foods == null || foods.isEmpty) {
-        scaffoldMessenger.showSnackBar(
-          const SnackBar(
-            content: Text('No food detected. Try again.'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-        return;
-      }
-
-      print('✅ Successfully scanned ${foods.length} food item(s)');
-
-      // Show detected foods
-      if (foods.length == 1) {
-        final result = await navigator.push(
+        child: Icon(Icons.add, color: context.primaryColor, size: 20),
+      ),
+      onTap: () {
+        Navigator.pop(context); // Close dialog
+        Navigator.push(
+          context,
           MaterialPageRoute(
-            builder: (context) => ScannedFoodDialog(
-              food: foods!.first,
-              initialMealType: widget.mealType,
-            ),
-            fullscreenDialog: true,
-          ),
-        );
-
-        // Show success message if food was added
-        if (result == true) {
-          scaffoldMessenger.showSnackBar(
-            const SnackBar(
-              content: Text('Food added successfully!'),
-              backgroundColor: Color(0xFF1DAB87),
-            ),
-          );
-        }
-      } else {
-        // Multiple foods detected
-        await navigator.push(
-          MaterialPageRoute(
-            builder: (context) => _MultipleDetectedFoodsScreen(
-              foods: foods!, // Already checked for null above
+            builder: (context) => FoodDetailScreen(
+              food: food,
               mealType: widget.mealType,
+              isScannedFood: false,
             ),
-            fullscreenDialog: true,
           ),
         );
-      }
-    } catch (e) {
-      print('❌ Error in _onScanMeal: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  void _onScanBarcode() {
-    Navigator.pop(context); // Close dialog
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => BarcodeScannerScreen(mealType: widget.mealType),
-      ),
-    );
-  }
-
-  void _onFoodTap(FoodItemModel food) async {
-    Navigator.pop(context); // Close dialog
-    final shouldRefresh = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) =>
-            FoodDetailScreen(food: food, mealType: widget.mealType),
-      ),
-    );
-
-    // Refresh if food was added
-    if (shouldRefresh == true && mounted) {
-      _loadFoods();
-    }
-  }
-}
-
-// ==================== MULTIPLE DETECTED FOODS SCREEN ====================
-class _MultipleDetectedFoodsScreen extends StatelessWidget {
-  final List<FoodItemModel> foods;
-  final String mealType;
-
-  const _MultipleDetectedFoodsScreen({
-    required this.foods,
-    required this.mealType,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Detected Foods',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 24,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: foods.length,
-        itemBuilder: (context, index) {
-          final food = foods[index];
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: GestureDetector(
-              onTap: () async {
-                final result = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ScannedFoodDialog(
-                      food: food,
-                      initialMealType: mealType,
-                    ),
-                    fullscreenDialog: true,
-                  ),
-                );
-
-                if (result == true && context.mounted) {
-                  Navigator.pop(context, true);
-                }
-              },
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0x7FD9D9D9),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  children: [
-                    // Food icon
-                    Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: const Color(0xFF1DAB87).withOpacity(0.2),
-                      ),
-                      child: food.localImagePath != null
-                          ? ClipOval(
-                              child: Image.file(
-                                File(food.localImagePath!),
-                                fit: BoxFit.cover,
-                              ),
-                            )
-                          : const Icon(
-                              Icons.restaurant,
-                              color: Color(0xFF1DAB87),
-                              size: 30,
-                            ),
-                    ),
-                    const SizedBox(width: 16),
-                    // Food info
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            food.foodName,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${food.calories} cal | P: ${food.protein.toInt()}g C: ${food.carbs.toInt()}g F: ${food.fat.toInt()}g',
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: Color(0xFF7E7E7E),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Icon(
-                      Icons.arrow_forward_ios,
-                      size: 16,
-                      color: Color(0xFF7E7E7E),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-      ),
+      },
     );
   }
 }

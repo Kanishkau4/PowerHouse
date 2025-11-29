@@ -2,14 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:powerhouse/services/barcode_scanner_service.dart';
 import 'package:powerhouse/screens/nutrition/food_detail_screen.dart';
+import 'package:powerhouse/widgets/animated_message.dart';
 
 class BarcodeScannerScreen extends StatefulWidget {
   final String mealType;
 
-  const BarcodeScannerScreen({
-    super.key,
-    required this.mealType,
-  });
+  const BarcodeScannerScreen({super.key, required this.mealType});
 
   @override
   State<BarcodeScannerScreen> createState() => _BarcodeScannerScreenState();
@@ -34,10 +32,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
           ),
 
           // Overlay
-          CustomPaint(
-            painter: ScannerOverlayPainter(),
-            child: Container(),
-          ),
+          CustomPaint(painter: ScannerOverlayPainter(), child: Container()),
 
           // Top Bar
           SafeArea(
@@ -97,10 +92,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
                   ),
                   child: const Text(
                     'Position the barcode within the frame',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                    ),
+                    style: TextStyle(color: Colors.white, fontSize: 16),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -113,9 +105,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
             Container(
               color: Colors.black54,
               child: const Center(
-                child: CircularProgressIndicator(
-                  color: Color(0xFF1DAB87),
-                ),
+                child: CircularProgressIndicator(color: Color(0xFF1DAB87)),
               ),
             ),
         ],
@@ -145,11 +135,11 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
       final food = await _barcodeService.getFoodByBarcode(code);
 
       if (food == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Product not found. Try searching manually.'),
-            backgroundColor: Colors.orange,
-          ),
+        AnimatedMessage.show(
+          context,
+          message: 'Product not found. Try searching manually.',
+          backgroundColor: Colors.orange,
+          icon: Icons.error_rounded,
         );
         setState(() {
           _isProcessing = false;
@@ -161,19 +151,17 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => FoodDetailScreen(
-            food: food,
-            mealType: widget.mealType,
-          ),
+          builder: (context) =>
+              FoodDetailScreen(food: food, mealType: widget.mealType),
         ),
       );
     } catch (e) {
       print('❌ Error processing barcode: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
+      AnimatedMessage.show(
+        context,
+        message: 'Error: ${e.toString()}',
+        backgroundColor: Colors.red,
+        icon: Icons.error_rounded,
       );
       setState(() {
         _isProcessing = false;
@@ -219,20 +207,52 @@ class ScannerOverlayPainter extends CustomPainter {
     final cornerLength = 30.0;
 
     // Top-left
-    canvas.drawLine(scanArea.topLeft, scanArea.topLeft + Offset(cornerLength, 0), cornerPaint);
-    canvas.drawLine(scanArea.topLeft, scanArea.topLeft + Offset(0, cornerLength), cornerPaint);
+    canvas.drawLine(
+      scanArea.topLeft,
+      scanArea.topLeft + Offset(cornerLength, 0),
+      cornerPaint,
+    );
+    canvas.drawLine(
+      scanArea.topLeft,
+      scanArea.topLeft + Offset(0, cornerLength),
+      cornerPaint,
+    );
 
     // Top-right
-    canvas.drawLine(scanArea.topRight, scanArea.topRight + Offset(-cornerLength, 0), cornerPaint);
-    canvas.drawLine(scanArea.topRight, scanArea.topRight + Offset(0, cornerLength), cornerPaint);
+    canvas.drawLine(
+      scanArea.topRight,
+      scanArea.topRight + Offset(-cornerLength, 0),
+      cornerPaint,
+    );
+    canvas.drawLine(
+      scanArea.topRight,
+      scanArea.topRight + Offset(0, cornerLength),
+      cornerPaint,
+    );
 
     // Bottom-left
-    canvas.drawLine(scanArea.bottomLeft, scanArea.bottomLeft + Offset(cornerLength, 0), cornerPaint);
-    canvas.drawLine(scanArea.bottomLeft, scanArea.bottomLeft + Offset(0, -cornerLength), cornerPaint);
+    canvas.drawLine(
+      scanArea.bottomLeft,
+      scanArea.bottomLeft + Offset(cornerLength, 0),
+      cornerPaint,
+    );
+    canvas.drawLine(
+      scanArea.bottomLeft,
+      scanArea.bottomLeft + Offset(0, -cornerLength),
+      cornerPaint,
+    );
 
     // Bottom-right
-    canvas.drawLine(scanArea.bottomRight, scanArea.bottomRight + Offset(-cornerLength, 0), cornerPaint);
-    canvas.drawLine(scanArea.bottomRight, scanArea.bottomRight + Offset(0, -cornerLength), cornerPaint);
+    canvas.drawLine(
+      scanArea.bottomRight,
+      scanArea.bottomRight + Offset(-cornerLength, 0),
+      cornerPaint,
+    );
+    canvas.drawLine(
+      scanArea.bottomRight,
+      scanArea.bottomRight + Offset(0, -cornerLength),
+      cornerPaint,
+    );
   }
 
   @override

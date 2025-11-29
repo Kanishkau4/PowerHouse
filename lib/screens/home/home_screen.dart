@@ -8,7 +8,9 @@ import 'package:powerhouse/services/daily_tasks_service.dart';
 import 'package:powerhouse/services/progress_service.dart';
 import 'package:powerhouse/services/tips_service.dart';
 import 'package:powerhouse/screens/tips/tips_library_screen.dart';
+import 'package:powerhouse/widgets/animated_message.dart';
 import 'package:powerhouse/widgets/tips/tip_of_day_card.dart';
+import 'package:powerhouse/widgets/skeleton_widgets.dart';
 import 'package:powerhouse/models/models.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -174,10 +176,89 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        backgroundColor: Colors.white,
-        body: Center(
-          child: CircularProgressIndicator(color: Color(0xFF1DAB87)),
+      return Scaffold(
+        backgroundColor: context.surfaceColor,
+        body: SafeArea(
+          child: SingleChildScrollView(
+            physics: const NeverScrollableScrollPhysics(),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 20),
+
+                  // Header Skeleton
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: const [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SkeletonText(width: 80, height: 14),
+                            SizedBox(height: 4),
+                            SkeletonText(width: 150, height: 26),
+                          ],
+                        ),
+                      ),
+                      SkeletonCircle(size: 50),
+                    ],
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  // Plan Card Skeleton
+                  const SkeletonPlanCard(),
+
+                  const SizedBox(height: 30),
+
+                  // Tip of the Day Skeleton
+                  const SkeletonCard(height: 120),
+
+                  const SizedBox(height: 30),
+
+                  // Section Header Skeleton
+                  const SkeletonText(width: 180, height: 22),
+
+                  const SizedBox(height: 16),
+
+                  // Workouts Horizontal List Skeleton
+                  SizedBox(
+                    height: 280,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: 3,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(width: 16),
+                      itemBuilder: (context, index) {
+                        return const SkeletonWorkoutCard();
+                      },
+                    ),
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  // Daily Task Section Header Skeleton
+                  const SkeletonText(width: 120, height: 22),
+
+                  const SizedBox(height: 16),
+
+                  // Daily Tasks Skeleton
+                  ...List.generate(
+                    4,
+                    (index) => const Padding(
+                      padding: EdgeInsets.only(bottom: 12),
+                      child: SkeletonListTile(),
+                    ),
+                  ),
+
+                  const SizedBox(height: 100),
+                ],
+              ),
+            ),
+          ),
         ),
       );
     }
@@ -244,7 +325,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ...dailyTasks.map(
                     (task) => Padding(
                       padding: const EdgeInsets.only(bottom: 12),
-                      child: _buildTaskItem(task),
+                      child: _buildTaskItem(context, task),
                     ),
                   ),
 
@@ -270,9 +351,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             children: [
               Text(
                 _getGreeting(),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
-                  color: Color(0xFF7E7E7E),
+                  color: context.secondaryText,
                   fontWeight: FontWeight.w400,
                 ),
               ),
@@ -349,7 +430,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           borderRadius: BorderRadius.circular(25),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF1DAB87).withOpacity(0.3),
+              color: context.cardBackground.withOpacity(0.3),
               blurRadius: 15,
               offset: const Offset(0, 8),
             ),
@@ -500,7 +581,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       child: Container(
         width: 285,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.cardBackground,
           borderRadius: BorderRadius.circular(25),
           boxShadow: [
             BoxShadow(
@@ -591,10 +672,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 children: [
                   Text(
                     workout['title'],
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w800,
-                      color: Colors.black,
+                      color: context.primaryText,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -602,9 +683,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   const SizedBox(height: 4),
                   Text(
                     workout['subtitle'],
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
-                      color: Color(0xFF979797),
+                      color: context.secondaryText,
                       fontWeight: FontWeight.w400,
                     ),
                     maxLines: 1,
@@ -663,31 +744,38 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   // ==================== TASK ITEM ====================
-  Widget _buildTaskItem(Map<String, dynamic> task) {
+  Widget _buildTaskItem(BuildContext context, Map<String, dynamic> task) {
     final isCompleted = task['is_completed'] as bool? ?? false;
     final taskId = task['task_id'] as String;
     final title = task['task_title'] as String;
     final duration = task['duration'] as int?;
     final calories = task['calories'] as int?;
 
+    // Theme-aware colors
+    final cardBg = isCompleted
+        ? context.primaryColor.withOpacity(0.1)
+        : context.cardBackground;
+    final borderColor = isCompleted
+        ? context.primaryColor
+        : context.borderColor;
+    final titleColor = isCompleted
+        ? context.secondaryText
+        : context.primaryText;
+    final checkboxBorderColor = isCompleted
+        ? context.primaryColor
+        : context.dividerColor;
+
     return GestureDetector(
       onTap: () => _onTaskTap(task),
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isCompleted
-              ? const Color(0xFF1DAB87).withOpacity(0.1)
-              : Colors.white,
+          color: cardBg,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isCompleted
-                ? const Color(0xFF1DAB87)
-                : const Color(0xFFE0E0E0),
-            width: isCompleted ? 2 : 1,
-          ),
+          border: Border.all(color: borderColor, width: isCompleted ? 2 : 1),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.shade200,
+              color: context.shadowColor,
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -703,18 +791,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 height: 28,
                 decoration: BoxDecoration(
                   color: isCompleted
-                      ? const Color(0xFF1DAB87)
+                      ? context.primaryColor
                       : Colors.transparent,
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isCompleted
-                        ? const Color(0xFF1DAB87)
-                        : const Color(0xFFD7D7D8),
-                    width: 2,
-                  ),
+                  border: Border.all(color: checkboxBorderColor, width: 2),
                 ),
                 child: isCompleted
-                    ? const Icon(Icons.check, color: Colors.white, size: 18)
+                    ? Icon(Icons.check, color: Colors.white, size: 18)
                     : null,
               ),
             ),
@@ -731,9 +814,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: isCompleted
-                          ? const Color(0xFF7E7E7E)
-                          : Colors.black,
+                      color: titleColor,
                       decoration: isCompleted
                           ? TextDecoration.lineThrough
                           : TextDecoration.none,
@@ -744,33 +825,33 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     Row(
                       children: [
                         if (duration != null) ...[
-                          const Icon(
+                          Icon(
                             Icons.access_time,
                             size: 14,
-                            color: Color(0xFF1DAB87),
+                            color: context.primaryColor,
                           ),
                           const SizedBox(width: 4),
                           Text(
                             '$duration min',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
-                              color: Color(0xFF1DAB87),
+                              color: context.primaryColor,
                             ),
                           ),
                           if (calories != null) const SizedBox(width: 12),
                         ],
                         if (calories != null) ...[
-                          const Icon(
+                          Icon(
                             Icons.local_fire_department,
                             size: 14,
-                            color: Color(0xFFF97316),
+                            color: context.accentColor,
                           ),
                           const SizedBox(width: 4),
                           Text(
                             '$calories cal',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
-                              color: Color(0xFFF97316),
+                              color: context.accentColor,
                             ),
                           ),
                         ],
@@ -786,20 +867,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF97316).withOpacity(0.1),
+                  color: context.accentColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: const [
-                    Icon(Icons.star, size: 12, color: Color(0xFFF97316)),
-                    SizedBox(width: 2),
+                  children: [
+                    Icon(Icons.star, size: 12, color: context.accentColor),
+                    const SizedBox(width: 2),
                     Text(
                       '+5',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFFF97316),
+                        color: context.accentColor,
                       ),
                     ),
                   ],
@@ -822,18 +903,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         final result = await _dailyTasksService.completeTask(taskId);
 
         // Show XP gain
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.star, color: Colors.white),
-                const SizedBox(width: 8),
-                Text('+${result['xp_added']} XP earned!'),
-              ],
-            ),
-            backgroundColor: const Color(0xFF1DAB87),
-            duration: const Duration(seconds: 2),
-          ),
+        AnimatedMessage.show(
+          context,
+          message: '+${result['xp_added']} XP earned!',
+          backgroundColor: const Color(0xFF1DAB87),
+          icon: Icons.star,
+          duration: const Duration(seconds: 2),
         );
 
         // Check for level up
@@ -846,11 +921,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       await _loadDailyTasks();
     } catch (e) {
       print('Error toggling task: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to update task'),
-          backgroundColor: Colors.red,
-        ),
+      AnimatedMessage.show(
+        context,
+        message: 'Failed to update task',
+        backgroundColor: Colors.red,
+        icon: Icons.error,
       );
     }
   }
@@ -869,7 +944,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             child: Container(
               padding: const EdgeInsets.all(32),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: context.cardBackground,
                 borderRadius: BorderRadius.circular(25),
               ),
               child: Column(
@@ -1044,21 +1119,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to load workout details'),
-            backgroundColor: Colors.red,
-          ),
+        AnimatedMessage.show(
+          context,
+          message: 'Failed to load workout details',
+          backgroundColor: Colors.red,
+          icon: Icons.error,
         );
       }
     } catch (e) {
       Navigator.pop(context); // Close loading
       print('Error loading workout: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to load workout'),
-          backgroundColor: Colors.red,
-        ),
+      AnimatedMessage.show(
+        context,
+        message: 'Failed to load workout details',
+        backgroundColor: Colors.red,
+        icon: Icons.error,
       );
     }
   }

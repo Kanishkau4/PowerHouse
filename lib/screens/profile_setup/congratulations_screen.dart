@@ -3,6 +3,7 @@ import 'package:powerhouse/core/theme/theme_extensions.dart';
 import 'dart:math' as math;
 import 'package:powerhouse/services/auth_service.dart';
 import 'package:lottie/lottie.dart';
+import 'package:powerhouse/widgets/animated_message.dart';
 
 class CongratulationsScreen extends StatefulWidget {
   const CongratulationsScreen({super.key});
@@ -319,12 +320,12 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
 
       // Show success message
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Profile created successfully!'),
-            backgroundColor: Color(0xFF1DAB87),
-            duration: Duration(seconds: 2),
-          ),
+        AnimatedMessage.show(
+          context,
+          message: '✅ Profile created successfully!',
+          backgroundColor: Color(0xFF1DAB87),
+          icon: Icons.check_circle_rounded,
+          duration: const Duration(seconds: 2),
         );
       }
     } catch (e) {

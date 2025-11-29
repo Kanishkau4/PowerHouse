@@ -1,22 +1,21 @@
+// lib/screens/nutrition/recipe_detail_screen.dart
+
 import 'package:flutter/material.dart';
+import 'package:powerhouse/core/theme/theme_extensions.dart'; // ✅ ADD THIS
 import 'package:powerhouse/models/recipe_model.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class RecipeDetailScreen extends StatelessWidget {
   final RecipeModel recipe;
 
-  const RecipeDetailScreen({
-    super.key,
-    required this.recipe,
-  });
+  const RecipeDetailScreen({super.key, required this.recipe});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.surfaceColor, // ✅
       body: CustomScrollView(
         slivers: [
-          // App Bar with Image
           SliverAppBar(
             expandedHeight: 300,
             pinned: true,
@@ -31,25 +30,24 @@ class RecipeDetailScreen extends StatelessWidget {
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) {
                             return Container(
-                              color: const Color(0xFF1DAB87).withOpacity(0.2),
-                              child: const Icon(
+                              color: context.primaryColor.withOpacity(0.2),
+                              child: Icon(
                                 Icons.restaurant_menu,
                                 size: 100,
-                                color: Color(0xFF1DAB87),
+                                color: context.primaryColor,
                               ),
                             );
                           },
                         )
                       : Container(
-                          color: const Color(0xFF1DAB87).withOpacity(0.2),
-                          child: const Icon(
+                          color: context.primaryColor.withOpacity(0.2),
+                          child: Icon(
                             Icons.restaurant_menu,
                             size: 100,
-                            color: Color(0xFF1DAB87),
+                            color: context.primaryColor,
                           ),
                         ),
-                  
-                  // Gradient Overlay
+                  // Gradient Overlay (unchanged — semantic)
                   Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -72,7 +70,7 @@ class RecipeDetailScreen extends StatelessWidget {
                   color: Colors.white.withOpacity(0.3),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.arrow_back, color: Colors.white),
+                child: Icon(Icons.arrow_back, color: Colors.white),
               ),
               onPressed: () => Navigator.pop(context),
             ),
@@ -85,59 +83,47 @@ class RecipeDetailScreen extends StatelessWidget {
                       color: Colors.white.withOpacity(0.3),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.play_circle_fill, color: Colors.white),
+                    child: Icon(Icons.play_circle_fill, color: Colors.white),
                   ),
                   onPressed: () => _launchVideo(recipe.videoUrl!),
                 ),
             ],
           ),
 
-          // Content
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(24.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Recipe Name
                   Text(
                     recipe.recipeName,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.w800,
+                      color: context.primaryText,
                     ),
                   ),
-
                   const SizedBox(height: 8),
-
-                  // Description
                   if (recipe.description != null)
                     Text(
                       recipe.description!,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
-                        color: Color(0xFF7E7E7E),
+                        color: context.secondaryText,
                       ),
                     ),
-
                   const SizedBox(height: 24),
-
-                  // Info Row
-                  _buildInfoRow(),
-
+                  _buildInfoRow(context),
                   const SizedBox(height: 32),
-
-                  // Nutrition Info
-                  _buildNutritionInfo(),
-
+                  _buildNutritionInfo(context),
                   const SizedBox(height: 32),
-
-                  // Ingredients
-                  const Text(
+                  Text(
                     'Ingredients',
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w800,
+                      color: context.primaryText,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -151,8 +137,8 @@ class RecipeDetailScreen extends StatelessWidget {
                             width: 8,
                             height: 8,
                             margin: const EdgeInsets.only(top: 6),
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF1DAB87),
+                            decoration: BoxDecoration(
+                              color: context.primaryColor,
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -160,9 +146,10 @@ class RecipeDetailScreen extends StatelessWidget {
                           Expanded(
                             child: Text(
                               entry.value,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 16,
                                 height: 1.5,
+                                color: context.primaryText,
                               ),
                             ),
                           ),
@@ -170,15 +157,13 @@ class RecipeDetailScreen extends StatelessWidget {
                       ),
                     );
                   }),
-
                   const SizedBox(height: 32),
-
-                  // Instructions
-                  const Text(
+                  Text(
                     'Instructions',
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w800,
+                      color: context.primaryText,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -192,7 +177,7 @@ class RecipeDetailScreen extends StatelessWidget {
                             width: 32,
                             height: 32,
                             decoration: BoxDecoration(
-                              color: const Color(0xFF1DAB87),
+                              color: context.primaryColor,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Center(
@@ -210,9 +195,10 @@ class RecipeDetailScreen extends StatelessWidget {
                           Expanded(
                             child: Text(
                               entry.value,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 16,
                                 height: 1.5,
+                                color: context.primaryText,
                               ),
                             ),
                           ),
@@ -220,7 +206,6 @@ class RecipeDetailScreen extends StatelessWidget {
                       ),
                     );
                   }),
-
                   const SizedBox(height: 40),
                 ],
               ),
@@ -231,14 +216,19 @@ class RecipeDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow() {
+  Widget _buildInfoRow(BuildContext context) {
     return Row(
       children: [
-        _buildInfoItem(Icons.schedule, '${recipe.totalTime} min'),
-        const SizedBox(width: 20),
-        _buildInfoItem(Icons.restaurant, '${recipe.servings} servings'),
+        _buildInfoItem(context, Icons.schedule, '${recipe.totalTime} min'),
         const SizedBox(width: 20),
         _buildInfoItem(
+          context,
+          Icons.restaurant,
+          '${recipe.servings} servings',
+        ),
+        const SizedBox(width: 20),
+        _buildInfoItem(
+          context,
           Icons.trending_up,
           recipe.difficulty,
           color: _getDifficultyColor(recipe.difficulty),
@@ -247,42 +237,44 @@ class RecipeDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoItem(IconData icon, String text, {Color? color}) {
+  Widget _buildInfoItem(
+    BuildContext context,
+    IconData icon,
+    String text, {
+    Color? color,
+  }) {
     return Row(
       children: [
-        Icon(
-          icon,
-          size: 20,
-          color: color ?? const Color(0xFF1DAB87),
-        ),
+        Icon(icon, size: 20, color: color ?? context.primaryColor),
         const SizedBox(width: 6),
         Text(
           text,
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: color ?? Colors.black,
+            color: color ?? context.primaryText, // ✅ adaptive
           ),
         ),
       ],
     );
   }
 
-  Widget _buildNutritionInfo() {
+  Widget _buildNutritionInfo(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1DAB87).withOpacity(0.1),
+        color: context.primaryColor.withOpacity(0.1), // ✅
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Nutrition (per serving)',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
+              color: context.primaryText,
             ),
           ),
           const SizedBox(height: 16),
@@ -290,24 +282,28 @@ class RecipeDetailScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildNutritionItem(
+                context,
                 'Calories',
                 '${recipe.caloriesPerServing}',
                 'kcal',
                 Icons.local_fire_department,
               ),
               _buildNutritionItem(
+                context,
                 'Protein',
                 '${recipe.proteinPerServing.toInt()}',
                 'g',
                 Icons.eco,
               ),
               _buildNutritionItem(
+                context,
                 'Carbs',
                 '${recipe.carbsPerServing.toInt()}',
                 'g',
                 Icons.grain,
               ),
               _buildNutritionItem(
+                context,
                 'Fat',
                 '${recipe.fatPerServing.toInt()}',
                 'g',
@@ -321,6 +317,7 @@ class RecipeDetailScreen extends StatelessWidget {
   }
 
   Widget _buildNutritionItem(
+    BuildContext context,
     String label,
     String value,
     String unit,
@@ -328,28 +325,30 @@ class RecipeDetailScreen extends StatelessWidget {
   ) {
     return Column(
       children: [
-        Icon(icon, size: 24, color: const Color(0xFF1DAB87)),
+        Icon(icon, size: 24, color: context.primaryColor),
         const SizedBox(height: 8),
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w700,
+            color: context.primaryText,
           ),
         ),
         Text(
           unit,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
-            color: Color(0xFF7E7E7E),
+            color: context.secondaryText, // ✅
           ),
         ),
         const SizedBox(height: 4),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
+            color: context.primaryText,
           ),
         ),
       ],
@@ -357,6 +356,7 @@ class RecipeDetailScreen extends StatelessWidget {
   }
 
   Color _getDifficultyColor(String difficulty) {
+    // Keep these as-is — they’re semantic (not theme-dependent)
     switch (difficulty.toLowerCase()) {
       case 'easy':
         return Colors.green;

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:powerhouse/models/workout_model.dart';
 import 'dart:math' as math;
 import 'package:powerhouse/screens/workouts/workout_session_screen.dart';
+import 'package:powerhouse/core/theme/theme_extensions.dart';
 
 class ReadyWorkoutScreen extends StatefulWidget {
   final WorkoutModel workout;
@@ -75,13 +76,16 @@ class _ReadyWorkoutScreenState extends State<ReadyWorkoutScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.surfaceColor,
       body: SafeArea(
         child: Column(
           children: [
             // Back Button (Top Left)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 8.0,
+              ),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: GestureDetector(
@@ -93,16 +97,13 @@ class _ReadyWorkoutScreenState extends State<ReadyWorkoutScreen>
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1DAB87).withOpacity(0.1),
+                      color: context.primaryColor.withOpacity(0.1),
                       shape: BoxShape.circle,
-                      border: Border.all(
-                        color: const Color(0xFF1DAB87),
-                        width: 2,
-                      ),
+                      border: Border.all(color: context.primaryColor, width: 2),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.close,
-                      color: Color(0xFF1DAB87),
+                      color: context.primaryColor,
                       size: 24,
                     ),
                   ),
@@ -116,12 +117,12 @@ class _ReadyWorkoutScreenState extends State<ReadyWorkoutScreen>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   // Get Ready Text
-                  const Text(
+                  Text(
                     'Get Ready!',
                     style: TextStyle(
                       fontSize: 48,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF1DAB87),
+                      color: context.primaryColor,
                     ),
                   ),
                   const SizedBox(height: 80),
@@ -134,8 +135,10 @@ class _ReadyWorkoutScreenState extends State<ReadyWorkoutScreen>
                         size: const Size(250, 250),
                         painter: CountdownCirclePainter(
                           progress: _controller.value,
-                          activeColor: const Color(0xFF1DAB87),
-                          backgroundColor: const Color(0x541DAB87), // ~33% opacity
+                          activeColor: context.primaryColor,
+                          backgroundColor: context.primaryColor.withOpacity(
+                            0.2,
+                          ),
                         ),
                         child: SizedBox(
                           width: 250,
@@ -143,10 +146,10 @@ class _ReadyWorkoutScreenState extends State<ReadyWorkoutScreen>
                           child: Center(
                             child: Text(
                               '$countdown',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 120,
                                 fontWeight: FontWeight.w700,
-                                color: Color(0xFF1DAB87),
+                                color: context.primaryColor,
                               ),
                             ),
                           ),
@@ -170,12 +173,12 @@ class _ReadyWorkoutScreenState extends State<ReadyWorkoutScreen>
                     _navigateToWorkoutSession();
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1DAB87),
+                    backgroundColor: context.primaryColor,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(30),
                     ),
                     elevation: 4,
-                    shadowColor: const Color(0xFF1DAB87).withOpacity(0.3),
+                    shadowColor: context.primaryColor.withOpacity(0.3),
                   ),
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -189,11 +192,7 @@ class _ReadyWorkoutScreenState extends State<ReadyWorkoutScreen>
                         ),
                       ),
                       SizedBox(width: 12),
-                      Icon(
-                        Icons.arrow_forward,
-                        color: Colors.white,
-                        size: 24,
-                      ),
+                      Icon(Icons.arrow_forward, color: Colors.white, size: 24),
                     ],
                   ),
                 ),
@@ -215,8 +214,8 @@ class CountdownCirclePainter extends CustomPainter {
 
   CountdownCirclePainter({
     required this.progress,
-    this.activeColor = const Color(0xFF1DAB87),
-    this.backgroundColor = const Color(0x541DAB87),
+    required this.activeColor,
+    required this.backgroundColor,
   });
 
   @override

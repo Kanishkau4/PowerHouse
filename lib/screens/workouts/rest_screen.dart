@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_tts/flutter_tts.dart';
-import 'package:powerhouse/models/workout_model.dart'; // Add this import
+import 'package:powerhouse/models/workout_model.dart';
+import 'package:powerhouse/core/theme/theme_extensions.dart'; // ✅ ADD THIS
 
 class RestScreen extends StatefulWidget {
-  final ExerciseWithDetails nextExercise; // Change type from Exercise to ExerciseWithDetails
+  final ExerciseWithDetails nextExercise;
   final int restSeconds;
   final VoidCallback onRestComplete;
 
@@ -31,10 +32,10 @@ class _RestScreenState extends State<RestScreen>
   void initState() {
     super.initState();
     _secondsRemaining = widget.restSeconds;
-    
+
     // Configure TTS
     _configureTts();
-    
+
     // Pulse animation for timer
     _pulseController = AnimationController(
       duration: const Duration(milliseconds: 1000),
@@ -59,7 +60,9 @@ class _RestScreenState extends State<RestScreen>
   Future<void> _announceRest() async {
     await _tts.speak("Take a rest");
     await Future.delayed(const Duration(seconds: 2));
-    await _tts.speak("Next exercise is ${widget.nextExercise.exercise.exerciseName}"); // Access exerciseName through exercise property
+    await _tts.speak(
+      "Next exercise is ${widget.nextExercise.exercise.exerciseName}",
+    );
   }
 
   void _startRestTimer() {
@@ -68,7 +71,7 @@ class _RestScreenState extends State<RestScreen>
         setState(() {
           _secondsRemaining--;
         });
-        
+
         // Countdown voice for last 5 seconds
         if (_secondsRemaining <= 5) {
           _tts.speak(_secondsRemaining.toString());
@@ -106,123 +109,133 @@ class _RestScreenState extends State<RestScreen>
   }
 
   @override
-  @override
-Widget build(BuildContext context) {
-  return Scaffold(
-    backgroundColor: Colors.white,
-    body: SafeArea(
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return Stack(
-            children: [
-              // Scrollable main content
-              SingleChildScrollView(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                  child: IntrinsicHeight(
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 60),
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: context.surfaceColor, // ✅ DARK MODE
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return Stack(
+              children: [
+                // Scrollable main content
+                SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
+                    child: IntrinsicHeight(
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 60),
 
-                        // Title
-                        const Text(
-                          'Take a Rest',
-                          style: TextStyle(
-                            fontSize: 40,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF1DAB87),
+                          // Title
+                          Text(
+                            'Take a Rest',
+                            style: TextStyle(
+                              fontSize: 40,
+                              fontWeight: FontWeight.w700,
+                              color: context.primaryColor, // ✅ DARK MODE
+                            ),
                           ),
-                        ),
 
-                        const SizedBox(height: 40),
+                          const SizedBox(height: 40),
 
-                        // Countdown Timer with Animation
-                        AnimatedBuilder(
-                          animation: _pulseAnimation,
-                          builder: (context, child) {
-                            return Transform.scale(
-                              scale: _pulseAnimation.value,
-                              child: Text(
-                                _timeText,
-                                style: const TextStyle(
-                                  fontSize: 64,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.black,
+                          // Countdown Timer with Animation
+                          AnimatedBuilder(
+                            animation: _pulseAnimation,
+                            builder: (context, child) {
+                              return Transform.scale(
+                                scale: _pulseAnimation.value,
+                                child: Text(
+                                  _timeText,
+                                  style: TextStyle(
+                                    fontSize: 64,
+                                    fontWeight: FontWeight.w700,
+                                    color: context.primaryText, // ✅ DARK MODE
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
-                        ),
-
-                        const SizedBox(height: 40),
-
-                        // Divider
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 50),
-                          child: Container(
-                            height: 1,
-                            color: const Color(0xFF7E7E7E),
+                              );
+                            },
                           ),
-                        ),
 
-                        const SizedBox(height: 40),
+                          const SizedBox(height: 40),
 
-                        // Next Workout Section
-                        const Text(
-                          'Next workout',
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.black,
+                          // Divider
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 50),
+                            child: Container(
+                              height: 1,
+                              color: context.dividerColor, // ✅ DARK MODE
+                            ),
                           ),
-                        ),
 
-                        const SizedBox(height: 16),
+                          const SizedBox(height: 40),
 
-                        Text(
-                          widget.nextExercise.exercise.exerciseName, // Access exerciseName through exercise property
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF7E7E7E),
+                          // Next Workout Section
+                          Text(
+                            'Next workout',
+                            style: TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.w700,
+                              color: context.primaryText, // ✅ DARK MODE
+                            ),
                           ),
-                        ),
 
-                        const SizedBox(height: 24),
+                          const SizedBox(height: 16),
 
-                        // Preview Card
-                        _buildPreviewCard(),
+                          Text(
+                            widget.nextExercise.exercise.exerciseName,
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w700,
+                              color: context.secondaryText, // ✅ DARK MODE
+                            ),
+                          ),
 
-                        const SizedBox(height: 32),
+                          const SizedBox(height: 24),
 
-                        // Action Buttons
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                          child: _buildActionButtons(),
-                        ),
+                          // Preview Card
+                          _buildPreviewCard(),
 
-                        const SizedBox(height: 30),
-                      ],
+                          const SizedBox(height: 32),
+
+                          // Action Buttons
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16.0,
+                            ),
+                            child: _buildActionButtons(),
+                          ),
+
+                          const SizedBox(height: 30),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
 
-              // Back Button (always visible on top)
-              Positioned(
-                top: 16,
-                left: 16,
-                child: _buildBackButton(),
-              ),
-            ],
-          );
-        },
+                // Back Button (always visible on top)
+                Positioned(top: 16, left: 16, child: _buildBackButton()),
+              ],
+            );
+          },
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildPreviewCard() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Card background color based on theme
+    final cardBgColor = isDark
+        ? context.primaryColor.withOpacity(0.15) // Dark mode
+        : const Color(0x191DAB87); // Light mode
+
+    final imageContainerBgColor = isDark
+        ? context.primaryColor.withOpacity(0.3)
+        : const Color(0xFF1DAB87).withOpacity(0.2);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Container(
@@ -230,7 +243,7 @@ Widget build(BuildContext context) {
         height: 177,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: const Color(0x191DAB87),
+          color: cardBgColor, // ✅ DARK MODE
           borderRadius: BorderRadius.circular(25),
         ),
         child: Row(
@@ -240,33 +253,34 @@ Widget build(BuildContext context) {
               width: 120,
               height: 137,
               decoration: BoxDecoration(
-                color: const Color(0xFF1DAB87).withOpacity(0.2),
+                color: imageContainerBgColor, // ✅ DARK MODE
                 borderRadius: BorderRadius.circular(15),
               ),
-              child: widget.nextExercise.exercise.animationUrl?.isNotEmpty == true // Access animationUrl through exercise property
+              child:
+                  widget.nextExercise.exercise.animationUrl?.isNotEmpty == true
                   ? ClipRRect(
                       borderRadius: BorderRadius.circular(15),
                       child: Image.network(
-                        widget.nextExercise.exercise.animationUrl!, // Access animationUrl through exercise property
+                        widget.nextExercise.exercise.animationUrl!,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
-                          return const Icon(
+                          return Icon(
                             Icons.fitness_center,
                             size: 60,
-                            color: Color(0xFF1DAB87),
+                            color: context.primaryColor, // ✅ DARK MODE
                           );
                         },
                       ),
                     )
-                  : const Icon(
+                  : Icon(
                       Icons.fitness_center,
                       size: 60,
-                      color: Color(0xFF1DAB87),
+                      color: context.primaryColor, // ✅ DARK MODE
                     ),
             ),
-            
+
             const SizedBox(width: 20),
-            
+
             // Exercise Info
             Expanded(
               child: Column(
@@ -274,28 +288,28 @@ Widget build(BuildContext context) {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    widget.nextExercise.exercise.exerciseName, // Access exerciseName through exercise property
-                    style: const TextStyle(
+                    widget.nextExercise.exercise.exerciseName,
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
-                      color: Colors.black,
+                      color: context.primaryText, // ✅ DARK MODE
                     ),
                   ),
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.access_time,
                         size: 20,
-                        color: Color(0xFF7E7E7E),
+                        color: context.secondaryText, // ✅ DARK MODE
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        widget.nextExercise.durationFormatted, // Use durationFormatted from ExerciseWithDetails
-                        style: const TextStyle(
+                        widget.nextExercise.durationFormatted,
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF7E7E7E),
+                          color: context.secondaryText, // ✅ DARK MODE
                         ),
                       ),
                     ],
@@ -320,15 +334,23 @@ Widget build(BuildContext context) {
             });
             _tts.speak("Added 20 seconds");
           },
-          icon: const Icon(Icons.add_circle_outline),
-          label: const Text('Add 20s'),
+          icon: Icon(
+            Icons.add_circle_outline,
+            color: context.primaryColor, // ✅ DARK MODE
+          ),
+          label: Text(
+            'Add 20s',
+            style: TextStyle(
+              color: context.primaryColor, // ✅ DARK MODE
+            ),
+          ),
           style: TextButton.styleFrom(
-            foregroundColor: const Color(0xFF1DAB87),
+            foregroundColor: context.primaryColor, // ✅ DARK MODE
           ),
         ),
-        
+
         const SizedBox(height: 12),
-        
+
         // Skip Rest / Start Now Button
         SizedBox(
           width: double.infinity,
@@ -336,7 +358,7 @@ Widget build(BuildContext context) {
           child: ElevatedButton(
             onPressed: _skipRest,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1DAB87),
+              backgroundColor: context.primaryColor, // ✅ DARK MODE
               foregroundColor: Colors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(
@@ -348,10 +370,7 @@ Widget build(BuildContext context) {
               children: const [
                 Text(
                   'Skip Rest',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
                 ),
                 SizedBox(width: 12),
                 Icon(Icons.skip_next, size: 24),
@@ -364,6 +383,8 @@ Widget build(BuildContext context) {
   }
 
   Widget _buildBackButton() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return GestureDetector(
       onTap: () {
         _restTimer?.cancel();
@@ -374,16 +395,18 @@ Widget build(BuildContext context) {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: const Color(0xFF1DAB87).withOpacity(0.1),
+          color: isDark
+              ? context.primaryColor.withOpacity(0.2) // ✅ DARK MODE
+              : const Color(0xFF1DAB87).withOpacity(0.1),
           shape: BoxShape.circle,
           border: Border.all(
-            color: const Color(0xFF1DAB87),
+            color: context.primaryColor, // ✅ DARK MODE
             width: 2,
           ),
         ),
-        child: const Icon(
+        child: Icon(
           Icons.close,
-          color: Color(0xFF1DAB87),
+          color: context.primaryColor, // ✅ DARK MODE
           size: 24,
         ),
       ),

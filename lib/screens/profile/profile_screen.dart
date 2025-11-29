@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:powerhouse/screens/tips/bookmarked_tips_screen.dart';
+import 'package:powerhouse/widgets/animated_message.dart';
 import 'package:provider/provider.dart';
 import 'package:powerhouse/screens/profile/edit_profile_screen.dart';
 import 'package:powerhouse/screens/profile/help_support_screen.dart';
@@ -15,6 +16,7 @@ import 'package:powerhouse/models/weight_history_model.dart';
 import 'package:powerhouse/core/config/supabase_config.dart';
 import 'package:powerhouse/core/constants/badge_icons.dart';
 import 'package:powerhouse/core/theme/theme_provider.dart';
+import 'package:powerhouse/widgets/skeleton_widgets.dart';
 import 'dart:math' as math;
 
 class ProfileScreen extends StatefulWidget {
@@ -104,8 +106,89 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_isLoading) {
       return Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
-        body: const Center(
-          child: CircularProgressIndicator(color: Color(0xFF1DAB87)),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            physics: const NeverScrollableScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 24),
+
+                // Profile Header Skeleton
+                const Center(
+                  child: Column(
+                    children: [
+                      SkeletonCircle(size: 150),
+                      SizedBox(height: 16),
+                      SkeletonText(width: 150, height: 24),
+                      SizedBox(height: 8),
+                      SkeletonText(width: 120, height: 16),
+                      SizedBox(height: 12),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 60),
+                        child: SkeletonContainer(height: 8),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+
+                // Stats Cards Skeleton
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SkeletonText(width: 130, height: 22),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: const [
+                          Expanded(child: SkeletonCard(height: 100)),
+                          SizedBox(width: 12),
+                          Expanded(child: SkeletonCard(height: 100)),
+                          SizedBox(width: 12),
+                          Expanded(child: SkeletonCard(height: 100)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+
+                // Weight Progress Chart Skeleton
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SkeletonText(width: 150, height: 20),
+                      SizedBox(height: 16),
+                      SkeletonChart(height: 250),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+
+                // Workout Time Chart Skeleton
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SkeletonText(width: 130, height: 20),
+                      SizedBox(height: 16),
+                      SkeletonChart(height: 220),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 100),
+              ],
+            ),
+          ),
         ),
       );
     }
@@ -1341,11 +1424,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       print('Logout error: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to logout: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
+        AnimatedMessage.show(
+          context,
+          message: 'Failed to logout: ${e.toString()}',
+          backgroundColor: Colors.red,
+          icon: Icons.error,
+          duration: const Duration(seconds: 2),
         );
       }
     }
@@ -1785,21 +1869,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _loadProfileData(); // Reload data
 
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Weight logged successfully!'),
-                        backgroundColor: Color(0xFF1DAB87),
-                        duration: Duration(seconds: 2),
-                      ),
+                    AnimatedMessage.show(
+                      context,
+                      message: 'Weight logged successfully!',
+                      backgroundColor: Color(0xFF1DAB87),
+                      icon: Icons.check_circle_rounded,
+                      duration: const Duration(seconds: 2),
                     );
                   }
                 } catch (e) {
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Error: ${e.toString()}'),
-                        backgroundColor: Colors.red,
-                      ),
+                    AnimatedMessage.show(
+                      context,
+                      message: 'Error: ${e.toString()}',
+                      backgroundColor: Colors.red,
+                      icon: Icons.error,
+                      duration: const Duration(seconds: 2),
                     );
                   }
                 }

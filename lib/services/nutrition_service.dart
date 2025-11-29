@@ -43,6 +43,24 @@ class NutritionService {
     }
   }
 
+  // ========== GET NON-SRI LANKAN FOODS (OTHER FOODS) ==========
+  Future<List<FoodItemModel>> getNonSriLankanFoods() async {
+    try {
+      final response = await _supabase
+          .from('foods')
+          .select()
+          .eq('is_sri_lankan', false)
+          .order('created_at', ascending: false);
+
+      return (response as List)
+          .map((json) => FoodItemModel.fromJson(json))
+          .toList();
+    } catch (e) {
+      print('❌ Error getting non-Sri Lankan foods: $e');
+      return [];
+    }
+  }
+
   // ========== SEARCH FOODS ==========
   Future<List<FoodItemModel>> searchFoods(String query) async {
     try {
@@ -91,7 +109,7 @@ class NutritionService {
               'carbs': scannedFood.carbs,
               'fat': scannedFood.fat,
               'is_sri_lankan': scannedFood.isSriLankan,
-              'image_url': scannedFood.imageUrl,
+              'image_url': scannedFood.imageUrl, // Save the uploaded image URL
             })
             .select('food_id')
             .single();

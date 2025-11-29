@@ -5,14 +5,13 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:powerhouse/screens/workouts/workout_completion_screen.dart';
 import 'package:powerhouse/screens/workouts/rest_screen.dart';
 import 'package:powerhouse/models/workout_model.dart';
+import 'package:powerhouse/widgets/animated_message.dart';
+import 'package:powerhouse/core/theme/theme_extensions.dart'; // ✅ ADD THIS
 
 class WorkoutSessionScreen extends StatefulWidget {
   final WorkoutModel workout;
 
-  const WorkoutSessionScreen({
-    super.key,
-    required this.workout,
-  });
+  const WorkoutSessionScreen({super.key, required this.workout});
 
   @override
   State<WorkoutSessionScreen> createState() => _WorkoutSessionScreenState();
@@ -31,8 +30,9 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
   int _secondsRemaining = 0;
 
   // Check if current exercise is duration-based or reps-based
-  bool get _isDurationBased => exercises[_currentExerciseIndex].duration != null && 
-                                exercises[_currentExerciseIndex].duration! > 0;
+  bool get _isDurationBased =>
+      exercises[_currentExerciseIndex].duration != null &&
+      exercises[_currentExerciseIndex].duration! > 0;
 
   // Text-to-Speech
   final FlutterTts _tts = FlutterTts();
@@ -50,11 +50,11 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
     if (exercises.isEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('No exercises available'),
-            backgroundColor: Colors.red,
-          ),
+        AnimatedMessage.show(
+          context,
+          message: 'No exercises available',
+          backgroundColor: Colors.red,
+          icon: Icons.error,
         );
       });
       return;
@@ -98,9 +98,13 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
     await Future.delayed(const Duration(milliseconds: 500));
     if (_isVoiceEnabled) {
       if (_isDurationBased) {
-        await _tts.speak("${exercise.exerciseName}. $_secondsRemaining seconds. Let's go!");
+        await _tts.speak(
+          "${exercise.exerciseName}. $_secondsRemaining seconds. Let's go!",
+        );
       } else {
-        await _tts.speak("${exercise.exerciseName}. $_targetReps reps. Let's go!");
+        await _tts.speak(
+          "${exercise.exerciseName}. $_targetReps reps. Let's go!",
+        );
       }
     }
   }
@@ -150,7 +154,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
 
   // Enhanced rep increment with voice
   void _incrementReps() {
-    if (_isDurationBased) return; // Don't increment reps for duration-based exercises
+    if (_isDurationBased) return;
 
     if (_currentReps < _targetReps) {
       setState(() {
@@ -188,7 +192,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
   }
 
   void _decrementReps() {
-    if (_isDurationBased) return; // Don't decrement reps for duration-based exercises
+    if (_isDurationBased) return;
 
     if (_currentReps > 0) {
       setState(() {
@@ -218,7 +222,6 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
     _tts.stop();
 
     if (_currentExerciseIndex < exercises.length - 1) {
-      // Show rest screen before next exercise
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -280,12 +283,10 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
 
   double get _repProgress {
     if (_isDurationBased) {
-      // For duration-based: show progress based on time elapsed
       final totalDuration = exercises[_currentExerciseIndex].duration ?? 1;
       final elapsed = totalDuration - _secondsRemaining;
       return (elapsed / totalDuration).clamp(0.0, 1.0);
     } else {
-      // For reps-based: show progress based on reps completed
       return _currentReps / _targetReps;
     }
   }
@@ -311,10 +312,12 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
   @override
   Widget build(BuildContext context) {
     if (exercises.isEmpty) {
-      return const Scaffold(
-        backgroundColor: Colors.white,
+      return Scaffold(
+        backgroundColor: context.surfaceColor, // ✅ DARK MODE
         body: Center(
-          child: CircularProgressIndicator(color: Color(0xFF1DAB87)),
+          child: CircularProgressIndicator(
+            color: context.primaryColor,
+          ), // ✅ DARK MODE
         ),
       );
     }
@@ -322,7 +325,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
     final currentExercise = exercises[_currentExerciseIndex];
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.surfaceColor, // ✅ DARK MODE
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -332,35 +335,19 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
             return SingleChildScrollView(
               child: Column(
                 children: [
-                  // Progress Bar Section
                   _buildProgressBar(),
-
-                  // Exercise Illustration Card
                   _buildExerciseCard(currentExercise, cardHeight),
-
                   const SizedBox(height: 24),
-
-                  // Exercise Name
                   _buildExerciseName(currentExercise),
-
                   const SizedBox(height: 24),
-
-                  // CONDITIONAL: Show either Timer Circle OR Rep Counter
                   if (_isDurationBased)
                     _buildTimerCircle()
                   else
                     _buildRepCounter(),
-
                   const SizedBox(height: 32),
-
-                  // Control Buttons (conditional based on exercise type)
                   _buildControlButtons(),
-
                   const SizedBox(height: 24),
-
-                  // Navigation Buttons
                   _buildNavigationButtons(),
-
                   const SizedBox(height: 20),
                 ],
               ),
@@ -379,9 +366,9 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
         children: [
           Text(
             _progressText,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
-              color: Colors.grey,
+              color: context.secondaryText, // ✅ DARK MODE
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -391,9 +378,9 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
             child: LinearProgressIndicator(
               value: _progress,
               minHeight: 8,
-              backgroundColor: Colors.grey.shade200,
-              valueColor: const AlwaysStoppedAnimation<Color>(
-                Color(0xFF1DAB87),
+              backgroundColor: context.dividerColor, // ✅ DARK MODE
+              valueColor: AlwaysStoppedAnimation<Color>(
+                context.primaryColor, // ✅ DARK MODE
               ),
             ),
           ),
@@ -403,8 +390,25 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
   }
 
   // ==================== EXERCISE CARD ====================
-  Widget _buildExerciseCard(ExerciseWithDetails exerciseDetails, double cardHeight) {
+  Widget _buildExerciseCard(
+    ExerciseWithDetails exerciseDetails,
+    double cardHeight,
+  ) {
     final exercise = exerciseDetails.exercise;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Card background colors based on theme
+    final cardBgColor = isDark
+        ? const Color(0xFF1E3A32) // Dark green tint for dark mode
+        : const Color(0xFFE8F5F2); // Light green for light mode
+
+    final overlayColor = isDark
+        ? Colors.black.withOpacity(0.3)
+        : Colors.white.withOpacity(0.7);
+
+    final badgeBgColor = isDark
+        ? context.cardBackground.withOpacity(0.95)
+        : Colors.white.withOpacity(0.9);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -412,11 +416,11 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
         width: double.infinity,
         height: 400,
         decoration: BoxDecoration(
-          color: const Color(0xFFE8F5F2),
+          color: cardBgColor, // ✅ DARK MODE
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: context.shadowColor, // ✅ DARK MODE
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -430,11 +434,15 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
               left: 20,
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.7),
+                  color: overlayColor, // ✅ DARK MODE
                   shape: BoxShape.circle,
                 ),
                 child: IconButton(
-                  icon: const Icon(Icons.arrow_back, size: 24),
+                  icon: Icon(
+                    Icons.arrow_back,
+                    size: 24,
+                    color: context.primaryText, // ✅ DARK MODE
+                  ),
                   onPressed: () {
                     _exerciseTimer?.cancel();
                     _tts.stop();
@@ -450,13 +458,14 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
               right: 70,
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.7),
+                  color: overlayColor, // ✅ DARK MODE
                   shape: BoxShape.circle,
                 ),
                 child: IconButton(
                   icon: Icon(
                     _isPaused ? Icons.play_arrow : Icons.pause,
                     size: 24,
+                    color: context.primaryText, // ✅ DARK MODE
                   ),
                   onPressed: _togglePause,
                 ),
@@ -470,15 +479,17 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
               child: Container(
                 decoration: BoxDecoration(
                   color: _isVoiceEnabled
-                      ? const Color(0xFF1DAB87).withOpacity(0.7)
-                      : Colors.white.withOpacity(0.7),
+                      ? context.primaryColor.withOpacity(0.7)
+                      : overlayColor, // ✅ DARK MODE
                   shape: BoxShape.circle,
                 ),
                 child: IconButton(
                   icon: Icon(
                     _isVoiceEnabled ? Icons.volume_up : Icons.volume_off,
                     size: 24,
-                    color: _isVoiceEnabled ? Colors.white : Colors.grey,
+                    color: _isVoiceEnabled
+                        ? Colors.white
+                        : context.secondaryText, // ✅ DARK MODE
                   ),
                   onPressed: _toggleVoice,
                 ),
@@ -487,7 +498,8 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
 
             // Exercise Illustration or Image
             Center(
-              child: exercise.animationUrl != null &&
+              child:
+                  exercise.animationUrl != null &&
                       exercise.animationUrl!.isNotEmpty
                   ? ClipRRect(
                       borderRadius: BorderRadius.circular(20),
@@ -499,14 +511,14 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
                         errorBuilder: (context, error, stackTrace) {
                           return CustomPaint(
                             size: const Size(150, 280),
-                            painter: ExercisePersonPainter(),
+                            painter: ExercisePersonPainter(isDark: isDark),
                           );
                         },
                       ),
                     )
                   : CustomPaint(
                       size: const Size(150, 280),
-                      painter: ExercisePersonPainter(),
+                      painter: ExercisePersonPainter(isDark: isDark),
                     ),
             ),
 
@@ -521,42 +533,50 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
                   vertical: 12,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.9),
+                  color: badgeBgColor, // ✅ DARK MODE
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     if (_isDurationBased) ...[
-                      const Icon(Icons.timer, color: Color(0xFF1DAB87), size: 20),
+                      Icon(
+                        Icons.timer,
+                        color: context.primaryColor, // ✅ DARK MODE
+                        size: 20,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         exerciseDetails.durationFormatted,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF1DAB87),
+                          color: context.primaryColor, // ✅ DARK MODE
                         ),
                       ),
                     ] else ...[
-                      const Icon(Icons.repeat, color: Color(0xFF1DAB87), size: 20),
+                      Icon(
+                        Icons.repeat,
+                        color: context.primaryColor, // ✅ DARK MODE
+                        size: 20,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         '${exerciseDetails.reps} reps',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF1DAB87),
+                          color: context.primaryColor, // ✅ DARK MODE
                         ),
                       ),
                       if (exerciseDetails.sets != null) ...[
                         const SizedBox(width: 8),
                         Text(
                           'x ${exerciseDetails.sets}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF7E7E7E),
+                            color: context.secondaryText, // ✅ DARK MODE
                           ),
                         ),
                       ],
@@ -577,25 +597,31 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Text(
         exerciseDetails.exercise.exerciseName,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 32,
           fontWeight: FontWeight.w800,
+          color: context.primaryText, // ✅ DARK MODE
         ),
         textAlign: TextAlign.center,
       ),
     );
   }
 
-  // ==================== TIMER CIRCLE (for duration-based exercises) ====================
+  // ==================== TIMER CIRCLE ====================
   Widget _buildTimerCircle() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return GestureDetector(
       onTap: () {
-        // Optional: tap to pause
         _togglePause();
       },
       child: CustomPaint(
         size: const Size(200, 200),
-        painter: RepCounterPainter(progress: _repProgress),
+        painter: RepCounterPainter(
+          progress: _repProgress,
+          isDark: isDark,
+          primaryColor: context.primaryColor,
+        ),
         child: SizedBox(
           width: 200,
           height: 200,
@@ -605,10 +631,10 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
               children: [
                 Text(
                   _timeText,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 56,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF1DAB87),
+                    color: context.primaryColor, // ✅ DARK MODE
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -617,7 +643,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Colors.grey.shade600,
+                    color: context.secondaryText, // ✅ DARK MODE
                   ),
                 ),
               ],
@@ -628,8 +654,10 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
     );
   }
 
-  // ==================== REP COUNTER (for reps-based exercises) ====================
+  // ==================== REP COUNTER ====================
   Widget _buildRepCounter() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return GestureDetector(
       onTap: _incrementReps,
       child: AnimatedBuilder(
@@ -639,7 +667,11 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
             scale: _repScaleAnimation.value,
             child: CustomPaint(
               size: const Size(200, 200),
-              painter: RepCounterPainter(progress: _repProgress),
+              painter: RepCounterPainter(
+                progress: _repProgress,
+                isDark: isDark,
+                primaryColor: this.context.primaryColor,
+              ),
               child: SizedBox(
                 width: 200,
                 height: 200,
@@ -649,10 +681,10 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
                     children: [
                       Text(
                         _currentReps.toString(),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 72,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF1DAB87),
+                          color: this.context.primaryColor, // ✅ DARK MODE
                         ),
                       ),
                       Text(
@@ -660,7 +692,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w600,
-                          color: Colors.grey.shade600,
+                          color: this.context.secondaryText, // ✅ DARK MODE
                         ),
                       ),
                     ],
@@ -676,8 +708,14 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
 
   // ==================== CONTROL BUTTONS ====================
   Widget _buildControlButtons() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Secondary button colors
+    final secondaryBgColor = isDark
+        ? context.primaryColor.withOpacity(0.2)
+        : const Color(0xFFB2E5D8);
+
     if (_isDurationBased) {
-      // For duration-based: Show "Add Time" button
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 40.0),
         child: Column(
@@ -687,10 +725,13 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
               icon: const Icon(Icons.add_circle_outline),
               label: const Text('Add 20s'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFB2E5D8),
-                foregroundColor: const Color(0xFF1DAB87),
+                backgroundColor: secondaryBgColor, // ✅ DARK MODE
+                foregroundColor: context.primaryColor, // ✅ DARK MODE
                 elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                 ),
@@ -701,14 +742,13 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
               'Tap to pause/resume',
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey.shade600,
+                color: context.secondaryText, // ✅ DARK MODE
               ),
             ),
           ],
         ),
       );
     } else {
-      // For reps-based: Show increment/decrement buttons
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 40.0),
         child: Row(
@@ -720,25 +760,24 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
               icon: Container(
                 width: 40,
                 height: 40,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFB2E5D8),
+                decoration: BoxDecoration(
+                  color: secondaryBgColor, // ✅ DARK MODE
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.remove,
-                  color: Color(0xFF1DAB87),
+                  color: context.primaryColor, // ✅ DARK MODE
                 ),
               ),
             ),
 
             const SizedBox(width: 20),
 
-            // Tap to Count Text
             Text(
               'Tap circle to count',
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey.shade600,
+                color: context.secondaryText, // ✅ DARK MODE
               ),
             ),
 
@@ -750,14 +789,11 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
               icon: Container(
                 width: 40,
                 height: 40,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF1DAB87),
+                decoration: BoxDecoration(
+                  color: context.primaryColor, // ✅ DARK MODE
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.add,
-                  color: Colors.white,
-                ),
+                child: const Icon(Icons.add, color: Colors.white),
               ),
             ),
           ],
@@ -768,6 +804,21 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
 
   // ==================== NAVIGATION BUTTONS ====================
   Widget _buildNavigationButtons() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Secondary button colors
+    final secondaryBgColor = isDark
+        ? context.primaryColor.withOpacity(0.2)
+        : const Color(0xFFB2E5D8);
+
+    final disabledBgColor = isDark
+        ? Colors.grey.shade800
+        : Colors.grey.shade200;
+
+    final disabledFgColor = isDark
+        ? Colors.grey.shade600
+        : Colors.grey.shade400;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
       child: Row(
@@ -777,13 +828,12 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
             child: SizedBox(
               height: 56,
               child: ElevatedButton(
-                onPressed:
-                    _currentExerciseIndex > 0 ? _previousExercise : null,
+                onPressed: _currentExerciseIndex > 0 ? _previousExercise : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFB2E5D8),
-                  foregroundColor: const Color(0xFF1DAB87),
-                  disabledBackgroundColor: Colors.grey.shade200,
-                  disabledForegroundColor: Colors.grey.shade400,
+                  backgroundColor: secondaryBgColor, // ✅ DARK MODE
+                  foregroundColor: context.primaryColor, // ✅ DARK MODE
+                  disabledBackgroundColor: disabledBgColor, // ✅ DARK MODE
+                  disabledForegroundColor: disabledFgColor, // ✅ DARK MODE
                   elevation: 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(28),
@@ -816,7 +866,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
               child: ElevatedButton(
                 onPressed: _nextExercise,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1DAB87),
+                  backgroundColor: context.primaryColor, // ✅ DARK MODE
                   foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
@@ -852,12 +902,10 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
       _tts.speak("Workout complete! Congratulations!");
     }
 
-    // Calculate workout duration
     final workoutDuration = Duration(
       minutes: widget.workout.estimatedDuration ?? 30,
     );
 
-    // Navigate to completion screen
     Future.delayed(const Duration(milliseconds: 500), () {
       Navigator.pushReplacement(
         context,
@@ -874,30 +922,36 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
   }
 
   void _showExitConfirmation() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+        backgroundColor: context.cardBackground, // ✅ DARK MODE
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Exit Workout?',
+          style: TextStyle(color: context.primaryText), // ✅ DARK MODE
         ),
-        title: const Text('Exit Workout?'),
-        content: const Text(
-            'Are you sure you want to exit? Your progress will be lost.'),
+        content: Text(
+          'Are you sure you want to exit? Your progress will be lost.',
+          style: TextStyle(color: context.secondaryText), // ✅ DARK MODE
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: context.primaryColor), // ✅ DARK MODE
+            ),
           ),
           TextButton(
             onPressed: () {
               _tts.stop();
-              Navigator.pop(context); // Close dialog
-              Navigator.pop(context); // Exit workout
+              Navigator.pop(context);
+              Navigator.pop(context);
             },
-            child: const Text(
-              'Exit',
-              style: TextStyle(color: Colors.red),
-            ),
+            child: const Text('Exit', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -908,8 +962,14 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen>
 // ==================== REP COUNTER PAINTER ====================
 class RepCounterPainter extends CustomPainter {
   final double progress;
+  final bool isDark;
+  final Color primaryColor;
 
-  RepCounterPainter({required this.progress});
+  RepCounterPainter({
+    required this.progress,
+    this.isDark = false,
+    this.primaryColor = const Color(0xFF1DAB87),
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -917,9 +977,11 @@ class RepCounterPainter extends CustomPainter {
     final radius = size.width / 2;
     final strokeWidth = 12.0;
 
-    // Background circle
+    // Background circle - adapts to dark mode
     final backgroundPaint = Paint()
-      ..color = const Color(0xFFB2E5D8)
+      ..color = isDark
+          ? primaryColor.withOpacity(0.2) // Darker background for dark mode
+          : const Color(0xFFB2E5D8) // Light green for light mode
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;
@@ -928,13 +990,15 @@ class RepCounterPainter extends CustomPainter {
 
     // Progress arc
     final progressPaint = Paint()
-      ..color = const Color(0xFF1DAB87)
+      ..color = primaryColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;
 
-    final rect =
-        Rect.fromCircle(center: center, radius: radius - strokeWidth / 2);
+    final rect = Rect.fromCircle(
+      center: center,
+      radius: radius - strokeWidth / 2,
+    );
     canvas.drawArc(
       rect,
       -math.pi / 2,
@@ -946,26 +1010,31 @@ class RepCounterPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(RepCounterPainter oldDelegate) {
-    return oldDelegate.progress != progress;
+    return oldDelegate.progress != progress || oldDelegate.isDark != isDark;
   }
 }
 
 // ==================== EXERCISE PERSON PAINTER ====================
 class ExercisePersonPainter extends CustomPainter {
+  final bool isDark;
+
+  ExercisePersonPainter({this.isDark = false});
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()..style = PaintingStyle.fill;
 
+    // Skin color - slightly adjusted for dark mode visibility
+    final skinColor = isDark
+        ? const Color(0xFFD4A574) // Slightly warmer for dark mode
+        : const Color(0xFFE8C5A5);
+
     // Head
-    paint.color = const Color(0xFFE8C5A5);
-    canvas.drawCircle(
-      Offset(size.width / 2, size.height * 0.15),
-      20,
-      paint,
-    );
+    paint.color = skinColor;
+    canvas.drawCircle(Offset(size.width / 2, size.height * 0.15), 20, paint);
 
     // Neck
-    paint.color = const Color(0xFFE8C5A5);
+    paint.color = skinColor;
     canvas.drawRect(
       Rect.fromCenter(
         center: Offset(size.width / 2, size.height * 0.2),
@@ -975,8 +1044,10 @@ class ExercisePersonPainter extends CustomPainter {
       paint,
     );
 
-    // Shirt (maroon)
-    paint.color = const Color(0xFF8B2E2E);
+    // Shirt (maroon) - slightly brighter for dark mode
+    paint.color = isDark
+        ? const Color(0xFFA63D3D) // Brighter maroon for dark mode
+        : const Color(0xFF8B2E2E);
     final shirtPath = Path()
       ..moveTo(size.width * 0.3, size.height * 0.25)
       ..lineTo(size.width * 0.7, size.height * 0.25)
@@ -986,7 +1057,7 @@ class ExercisePersonPainter extends CustomPainter {
     canvas.drawPath(shirtPath, paint);
 
     // Arms
-    paint.color = const Color(0xFFE8C5A5);
+    paint.color = skinColor;
     // Left arm
     canvas.drawRRect(
       RRect.fromRectAndRadius(
@@ -1004,8 +1075,10 @@ class ExercisePersonPainter extends CustomPainter {
       paint,
     );
 
-    // Shorts (gray)
-    paint.color = const Color(0xFF7A8B9A);
+    // Shorts (gray) - adjusted for dark mode
+    paint.color = isDark
+        ? const Color(0xFF8A9BAA) // Slightly lighter for dark mode
+        : const Color(0xFF7A8B9A);
     final shortsPath = Path()
       ..moveTo(size.width * 0.35, size.height * 0.45)
       ..lineTo(size.width * 0.65, size.height * 0.45)
@@ -1015,7 +1088,7 @@ class ExercisePersonPainter extends CustomPainter {
     canvas.drawPath(shortsPath, paint);
 
     // Legs
-    paint.color = const Color(0xFFE8C5A5);
+    paint.color = skinColor;
     // Left leg
     canvas.drawRRect(
       RRect.fromRectAndRadius(
@@ -1035,5 +1108,6 @@ class ExercisePersonPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
+  bool shouldRepaint(ExercisePersonPainter oldDelegate) =>
+      oldDelegate.isDark != isDark;
 }

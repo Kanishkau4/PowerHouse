@@ -280,4 +280,6 @@ class TipsService {
       return 0;
     }
   }
+
+  Future<void> toggleBookmark(id) async {}
 }
