@@ -30,6 +30,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   // User data
   String userName = 'User';
   String? profilePictureUrl;
+  String? userGoal;
 
   // Daily progress
   int completedTasks = 0;
@@ -109,6 +110,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         setState(() {
           userName = profile.username;
           profilePictureUrl = profile.profilePictureUrl;
+          userGoal = profile.fitnessGoal;
         });
       }
     } catch (e) {
@@ -135,7 +137,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   // ========== LOAD WORKOUTS ==========
   Future<void> _loadWorkouts() async {
     try {
-      final workoutList = await _workoutService.getAllWorkouts();
+      final workoutList = await _workoutService.getRecommendedWorkouts(
+        userGoal,
+      );
 
       setState(() {
         workouts = workoutList
@@ -302,9 +306,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                   const SizedBox(height: 30),
 
-                  // Start New Goal Section Header
+                  // Recommended Workouts Section Header
                   _buildSectionHeader(
-                    'Start New Goal',
+                    _getWorkoutSectionTitle(),
                     'See all',
                     () => _onSeeAllWorkouts(),
                   ),
@@ -522,15 +526,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w800,
-            color: context.primaryText,
+        Expanded(
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: context.primaryText,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
-        if (actionText.isNotEmpty)
+        if (actionText.isNotEmpty) ...[
+          const SizedBox(width: 8),
           GestureDetector(
             onTap: onTap,
             child: Text(
@@ -542,6 +551,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
             ),
           ),
+        ],
       ],
     );
   }
@@ -1135,6 +1145,26 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         backgroundColor: Colors.red,
         icon: Icons.error,
       );
+    }
+  }
+
+  // ==================== HELPER: GET WORKOUT SECTION TITLE ====================
+  String _getWorkoutSectionTitle() {
+    if (userGoal == null || userGoal!.isEmpty) {
+      return 'Start New Goal';
+    }
+
+    switch (userGoal!.toLowerCase()) {
+      case 'lose_weight':
+        return 'For Weight Loss';
+      case 'gain_muscle':
+        return 'For Muscle Gain';
+      case 'gain_endurance':
+        return 'For Endurance';
+      case 'try_app':
+        return 'Start New Goal';
+      default:
+        return 'For You';
     }
   }
 }

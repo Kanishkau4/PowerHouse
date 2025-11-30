@@ -15,7 +15,7 @@ class _GenderScreenState extends State<GenderScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: context.surfaceColor,
+      backgroundColor: context.surfaceColor, // ✅ DARK MODE
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 30.0),
@@ -39,9 +39,12 @@ class _GenderScreenState extends State<GenderScreen> {
   }
 
   Widget _buildOutlineTitle() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Center(
       child: Stack(
         children: [
+          // Outline text
           Text(
             'PowerHouse',
             style: TextStyle(
@@ -51,13 +54,17 @@ class _GenderScreenState extends State<GenderScreen> {
               foreground: Paint()
                 ..style = PaintingStyle.stroke
                 ..strokeWidth = 2
-                ..color = const Color.fromARGB(255, 0, 0, 0),
+                ..color = isDark
+                    ? Colors
+                          .white // ✅ DARK MODE: White outline
+                    : Colors.black, // Light mode: Black outline
             ),
           ),
-          const Text(
+          // Solid text (transparent/surface color fill)
+          Text(
             'PowerHouse',
             style: TextStyle(
-              color: Colors.white,
+              color: context.surfaceColor, // ✅ DARK MODE: Matches background
               fontSize: 48,
               fontWeight: FontWeight.w700,
               letterSpacing: -2,
@@ -72,12 +79,12 @@ class _GenderScreenState extends State<GenderScreen> {
     return Center(
       child: RichText(
         textAlign: TextAlign.center,
-        text: const TextSpan(
+        text: TextSpan(
           children: [
             TextSpan(
               text: 'Tell us\nYour ',
               style: TextStyle(
-                color: Colors.black,
+                color: context.primaryText, // ✅ DARK MODE
                 fontSize: 48,
                 fontWeight: FontWeight.w800,
                 height: 1.1,
@@ -86,7 +93,7 @@ class _GenderScreenState extends State<GenderScreen> {
             TextSpan(
               text: 'gender',
               style: TextStyle(
-                color: Color(0xFF1DAB87),
+                color: context.primaryColor, // ✅ DARK MODE
                 fontSize: 48,
                 fontWeight: FontWeight.w800,
                 height: 1.1,
@@ -99,6 +106,8 @@ class _GenderScreenState extends State<GenderScreen> {
   }
 
   Widget _buildGenderButtons() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -107,6 +116,7 @@ class _GenderScreenState extends State<GenderScreen> {
           fallbackIcon: Icons.male,
           label: 'Male',
           isSelected: selectedGender == 'male',
+          isDark: isDark, // ✅ Pass dark mode flag
           onTap: () {
             setState(() {
               selectedGender = 'male';
@@ -119,6 +129,7 @@ class _GenderScreenState extends State<GenderScreen> {
           fallbackIcon: Icons.female,
           label: 'Female',
           isSelected: selectedGender == 'female',
+          isDark: isDark, // ✅ Pass dark mode flag
           onTap: () {
             setState(() {
               selectedGender = 'female';
@@ -150,12 +161,13 @@ class _GenderScreenState extends State<GenderScreen> {
   }
 }
 
-// Gender Button with Image and Fallback Icon
+// Gender Button with Image and Fallback Icon - Updated for Dark Mode
 class GenderButtonWithImage extends StatelessWidget {
   final String imagePath;
   final IconData fallbackIcon;
   final String label;
   final bool isSelected;
+  final bool isDark; // ✅ Add dark mode flag
   final VoidCallback onTap;
 
   const GenderButtonWithImage({
@@ -164,17 +176,39 @@ class GenderButtonWithImage extends StatelessWidget {
     required this.fallbackIcon,
     required this.label,
     required this.isSelected,
+    required this.isDark, // ✅ Required parameter
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final color = isSelected
-        ? const Color(0xFFF15223)
+    // Selected color (orange accent)
+    final selectedColor = context.accentColor;
+
+    // Unselected color based on theme
+    final unselectedColor = isDark
+        ? Colors
+              .grey
+              .shade400 // ✅ DARK MODE: Lighter grey for visibility
         : const Color(0xFF7E7E7E);
-    final bgColor = isSelected
-        ? const Color(0xFFF15223).withOpacity(0.1)
+
+    // Background colors
+    final selectedBgColor = context.accentColor.withOpacity(isDark ? 0.2 : 0.1);
+    final unselectedBgColor = isDark
+        ? context
+              .cardBackground // ✅ DARK MODE
         : Colors.white;
+
+    // Border color for unselected in dark mode
+    final unselectedBorderColor = isDark
+        ? Colors
+              .grey
+              .shade600 // ✅ DARK MODE
+        : const Color(0xFF7E7E7E);
+
+    final color = isSelected ? selectedColor : unselectedColor;
+    final bgColor = isSelected ? selectedBgColor : unselectedBgColor;
+    final borderColor = isSelected ? selectedColor : unselectedBorderColor;
 
     return GestureDetector(
       onTap: onTap,
@@ -185,16 +219,25 @@ class GenderButtonWithImage extends StatelessWidget {
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(30),
-          border: Border.all(color: color, width: isSelected ? 2 : 1),
+          border: Border.all(color: borderColor, width: isSelected ? 2 : 1),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: color.withOpacity(0.3),
+                    color: selectedColor.withOpacity(0.3),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
                 ]
-              : null,
+              : (isDark
+                    ? [
+                        // ✅ Subtle shadow in dark mode for depth
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                    : null),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -204,7 +247,7 @@ class GenderButtonWithImage extends StatelessWidget {
               imagePath,
               width: 60,
               height: 60,
-              color: color,
+              color: color, // Tint the icon
               errorBuilder: (context, error, stackTrace) {
                 return Icon(fallbackIcon, size: 60, color: color);
               },

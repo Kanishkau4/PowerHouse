@@ -39,7 +39,7 @@ class _HeightScreenState extends State<HeightScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: context.surfaceColor,
+      backgroundColor: context.surfaceColor, // ✅ DARK MODE
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 30.0),
@@ -56,7 +56,7 @@ class _HeightScreenState extends State<HeightScreen> {
 
               const SizedBox(height: 20),
 
-              // Vertical Ruler (without Expanded)
+              // Vertical Ruler
               _buildVerticalRuler(),
 
               const SizedBox(height: 20),
@@ -72,8 +72,11 @@ class _HeightScreenState extends State<HeightScreen> {
   }
 
   Widget _buildOutlineTitle() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Stack(
       children: [
+        // Outline text
         Text(
           'PowerHouse',
           style: TextStyle(
@@ -83,13 +86,17 @@ class _HeightScreenState extends State<HeightScreen> {
             foreground: Paint()
               ..style = PaintingStyle.stroke
               ..strokeWidth = 2
-              ..color = const Color.fromARGB(255, 0, 0, 0),
+              ..color = isDark
+                  ? Colors
+                        .white // ✅ DARK MODE
+                  : Colors.black,
           ),
         ),
-        const Text(
+        // Solid text
+        Text(
           'PowerHouse',
           style: TextStyle(
-            color: Colors.white,
+            color: context.surfaceColor, // ✅ DARK MODE
             fontSize: 48,
             fontWeight: FontWeight.w700,
             letterSpacing: -2,
@@ -102,12 +109,12 @@ class _HeightScreenState extends State<HeightScreen> {
   Widget _buildHeading() {
     return RichText(
       textAlign: TextAlign.center,
-      text: const TextSpan(
+      text: TextSpan(
         children: [
           TextSpan(
             text: 'How much ',
             style: TextStyle(
-              color: Colors.black,
+              color: context.primaryText, // ✅ DARK MODE
               fontSize: 48,
               fontWeight: FontWeight.w800,
               height: 1.1,
@@ -116,7 +123,7 @@ class _HeightScreenState extends State<HeightScreen> {
           TextSpan(
             text: 'Tall\n',
             style: TextStyle(
-              color: Color(0xFF1DAB87),
+              color: context.primaryColor, // ✅ DARK MODE
               fontSize: 48,
               fontWeight: FontWeight.w800,
               height: 1.1,
@@ -125,7 +132,7 @@ class _HeightScreenState extends State<HeightScreen> {
           TextSpan(
             text: 'are you?',
             style: TextStyle(
-              color: Colors.black,
+              color: context.primaryText, // ✅ DARK MODE
               fontSize: 48,
               fontWeight: FontWeight.w800,
               height: 1.1,
@@ -143,8 +150,8 @@ class _HeightScreenState extends State<HeightScreen> {
       children: [
         Text(
           selectedHeight.toInt().toString(),
-          style: const TextStyle(
-            color: Color(0xFF101114),
+          style: TextStyle(
+            color: context.primaryText, // ✅ DARK MODE
             fontSize: 90,
             fontWeight: FontWeight.w800,
             letterSpacing: -1.92,
@@ -154,8 +161,8 @@ class _HeightScreenState extends State<HeightScreen> {
           padding: const EdgeInsets.only(bottom: 20, left: 8),
           child: Text(
             selectedUnit,
-            style: const TextStyle(
-              color: Color(0xFF676B74),
+            style: TextStyle(
+              color: context.secondaryText, // ✅ DARK MODE
               fontSize: 36,
               fontWeight: FontWeight.w500,
             ),
@@ -166,6 +173,27 @@ class _HeightScreenState extends State<HeightScreen> {
   }
 
   Widget _buildVerticalRuler() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Tick colors based on theme
+    final majorTickColor = isDark
+        ? Colors
+              .grey
+              .shade500 // ✅ DARK MODE
+        : const Color(0xFFB9BBBE);
+
+    final minorTickColor = isDark
+        ? Colors
+              .grey
+              .shade700 // ✅ DARK MODE
+        : const Color(0xFFD7D7D8);
+
+    final labelColor = isDark
+        ? Colors
+              .grey
+              .shade400 // ✅ DARK MODE
+        : const Color(0xFF676B74);
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -177,17 +205,16 @@ class _HeightScreenState extends State<HeightScreen> {
             children: [
               Text(
                 '${(selectedHeight - 1).toInt()}',
-                style: const TextStyle(
-                  color: Color(0xFF676B74),
+                style: TextStyle(
+                  color: labelColor, // ✅ DARK MODE
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              // Remove Spacer and add explicit height
               Text(
                 '${(selectedHeight + 1).toInt()}',
-                style: const TextStyle(
-                  color: Color(0xFF676B74),
+                style: TextStyle(
+                  color: labelColor, // ✅ DARK MODE
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
@@ -203,12 +230,16 @@ class _HeightScreenState extends State<HeightScreen> {
           alignment: Alignment.center,
           children: [
             // Center indicator line
-            Container(width: 80, height: 4, color: const Color(0xFFF97316)),
+            Container(
+              width: 80,
+              height: 4,
+              color: context.accentColor, // ✅ DARK MODE (Orange)
+            ),
 
             // Scrollable vertical ruler
             SizedBox(
               width: 100,
-              height: 200, // Add explicit height
+              height: 200,
               child: SingleChildScrollView(
                 controller: _scrollController,
                 physics: const BouncingScrollPhysics(),
@@ -230,8 +261,8 @@ class _HeightScreenState extends State<HeightScreen> {
                               width: isMajorTick ? 56 : 24,
                               decoration: BoxDecoration(
                                 color: isMajorTick
-                                    ? const Color(0xFFB9BBBE)
-                                    : const Color(0xFFD7D7D8),
+                                    ? majorTickColor // ✅ DARK MODE
+                                    : minorTickColor, // ✅ DARK MODE
                                 borderRadius: BorderRadius.circular(
                                   isMajorTick ? 1.5 : 0.75,
                                 ),
@@ -263,7 +294,25 @@ class _HeightScreenState extends State<HeightScreen> {
   }
 
   Widget _buildUnitButton(String unit) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isSelected = selectedUnit == unit;
+
+    // Colors based on theme and selection state
+    final selectedBgColor = context.primaryColor;
+    final unselectedBgColor = isDark
+        ? context
+              .cardBackground // ✅ DARK MODE
+        : Colors.white;
+
+    final selectedBorderColor = context.primaryColor;
+    final unselectedBorderColor = isDark
+        ? Colors
+              .grey
+              .shade600 // ✅ DARK MODE
+        : const Color(0xFFD7D7D8);
+
+    final selectedTextColor = Colors.white;
+    final unselectedTextColor = context.secondaryText; // ✅ DARK MODE
 
     return GestureDetector(
       onTap: () {
@@ -279,19 +328,26 @@ class _HeightScreenState extends State<HeightScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF1DAB87) : Colors.white,
+          color: isSelected ? selectedBgColor : unselectedBgColor,
           border: Border.all(
-            color: isSelected
-                ? const Color(0xFF1DAB87)
-                : const Color(0xFFD7D7D8),
+            color: isSelected ? selectedBorderColor : unselectedBorderColor,
             width: 2,
           ),
           borderRadius: BorderRadius.circular(24),
+          boxShadow: isDark && !isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
         child: Text(
           unit,
           style: TextStyle(
-            color: isSelected ? Colors.white : const Color(0xFF676B74),
+            color: isSelected ? selectedTextColor : unselectedTextColor,
             fontSize: 18,
             fontWeight: FontWeight.w700,
           ),
@@ -305,7 +361,7 @@ class _HeightScreenState extends State<HeightScreen> {
       child: CircularProgressButton(
         progress: 0.8, // 80% progress (step 4/5)
         onTap: _handleNext,
-        isEnabled: true, // Always enabled on height screen
+        isEnabled: true,
       ),
     );
   }

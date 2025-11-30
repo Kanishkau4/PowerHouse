@@ -31,7 +31,7 @@ class _AgeScreenState extends State<AgeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: context.surfaceColor,
+      backgroundColor: context.surfaceColor, // ✅ DARK MODE
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 30.0),
@@ -66,8 +66,10 @@ class _AgeScreenState extends State<AgeScreen> {
     );
   }
 
-  // Outline Title Widget (Same as Gender Screen)
+  // Outline Title Widget
   Widget _buildOutlineTitle() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Stack(
       children: [
         // Outline text
@@ -80,14 +82,17 @@ class _AgeScreenState extends State<AgeScreen> {
             foreground: Paint()
               ..style = PaintingStyle.stroke
               ..strokeWidth = 2
-              ..color = const Color.fromARGB(255, 0, 0, 0),
+              ..color = isDark
+                  ? Colors
+                        .white // ✅ DARK MODE: White outline
+                  : Colors.black, // Light mode: Black outline
           ),
         ),
-        // Solid text
-        const Text(
+        // Solid text (transparent/surface color fill)
+        Text(
           'PowerHouse',
           style: TextStyle(
-            color: Colors.white,
+            color: context.surfaceColor, // ✅ DARK MODE: Matches background
             fontSize: 48,
             fontWeight: FontWeight.w700,
             letterSpacing: -2,
@@ -101,12 +106,12 @@ class _AgeScreenState extends State<AgeScreen> {
   Widget _buildHeading() {
     return RichText(
       textAlign: TextAlign.center,
-      text: const TextSpan(
+      text: TextSpan(
         children: [
           TextSpan(
             text: 'And\nYour ',
             style: TextStyle(
-              color: Colors.black,
+              color: context.primaryText, // ✅ DARK MODE
               fontSize: 48,
               fontWeight: FontWeight.w800,
               height: 1.1,
@@ -115,7 +120,7 @@ class _AgeScreenState extends State<AgeScreen> {
           TextSpan(
             text: 'age?',
             style: TextStyle(
-              color: Color(0xFF1DAB87),
+              color: context.primaryColor, // ✅ DARK MODE
               fontSize: 48,
               fontWeight: FontWeight.w800,
               height: 1.1,
@@ -128,21 +133,41 @@ class _AgeScreenState extends State<AgeScreen> {
 
   // Age Picker Widget
   Widget _buildAgePicker() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Colors for non-selected items based on theme
+    final nearbyTextColor = isDark
+        ? Colors
+              .grey
+              .shade500 // ✅ DARK MODE
+        : const Color(0xFF9EA0A5);
+
+    final farTextColor = isDark
+        ? Colors
+              .grey
+              .shade700 // ✅ DARK MODE
+        : const Color(0xFFD7D7D8);
+
     return Center(
       child: Stack(
         alignment: Alignment.center,
         children: [
           // Selection highlight container
           Container(
-            height: 120, // Increased from 118 to better match item size
-            width: 220, // Increased from 218 for better visual balance
+            height: 120,
+            width: 220,
             decoration: BoxDecoration(
-              color: const Color(0xFFF97316),
+              color: context.accentColor, // ✅ DARK MODE (Orange)
               borderRadius: BorderRadius.circular(48),
-              border: Border.all(color: const Color(0xFFFFEDD5), width: 1),
+              border: Border.all(
+                color: isDark
+                    ? context.accentColor.withOpacity(0.5) // ✅ DARK MODE
+                    : const Color(0xFFFFEDD5),
+                width: 1,
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFFF97316).withOpacity(0.25),
+                  color: context.accentColor.withOpacity(0.25), // ✅ DARK MODE
                   blurRadius: 20,
                   spreadRadius: 4,
                 ),
@@ -155,7 +180,7 @@ class _AgeScreenState extends State<AgeScreen> {
             height: 400,
             child: ListWheelScrollView.useDelegate(
               controller: _scrollController,
-              itemExtent: 100, // Increased from 80 to accommodate larger font
+              itemExtent: 100,
               diameterRatio: 1.5,
               perspective: 0.001,
               physics: const FixedExtentScrollPhysics(),
@@ -178,17 +203,16 @@ class _AgeScreenState extends State<AgeScreen> {
                   FontWeight fontWeight;
 
                   if (isSelected) {
-                    fontSize =
-                        80; // Reduced from 96 to better fit in item extent
-                    textColor = Colors.white;
+                    fontSize = 80;
+                    textColor = Colors.white; // Always white on orange
                     fontWeight = FontWeight.w800;
                   } else if (difference == 1) {
                     fontSize = 60;
-                    textColor = const Color(0xFF9EA0A5);
+                    textColor = nearbyTextColor; // ✅ DARK MODE
                     fontWeight = FontWeight.w700;
                   } else {
                     fontSize = 30;
-                    textColor = const Color(0xFFD7D7D8);
+                    textColor = farTextColor; // ✅ DARK MODE
                     fontWeight = FontWeight.w700;
                   }
 

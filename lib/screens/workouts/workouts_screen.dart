@@ -23,6 +23,7 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
 
   // Categories (matching database)
   final List<String> categories = [
+    'Recommended',
     'All',
     'Home Workout',
     'Gym',
@@ -35,6 +36,7 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
   List<WorkoutModel> allWorkouts = [];
   List<WorkoutModel> filteredWorkouts = [];
   String? profilePictureUrl;
+  String? userGoal;
 
   // Loading & search
   bool _isLoading = true;
@@ -52,9 +54,10 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
     });
 
     try {
-      // Load user profile for picture
+      // Load user profile for picture and goal
       final profile = await _userService.getCurrentUserProfile();
       profilePictureUrl = profile?.profilePictureUrl;
+      userGoal = profile?.fitnessGoal;
 
       // Load all workouts
       allWorkouts = await _workoutService.getAllWorkouts();
@@ -78,6 +81,9 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
     setState(() {
       // Filter by category
       if (selectedCategoryIndex == 0) {
+        // Recommended - filter by user goal
+        filteredWorkouts = _getRecommendedWorkouts();
+      } else if (selectedCategoryIndex == 1) {
         // All
         filteredWorkouts = allWorkouts;
       } else {
@@ -100,6 +106,29 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
         }).toList();
       }
     });
+  }
+
+  List<WorkoutModel> _getRecommendedWorkouts() {
+    if (userGoal == null || userGoal!.isEmpty || userGoal == 'try_app') {
+      return allWorkouts;
+    }
+
+    List<String> categories = [];
+    switch (userGoal!.toLowerCase()) {
+      case 'lose_weight':
+        categories = ['Cardio', 'Home Workout'];
+        break;
+      case 'gain_muscle':
+        categories = ['Gym', 'Strength'];
+        break;
+      case 'gain_endurance':
+        categories = ['Cardio', 'Home Workout'];
+        break;
+      default:
+        return allWorkouts;
+    }
+
+    return allWorkouts.where((w) => categories.contains(w.category)).toList();
   }
 
   @override
@@ -320,7 +349,7 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
         children: [
           Text(
             selectedCategoryIndex == 0
-                ? 'All Workouts'
+                ? 'Recommended Workouts'
                 : categories[selectedCategoryIndex],
             style: TextStyle(
               fontSize: 24,

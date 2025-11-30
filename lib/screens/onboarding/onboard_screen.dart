@@ -1,8 +1,87 @@
 import 'package:flutter/material.dart';
 import 'package:powerhouse/services/auth_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:async';
 
-class OnboardScreen extends StatelessWidget {
+class OnboardScreen extends StatefulWidget {
   const OnboardScreen({super.key});
+
+  @override
+  State<OnboardScreen> createState() => _OnboardScreenState();
+}
+
+class _OnboardScreenState extends State<OnboardScreen> {
+  final _authService = AuthService();
+  StreamSubscription<AuthState>? _authSubscription;
+  bool _isProcessingAuth = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _setupAuthListener();
+  }
+
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    super.dispose();
+  }
+
+  // Setup auth state listener for OAuth callbacks
+  void _setupAuthListener() {
+    _authSubscription = _authService.authStateChanges.listen((authState) {
+      if (!mounted || _isProcessingAuth) return;
+
+      final session = authState.session;
+      if (session != null && authState.event == AuthChangeEvent.signedIn) {
+        _handleAuthSuccess();
+      }
+    });
+  }
+
+  // Handle successful authentication (OAuth callback)
+  Future<void> _handleAuthSuccess() async {
+    if (_isProcessingAuth) return;
+
+    setState(() {
+      _isProcessingAuth = true;
+    });
+
+    try {
+      // Check if profile exists and is complete
+      final hasProfile = await _authService.doesProfileExist();
+
+      if (!mounted) return;
+
+      if (!hasProfile) {
+        // No profile, navigate to profile setup
+        Navigator.pushReplacementNamed(context, '/gender');
+      } else {
+        // Profile exists, check if it's complete
+        final profile = await _authService.getUserProfile();
+
+        if (!mounted) return;
+
+        if (profile != null &&
+            profile['height'] != null &&
+            profile['current_weight'] != null &&
+            profile['fitness_goal'] != null) {
+          // Profile is complete, navigate to home
+          Navigator.pushReplacementNamed(context, '/home');
+        } else {
+          // Profile is incomplete, navigate to profile setup
+          Navigator.pushReplacementNamed(context, '/gender');
+        }
+      }
+    } catch (e) {
+      print('Error handling auth success: $e');
+      if (mounted) {
+        setState(() {
+          _isProcessingAuth = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -147,10 +226,7 @@ class OnboardScreen extends StatelessWidget {
   // Google Sign-In Button
   Widget _buildGoogleSignInButton(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        // Implement Google Sign-In
-        _handleGoogleSignIn(context);
-      },
+      onTap: _isProcessingAuth ? null : () => _handleGoogleSignIn(context),
       child: Container(
         width: double.infinity,
         height: 58,
@@ -162,22 +238,32 @@ class OnboardScreen extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset(
-              'assets/icons/google_logo.png',
-              width: 28,
-              height: 28,
-              errorBuilder: (context, error, stackTrace) {
-                return const Icon(
-                  Icons.g_mobiledata,
-                  size: 28,
-                  color: Color(0xFF6489FA),
-                );
-              },
-            ),
+            if (_isProcessingAuth)
+              const SizedBox(
+                width: 28,
+                height: 28,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6489FA)),
+                ),
+              )
+            else
+              Image.asset(
+                'assets/icons/google_logo.png',
+                width: 28,
+                height: 28,
+                errorBuilder: (context, error, stackTrace) {
+                  return const Icon(
+                    Icons.g_mobiledata,
+                    size: 28,
+                    color: Color(0xFF6489FA),
+                  );
+                },
+              ),
             const SizedBox(width: 12),
-            const Text(
-              'Sign in with Google',
-              style: TextStyle(
+            Text(
+              _isProcessingAuth ? 'Signing in...' : 'Sign in with Google',
+              style: const TextStyle(
                 color: Color(0xFF6489FA),
                 fontSize: 18,
                 fontWeight: FontWeight.w500,
@@ -259,21 +345,20 @@ class OnboardScreen extends StatelessWidget {
 
   // Handle Google Sign-In
   void _handleGoogleSignIn(BuildContext context) async {
-    try {
-      final authService = AuthService();
-      final success = await authService.signInWithGoogle();
+    if (_isProcessingAuth) return;
 
-      if (success) {
-        // Navigate to next step or home screen
-        // The actual navigation will be handled by the auth state listener
-        // Show a loading indicator or success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Redirecting to Google...'),
-            backgroundColor: Color(0xFF1DAB87),
-          ),
-        );
-      } else {
+    setState(() {
+      _isProcessingAuth = true;
+    });
+
+    try {
+      final success = await _authService.signInWithGoogle();
+
+      if (!success && mounted) {
+        setState(() {
+          _isProcessingAuth = false;
+        });
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Google sign in failed. Please try again.'),
@@ -281,13 +366,20 @@ class OnboardScreen extends StatelessWidget {
           ),
         );
       }
+      // If success, the auth state listener will handle navigation
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        setState(() {
+          _isProcessingAuth = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 }

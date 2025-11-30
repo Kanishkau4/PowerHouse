@@ -41,7 +41,7 @@ class _WeightScreenState extends State<WeightScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: context.surfaceColor,
+      backgroundColor: context.surfaceColor, // ✅ DARK MODE
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -76,9 +76,8 @@ class _WeightScreenState extends State<WeightScreen> {
                       // Unit Toggle
                       _buildUnitToggle(),
 
-                      const SizedBox(
-                        height: 30,
-                      ), // Replace Spacer with fixed height
+                      const SizedBox(height: 30),
+
                       // Next Button
                       _buildNextButton(),
 
@@ -95,8 +94,11 @@ class _WeightScreenState extends State<WeightScreen> {
   }
 
   Widget _buildOutlineTitle() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Stack(
       children: [
+        // Outline text
         Text(
           'PowerHouse',
           style: TextStyle(
@@ -106,13 +108,17 @@ class _WeightScreenState extends State<WeightScreen> {
             foreground: Paint()
               ..style = PaintingStyle.stroke
               ..strokeWidth = 2
-              ..color = const Color.fromARGB(255, 0, 0, 0),
+              ..color = isDark
+                  ? Colors
+                        .white // ✅ DARK MODE
+                  : Colors.black,
           ),
         ),
-        const Text(
+        // Solid text
+        Text(
           'PowerHouse',
           style: TextStyle(
-            color: Colors.white,
+            color: context.surfaceColor, // ✅ DARK MODE
             fontSize: 48,
             fontWeight: FontWeight.w700,
             letterSpacing: -2,
@@ -125,12 +131,12 @@ class _WeightScreenState extends State<WeightScreen> {
   Widget _buildHeading() {
     return RichText(
       textAlign: TextAlign.center,
-      text: const TextSpan(
+      text: TextSpan(
         children: [
           TextSpan(
             text: 'How much\n',
             style: TextStyle(
-              color: Colors.black,
+              color: context.primaryText, // ✅ DARK MODE
               fontSize: 48,
               fontWeight: FontWeight.w800,
               height: 1.1,
@@ -139,7 +145,7 @@ class _WeightScreenState extends State<WeightScreen> {
           TextSpan(
             text: 'Weight?',
             style: TextStyle(
-              color: Color(0xFF1DAB87),
+              color: context.primaryColor, // ✅ DARK MODE
               fontSize: 48,
               fontWeight: FontWeight.w800,
               height: 1.1,
@@ -157,8 +163,8 @@ class _WeightScreenState extends State<WeightScreen> {
       children: [
         Text(
           selectedWeight.toInt().toString(),
-          style: const TextStyle(
-            color: Color(0xFF101114),
+          style: TextStyle(
+            color: context.primaryText, // ✅ DARK MODE
             fontSize: 90,
             fontWeight: FontWeight.w800,
             letterSpacing: -1.92,
@@ -168,8 +174,8 @@ class _WeightScreenState extends State<WeightScreen> {
           padding: const EdgeInsets.only(bottom: 20, left: 8),
           child: Text(
             selectedUnit,
-            style: const TextStyle(
-              color: Color(0xFF676B74),
+            style: TextStyle(
+              color: context.secondaryText, // ✅ DARK MODE
               fontSize: 36,
               fontWeight: FontWeight.w500,
               letterSpacing: -0.43,
@@ -181,13 +187,38 @@ class _WeightScreenState extends State<WeightScreen> {
   }
 
   Widget _buildRuler() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Tick colors based on theme
+    final majorTickColor = isDark
+        ? Colors
+              .grey
+              .shade500 // ✅ DARK MODE
+        : const Color(0xFFB9BBBE);
+
+    final minorTickColor = isDark
+        ? Colors
+              .grey
+              .shade700 // ✅ DARK MODE
+        : const Color(0xFFD7D7D8);
+
+    final labelColor = isDark
+        ? Colors
+              .grey
+              .shade400 // ✅ DARK MODE
+        : const Color(0xFF676B74);
+
     return SizedBox(
       height: 160,
       child: Stack(
         alignment: Alignment.center,
         children: [
           // Center indicator line
-          Container(width: 4, height: 80, color: const Color(0xFFF97316)),
+          Container(
+            width: 4,
+            height: 80,
+            color: context.accentColor, // ✅ DARK MODE (Orange)
+          ),
 
           // Scrollable ruler
           SingleChildScrollView(
@@ -212,8 +243,8 @@ class _WeightScreenState extends State<WeightScreen> {
                           height: isMajorTick ? 56 : 24,
                           decoration: BoxDecoration(
                             color: isMajorTick
-                                ? const Color(0xFFB9BBBE)
-                                : const Color(0xFFD7D7D8),
+                                ? majorTickColor // ✅ DARK MODE
+                                : minorTickColor, // ✅ DARK MODE
                             borderRadius: BorderRadius.circular(
                               isMajorTick ? 1.5 : 0.75,
                             ),
@@ -225,8 +256,8 @@ class _WeightScreenState extends State<WeightScreen> {
                           const SizedBox(height: 44),
                           Text(
                             weight.toString(),
-                            style: const TextStyle(
-                              color: Color(0xFF676B74),
+                            style: TextStyle(
+                              color: labelColor, // ✅ DARK MODE
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                             ),
@@ -256,7 +287,25 @@ class _WeightScreenState extends State<WeightScreen> {
   }
 
   Widget _buildUnitButton(String unit) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isSelected = selectedUnit == unit;
+
+    // Colors based on theme and selection state
+    final selectedBgColor = context.primaryColor;
+    final unselectedBgColor = isDark
+        ? context
+              .cardBackground // ✅ DARK MODE
+        : Colors.white;
+
+    final selectedBorderColor = context.primaryColor;
+    final unselectedBorderColor = isDark
+        ? Colors
+              .grey
+              .shade600 // ✅ DARK MODE
+        : const Color(0xFFD7D7D8);
+
+    final selectedTextColor = Colors.white;
+    final unselectedTextColor = context.secondaryText; // ✅ DARK MODE
 
     return GestureDetector(
       onTap: () {
@@ -272,18 +321,25 @@ class _WeightScreenState extends State<WeightScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF1DAB87) : Colors.white,
+          color: isSelected ? selectedBgColor : unselectedBgColor,
           border: Border.all(
-            color: isSelected
-                ? const Color(0xFF1DAB87)
-                : const Color(0xFFD7D7D8),
+            color: isSelected ? selectedBorderColor : unselectedBorderColor,
           ),
           borderRadius: BorderRadius.circular(20),
+          boxShadow: isDark && !isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
         child: Text(
           unit,
           style: TextStyle(
-            color: isSelected ? Colors.white : const Color(0xFF676B74),
+            color: isSelected ? selectedTextColor : unselectedTextColor,
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
@@ -297,7 +353,7 @@ class _WeightScreenState extends State<WeightScreen> {
       child: CircularProgressButton(
         progress: 0.6, // 60% progress (step 3/5)
         onTap: _handleNext,
-        isEnabled: true, // Always enabled on weight screen
+        isEnabled: true,
       ),
     );
   }

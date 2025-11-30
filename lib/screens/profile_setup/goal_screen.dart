@@ -42,7 +42,7 @@ class _GoalScreenState extends State<GoalScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: context.surfaceColor,
+      backgroundColor: context.surfaceColor, // ✅ DARK MODE
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 30.0),
@@ -87,9 +87,12 @@ class _GoalScreenState extends State<GoalScreen> {
   }
 
   Widget _buildOutlineTitle() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Center(
       child: Stack(
         children: [
+          // Outline text
           Text(
             'PowerHouse',
             style: TextStyle(
@@ -99,13 +102,17 @@ class _GoalScreenState extends State<GoalScreen> {
               foreground: Paint()
                 ..style = PaintingStyle.stroke
                 ..strokeWidth = 2
-                ..color = const Color.fromARGB(255, 0, 0, 0),
+                ..color = isDark
+                    ? Colors
+                          .white // ✅ DARK MODE
+                    : Colors.black,
             ),
           ),
-          const Text(
+          // Solid text
+          Text(
             'PowerHouse',
             style: TextStyle(
-              color: Colors.white,
+              color: context.surfaceColor, // ✅ DARK MODE
               fontSize: 48,
               fontWeight: FontWeight.w700,
               letterSpacing: -2,
@@ -120,12 +127,12 @@ class _GoalScreenState extends State<GoalScreen> {
     return Center(
       child: RichText(
         textAlign: TextAlign.center,
-        text: const TextSpan(
+        text: TextSpan(
           children: [
             TextSpan(
               text: 'What is your\n',
               style: TextStyle(
-                color: Colors.black,
+                color: context.primaryText, // ✅ DARK MODE
                 fontSize: 48,
                 fontWeight: FontWeight.w800,
                 height: 1.1,
@@ -134,7 +141,7 @@ class _GoalScreenState extends State<GoalScreen> {
             TextSpan(
               text: 'Goal?',
               style: TextStyle(
-                color: Color(0xFF1DAB87),
+                color: context.primaryColor, // ✅ DARK MODE
                 fontSize: 48,
                 fontWeight: FontWeight.w800,
                 height: 1.1,
@@ -147,7 +154,29 @@ class _GoalScreenState extends State<GoalScreen> {
   }
 
   Widget _buildGoalCard(GoalOption goal) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isSelected = selectedGoal == goal.id;
+
+    // Background colors based on theme and selection
+    final selectedBgColor = context.accentColor.withOpacity(isDark ? 0.2 : 0.1);
+    final unselectedBgColor = isDark
+        ? context
+              .cardBackground // ✅ DARK MODE
+        : const Color(0xFFF3F3F3);
+
+    // Border colors
+    final selectedBorderColor = context.accentColor;
+    final unselectedBorderColor = Colors.transparent;
+
+    // Text color
+    final textColor = context.primaryText; // ✅ DARK MODE
+
+    // Unselected checkbox border
+    final checkboxBorderColor = isDark
+        ? Colors
+              .grey
+              .shade600 // ✅ DARK MODE
+        : const Color(0xFFD7D7D8);
 
     return GestureDetector(
       onTap: () {
@@ -159,14 +188,29 @@ class _GoalScreenState extends State<GoalScreen> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: isSelected
-              ? const Color(0xFFF97316).withOpacity(0.1)
-              : const Color(0xFFF3F3F3),
+          color: isSelected ? selectedBgColor : unselectedBgColor,
           borderRadius: BorderRadius.circular(19),
           border: Border.all(
-            color: isSelected ? const Color(0xFFF97316) : Colors.transparent,
+            color: isSelected ? selectedBorderColor : unselectedBorderColor,
             width: 2,
           ),
+          boxShadow: isDark && !isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : (isSelected
+                    ? [
+                        BoxShadow(
+                          color: context.accentColor.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ]
+                    : null),
         ),
         child: Row(
           children: [
@@ -176,13 +220,18 @@ class _GoalScreenState extends State<GoalScreen> {
               height: 48,
               decoration: BoxDecoration(
                 color: isSelected
-                    ? const Color(0xFFF97316)
-                    : goal.color.withOpacity(0.2),
+                    ? context
+                          .accentColor // ✅ DARK MODE
+                    : goal.color.withOpacity(isDark ? 0.3 : 0.2),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 goal.icon,
-                color: isSelected ? Colors.white : goal.color,
+                color: isSelected
+                    ? Colors.white
+                    : (isDark
+                          ? goal.color.withOpacity(0.9) // Brighter in dark mode
+                          : goal.color),
                 size: 24,
               ),
             ),
@@ -194,7 +243,7 @@ class _GoalScreenState extends State<GoalScreen> {
               child: Text(
                 goal.title,
                 style: TextStyle(
-                  color: const Color(0xFF101114),
+                  color: textColor, // ✅ DARK MODE
                   fontSize: 16,
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
                 ),
@@ -206,8 +255,8 @@ class _GoalScreenState extends State<GoalScreen> {
               Container(
                 width: 28,
                 height: 28,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFF97316),
+                decoration: BoxDecoration(
+                  color: context.accentColor, // ✅ DARK MODE
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.check, color: Colors.white, size: 18),
@@ -218,7 +267,10 @@ class _GoalScreenState extends State<GoalScreen> {
                 height: 28,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFFD7D7D8), width: 2),
+                  border: Border.all(
+                    color: checkboxBorderColor, // ✅ DARK MODE
+                    width: 2,
+                  ),
                 ),
               ),
           ],

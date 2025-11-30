@@ -142,8 +142,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               width: 24,
               height: 24,
               fit: BoxFit.contain,
-              // ✅ Add color filter for dark mode
-              color: context.primaryText,
+              // ✅ Removed color filter to show actual PNG color
               errorBuilder: (context, error, stackTrace) {
                 return Icon(
                   Icons.arrow_back,

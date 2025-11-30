@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
+import 'package:powerhouse/core/theme/theme_extensions.dart';
 import 'package:powerhouse/services/auth_service.dart';
 import 'package:powerhouse/widgets/animated_message.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -78,7 +79,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.surfaceColor, // ✅ DARK MODE
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
@@ -92,10 +93,10 @@ class _VerificationScreenState extends State<VerificationScreen> {
                 const SizedBox(height: 40),
 
                 // Title
-                const Text(
+                Text(
                   'Verification',
                   style: TextStyle(
-                    color: Colors.black,
+                    color: context.primaryText, // ✅ DARK MODE
                     fontSize: 32,
                     fontWeight: FontWeight.w800,
                   ),
@@ -106,8 +107,8 @@ class _VerificationScreenState extends State<VerificationScreen> {
                 // Subtitle with email
                 Text(
                   'We sent a 6-digit code to\n$_email',
-                  style: const TextStyle(
-                    color: Color(0xFF7E7E7E),
+                  style: TextStyle(
+                    color: context.secondaryText, // ✅ DARK MODE
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
                   ),
@@ -149,8 +150,13 @@ class _VerificationScreenState extends State<VerificationScreen> {
               width: 24,
               height: 24,
               fit: BoxFit.contain,
+              // ✅ Removed color filter to show actual PNG color
               errorBuilder: (context, error, stackTrace) {
-                return const Icon(Icons.arrow_back, size: 24);
+                return Icon(
+                  Icons.arrow_back,
+                  size: 24,
+                  color: context.primaryText, // ✅ DARK MODE
+                );
               },
             ),
           ),
@@ -159,10 +165,10 @@ class _VerificationScreenState extends State<VerificationScreen> {
           onTap: () {
             _showHelpDialog();
           },
-          child: const Text(
+          child: Text(
             'Need Help?',
             style: TextStyle(
-              color: Color(0xFF979797),
+              color: context.secondaryText, // ✅ DARK MODE
               fontSize: 15,
               fontWeight: FontWeight.w500,
             ),
@@ -173,6 +179,8 @@ class _VerificationScreenState extends State<VerificationScreen> {
   }
 
   Widget _buildOTPFields() {
+    // final isDark = Theme.of(context).brightness == Brightness.dark; // Unused
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: List.generate(6, (index) {
@@ -180,19 +188,21 @@ class _VerificationScreenState extends State<VerificationScreen> {
           width: 50, // Smaller to fit 6 digits
           height: 60,
           decoration: BoxDecoration(
+            color: context.inputBackground, // ✅ DARK MODE
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: _otpControllers[index].text.isNotEmpty
-                  ? const Color(0xFF1DAB87)
-                  : const Color(0xFF7E7E7E),
+                  ? context
+                        .primaryColor // ✅ DARK MODE
+                  : context.borderColor, // ✅ DARK MODE
               width: 2,
             ),
             // Adding outline effect with boxShadow
             boxShadow: [
               BoxShadow(
                 color: _otpControllers[index].text.isNotEmpty
-                    ? const Color(0xFF1DAB87).withOpacity(0.3)
-                    : const Color(0xFF7E7E7E).withOpacity(0.1),
+                    ? context.primaryColor.withOpacity(0.3) // ✅ DARK MODE
+                    : Colors.transparent,
                 offset: const Offset(0, 0),
                 blurRadius: 0,
                 spreadRadius: 1,
@@ -206,7 +216,11 @@ class _VerificationScreenState extends State<VerificationScreen> {
               textAlign: TextAlign.center,
               keyboardType: TextInputType.number,
               maxLength: 1,
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+                color: context.primaryText, // ✅ DARK MODE
+              ),
               decoration: const InputDecoration(
                 counterText: '',
                 border: InputBorder.none,
@@ -239,13 +253,14 @@ class _VerificationScreenState extends State<VerificationScreen> {
         height: 56,
         decoration: BoxDecoration(
           color: isComplete
-              ? const Color(0xFF1DAB87)
-              : const Color(0xFF1DAB87).withOpacity(0.5),
+              ? context
+                    .primaryColor // ✅ DARK MODE
+              : context.primaryColor.withOpacity(0.5), // ✅ DARK MODE
           borderRadius: BorderRadius.circular(16),
           boxShadow: isComplete
               ? [
                   BoxShadow(
-                    color: const Color(0xFF1DAB87).withOpacity(0.3),
+                    color: context.primaryColor.withOpacity(0.3), // ✅ DARK MODE
                     blurRadius: 15,
                     offset: const Offset(0, 5),
                   ),
@@ -276,8 +291,9 @@ class _VerificationScreenState extends State<VerificationScreen> {
           _canResend ? 'Resend Code' : 'Resend Code in ${_resendTimer}s',
           style: TextStyle(
             color: _canResend
-                ? const Color(0xFF1DAB87)
-                : const Color(0xFF7E7E7E),
+                ? context
+                      .primaryColor // ✅ DARK MODE
+                : context.secondaryText, // ✅ DARK MODE
             fontSize: 16,
             fontWeight: FontWeight.w500,
             decoration: _canResend
@@ -320,7 +336,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
         AnimatedMessage.show(
           context,
           message: 'Email verified successfully!',
-          backgroundColor: const Color(0xFF1DAB87),
+          backgroundColor: context.primaryColor,
           icon: Icons.check_circle_rounded,
         );
 
@@ -385,7 +401,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
       AnimatedMessage.show(
         context,
         message: 'New verification code sent!',
-        backgroundColor: const Color(0xFF1DAB87),
+        backgroundColor: context.primaryColor,
         icon: Icons.check_circle_rounded,
       );
 
@@ -404,20 +420,36 @@ class _VerificationScreenState extends State<VerificationScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: context.cardBackground, // ✅ DARK MODE
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Need Help?'),
-        content: const Text(
+        title: Text(
+          'Need Help?',
+          style: TextStyle(
+            color: context.primaryText, // ✅ DARK MODE
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        content: Text(
           'If you didn\'t receive the code:\n\n'
           '1. Check your spam/junk folder\n'
           '2. Make sure your email is correct\n'
           '3. Wait for the timer and click "Resend Code"\n\n'
           'Still having issues?\n'
           'Contact us: support@powerhouse.lk',
+          style: TextStyle(
+            color: context.secondaryText, // ✅ DARK MODE
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('OK', style: TextStyle(color: Color(0xFF1DAB87))),
+            child: Text(
+              'OK',
+              style: TextStyle(
+                color: context.primaryColor, // ✅ DARK MODE
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),

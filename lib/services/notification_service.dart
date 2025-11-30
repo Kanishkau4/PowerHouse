@@ -2,6 +2,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -17,7 +18,8 @@ class NotificationService {
   static const int breakfastReminderId = 2;
   static const int lunchReminderId = 3;
   static const int dinnerReminderId = 4;
-  static const int waterReminderId = 5;
+  static const int waterReminderId =
+      100; // Changed to avoid conflict with other IDs
   static const int weeklyReportId = 6;
   static const int monthlyReportId = 7;
   static const int challengeStartId = 8;
@@ -551,5 +553,111 @@ class NotificationService {
   Future<void> cancelAllNotifications() async {
     await _notifications.cancelAll();
     print('✅ All notifications cancelled');
+  }
+
+  // ==================== INITIALIZATION CHECKS ====================
+  Future<void> checkAndScheduleNotifications() async {
+    try {
+      print('🔔 Checking and scheduling enabled notifications...');
+      final prefs = await SharedPreferences.getInstance();
+
+      // 1. Daily Tips
+      if (prefs.getBool('daily_tips_enabled') ?? false) {
+        final hour = prefs.getInt('notification_hour') ?? 9;
+        final minute = prefs.getInt('notification_minute') ?? 0;
+        await scheduleDailyTipNotification(hour: hour, minute: minute);
+      }
+
+      // 2. Workout Reminders (Default: true)
+      if (prefs.getBool('workout_reminders') ?? true) {
+        final timeStr = prefs.getString('workout_reminder_time') ?? '07:00 AM';
+        final time = _parseTimeString(timeStr);
+        await scheduleWorkoutReminder(hour: time.hour, minute: time.minute);
+      }
+
+      // 3. Meal Reminders (Default: true)
+      if (prefs.getBool('meal_reminders') ?? true) {
+        final breakfastStr = prefs.getString('breakfast_time') ?? '08:00 AM';
+        final lunchStr = prefs.getString('lunch_time') ?? '12:30 PM';
+        final dinnerStr = prefs.getString('dinner_time') ?? '07:00 PM';
+
+        final breakfast = _parseTimeString(breakfastStr);
+        final lunch = _parseTimeString(lunchStr);
+        final dinner = _parseTimeString(dinnerStr);
+
+        await scheduleMealReminders(
+          breakfastHour: breakfast.hour,
+          breakfastMinute: breakfast.minute,
+          lunchHour: lunch.hour,
+          lunchMinute: lunch.minute,
+          dinnerHour: dinner.hour,
+          dinnerMinute: dinner.minute,
+        );
+      }
+
+      // 4. Water Reminders (Default: true)
+      if (prefs.getBool('water_reminders') ?? true) {
+        await scheduleWaterReminders();
+      }
+
+      // 5. Weekly Report (Default: true)
+      if (prefs.getBool('weekly_progress_report') ?? true) {
+        final dayStr = prefs.getString('weekly_report_day') ?? 'Sunday';
+        final dayOfWeek = _getDayOfWeekNumber(dayStr);
+        await scheduleWeeklyReport(dayOfWeek: dayOfWeek);
+      }
+
+      // 6. Monthly Report (Default: true)
+      if (prefs.getBool('monthly_report') ?? true) {
+        await scheduleMonthlyReport();
+      }
+
+      print('✅ All enabled notifications scheduled');
+    } catch (e) {
+      print('❌ Error checking/scheduling notifications: $e');
+    }
+  }
+
+  TimeOfDay _parseTimeString(String timeStr) {
+    try {
+      // Format: "HH:MM AM/PM"
+      final parts = timeStr.split(' ');
+      final timeParts = parts[0].split(':');
+      int hour = int.parse(timeParts[0]);
+      final int minute = int.parse(timeParts[1]);
+      final isPM = parts[1] == 'PM';
+
+      if (isPM && hour != 12) {
+        hour += 12;
+      } else if (!isPM && hour == 12) {
+        hour = 0;
+      }
+
+      return TimeOfDay(hour: hour, minute: minute);
+    } catch (e) {
+      print('Error parsing time string: $e');
+      return const TimeOfDay(hour: 9, minute: 0); // Default fallback
+    }
+  }
+
+  int _getDayOfWeekNumber(String day) {
+    switch (day) {
+      case 'Monday':
+        return 1;
+      case 'Tuesday':
+        return 2;
+      case 'Wednesday':
+        return 3;
+      case 'Thursday':
+        return 4;
+      case 'Friday':
+        return 5;
+      case 'Saturday':
+        return 6;
+      case 'Sunday':
+        return 7;
+      default:
+        return 7;
+    }
   }
 }

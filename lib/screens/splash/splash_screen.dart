@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 // ignore: depend_on_referenced_packages
 import 'package:lottie/lottie.dart';
+import 'package:powerhouse/core/config/supabase_config.dart';
+import 'package:powerhouse/core/routes/app_routes.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -21,17 +23,26 @@ class _SplashScreenState extends State<SplashScreen>
 
     // Set speed and play once (no repeat)
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      controller.duration = const Duration(seconds: 4); // slower animation (x0.5 roughly)
+      controller.duration = const Duration(
+        seconds: 4,
+      ); // slower animation (x0.5 roughly)
       controller.forward(); // play once
     });
 
-    _navigateToWelcome();
+    _checkSessionAndNavigate();
   }
 
-  _navigateToWelcome() async {
-    await Future.delayed(const Duration(seconds: 4)); // increase splash duration
-    if (mounted) {
-      Navigator.pushReplacementNamed(context, '/welcome');
+  _checkSessionAndNavigate() async {
+    await Future.delayed(
+      const Duration(seconds: 4),
+    ); // increase splash duration
+    if (!mounted) return;
+
+    final session = SupabaseConfig.client.auth.currentSession;
+    if (session != null) {
+      Navigator.pushReplacementNamed(context, AppRoutes.MainNavigation);
+    } else {
+      Navigator.pushReplacementNamed(context, AppRoutes.welcome);
     }
   }
 

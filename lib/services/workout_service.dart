@@ -26,6 +26,63 @@ class WorkoutService {
     }
   }
 
+  // ========== GET RECOMMENDED WORKOUTS BY GOAL ==========
+  Future<List<WorkoutModel>> getRecommendedWorkouts(String? goal) async {
+    try {
+      print('🎯 Getting recommended workouts for goal: $goal');
+
+      // If no goal specified, return all workouts
+      if (goal == null || goal.isEmpty || goal == 'try_app') {
+        print('📋 No specific goal or try_app, returning all workouts');
+        return getAllWorkouts();
+      }
+
+      // Map goals to relevant categories
+      List<String> categories = [];
+      switch (goal.toLowerCase()) {
+        case 'lose_weight':
+          categories = ['Cardio', 'Home Workout'];
+          break;
+        case 'gain_muscle':
+          categories = ['Gym', 'Strength'];
+          break;
+        case 'gain_endurance':
+          categories = ['Cardio', 'Home Workout'];
+          break;
+        default:
+          // Unknown goal, return all workouts
+          print('⚠️ Unknown goal: $goal, returning all workouts');
+          return getAllWorkouts();
+      }
+
+      print('🏋️ Filtering by categories: $categories');
+
+      // Build OR filter for categories
+      final categoryFilters = categories
+          .map((cat) => 'category.eq.$cat')
+          .join(',');
+
+      print('🔍 Filter string: $categoryFilters');
+
+      // Query workouts matching the categories
+      final response = await _supabase
+          .from('workouts')
+          .select()
+          .or(categoryFilters)
+          .order('workout_name');
+
+      final workouts = (response as List)
+          .map((json) => WorkoutModel.fromJson(json))
+          .toList();
+
+      print('✅ Found ${workouts.length} recommended workouts');
+      return workouts;
+    } catch (e) {
+      print('❌ Error getting recommended workouts: $e');
+      return [];
+    }
+  }
+
   // ========== GET WORKOUT BY ID WITH EXERCISES (FIXED) ==========
   Future<WorkoutModel?> getWorkoutWithExercises(String workoutId) async {
     try {

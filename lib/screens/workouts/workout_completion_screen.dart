@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'dart:async';
 import 'package:powerhouse/models/workout_model.dart';
+import 'package:powerhouse/models/badge_model.dart';
 import 'package:powerhouse/services/workout_service.dart';
 import 'package:powerhouse/widgets/animated_message.dart';
-import 'package:powerhouse/core/theme/theme_extensions.dart'; // ✅ ADD THIS
+import 'package:powerhouse/core/theme/theme_extensions.dart';
+import 'package:powerhouse/screens/achievements/badge_unlock_screen.dart';
 
 class WorkoutCompletionScreen extends StatefulWidget {
   final WorkoutModel workout;
@@ -112,8 +114,31 @@ class _WorkoutCompletionScreenState extends State<WorkoutCompletionScreen>
 
       // Check for level up
       if (result['leveled_up'] == true) {
-        Future.delayed(const Duration(seconds: 2), () {
-          _showLevelUpDialog(result['current_level']);
+        Future.delayed(const Duration(seconds: 2), () async {
+          await _showLevelUpDialog(result['current_level']);
+
+          // Show badge unlock animations for newly earned badges
+          if (result['new_badges'] != null &&
+              (result['new_badges'] as List).isNotEmpty) {
+            final newBadges = (result['new_badges'] as List)
+                .map((badgeData) => BadgeModel.fromJson(badgeData))
+                .toList();
+
+            // Wait a bit after level up dialog
+            await Future.delayed(const Duration(milliseconds: 500));
+
+            // Show each badge unlock screen
+            for (final badge in newBadges) {
+              if (mounted) {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => BadgeUnlockScreen(badge: badge),
+                  ),
+                );
+              }
+            }
+          }
         });
       }
     } catch (e) {
@@ -132,10 +157,10 @@ class _WorkoutCompletionScreenState extends State<WorkoutCompletionScreen>
     }
   }
 
-  void _showLevelUpDialog(int newLevel) {
+  Future<void> _showLevelUpDialog(int newLevel) async {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    showDialog(
+    await showDialog(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => Stack(

@@ -35,6 +35,9 @@ void main() async {
   // Schedule inactivity reminder (will notify if user doesn't use app for 3 days)
   await NotificationService().scheduleInactivityReminder();
 
+  // Check and schedule other enabled notifications (workout, meals, etc.)
+  await NotificationService().checkAndScheduleNotifications();
+
   runApp(const MyApp());
 }
 

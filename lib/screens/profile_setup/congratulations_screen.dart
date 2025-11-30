@@ -58,7 +58,7 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: context.surfaceColor,
+      backgroundColor: context.surfaceColor, // ✅ DARK MODE
       body: SafeArea(
         child: Stack(
           children: [
@@ -108,8 +108,10 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
             if (_isSaving)
               Container(
                 color: Colors.black54,
-                child: const Center(
-                  child: CircularProgressIndicator(color: Color(0xFF1DAB87)),
+                child: Center(
+                  child: CircularProgressIndicator(
+                    color: context.primaryColor, // ✅ DARK MODE
+                  ),
                 ),
               ),
           ],
@@ -119,8 +121,11 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
   }
 
   Widget _buildOutlineTitle() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Stack(
       children: [
+        // Outline text
         Text(
           'PowerHouse',
           style: TextStyle(
@@ -130,13 +135,17 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
             foreground: Paint()
               ..style = PaintingStyle.stroke
               ..strokeWidth = 2
-              ..color = const Color.fromARGB(255, 0, 0, 0),
+              ..color = isDark
+                  ? Colors
+                        .white // ✅ DARK MODE
+                  : Colors.black,
           ),
         ),
-        const Text(
+        // Solid text
+        Text(
           'PowerHouse',
           style: TextStyle(
-            color: Colors.white,
+            color: context.surfaceColor, // ✅ DARK MODE
             fontSize: 48,
             fontWeight: FontWeight.w700,
             letterSpacing: -2,
@@ -147,6 +156,8 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
   }
 
   Widget _buildSuccessIcon() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return SizedBox(
       width: 300,
       height: 300,
@@ -160,7 +171,9 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
             width: 200,
             height: 200,
             decoration: BoxDecoration(
-              color: const Color(0xFF1DAB87).withOpacity(0.1),
+              color: context.primaryColor.withOpacity(
+                isDark ? 0.2 : 0.1,
+              ), // ✅ DARK MODE
               shape: BoxShape.circle,
             ),
             child: Stack(
@@ -169,8 +182,8 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
                 Container(
                   width: 160,
                   height: 160,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF1DAB87),
+                  decoration: BoxDecoration(
+                    color: context.primaryColor, // ✅ DARK MODE
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -188,11 +201,11 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
   }
 
   Widget _buildCongratulationsText() {
-    return const Text(
+    return Text(
       'Congratulations!',
       textAlign: TextAlign.center,
       style: TextStyle(
-        color: Color(0xFF1DAB87),
+        color: context.primaryColor, // ✅ DARK MODE
         fontSize: 40,
         fontWeight: FontWeight.w800,
         height: 1.15,
@@ -201,11 +214,11 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
   }
 
   Widget _buildSubtitle() {
-    return const Text(
+    return Text(
       'Your profile is ready!',
       textAlign: TextAlign.center,
       style: TextStyle(
-        color: Colors.black,
+        color: context.primaryText, // ✅ DARK MODE
         fontSize: 20,
         fontWeight: FontWeight.w600,
       ),
@@ -221,6 +234,13 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
   }
 
   Widget _buildStartButton() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Disabled colors
+    final disabledColors = isDark
+        ? [Colors.grey.shade700, Colors.grey.shade600]
+        : [Colors.grey.shade400, Colors.grey.shade500];
+
     return GestureDetector(
       onTap: _profileSaved ? _handleStart : null,
       child: Container(
@@ -229,14 +249,14 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: _profileSaved
-                ? [const Color(0xFF1DAB87), const Color(0xFF2DD4A3)]
-                : [Colors.grey.shade400, Colors.grey.shade500],
+                ? [context.primaryColor, const Color(0xFF2DD4A3)] // ✅ DARK MODE
+                : disabledColors,
           ),
           borderRadius: BorderRadius.circular(30),
           boxShadow: _profileSaved
               ? [
                   BoxShadow(
-                    color: const Color(0xFF1DAB87).withOpacity(0.3),
+                    color: context.primaryColor.withOpacity(0.3), // ✅ DARK MODE
                     blurRadius: 20,
                     offset: const Offset(0, 10),
                   ),
@@ -323,7 +343,7 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
         AnimatedMessage.show(
           context,
           message: '✅ Profile created successfully!',
-          backgroundColor: Color(0xFF1DAB87),
+          backgroundColor: context.primaryColor,
           icon: Icons.check_circle_rounded,
           duration: const Duration(seconds: 2),
         );
@@ -357,9 +377,9 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
   void _handleStart() {
     if (!_profileSaved) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('⏳ Please wait while we save your profile...'),
-          backgroundColor: Color(0xFFF97316),
+        SnackBar(
+          content: const Text('⏳ Please wait while we save your profile...'),
+          backgroundColor: context.accentColor,
         ),
       );
       return;
@@ -372,7 +392,7 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
   }
 }
 
-// Confetti Particle Widget (same as before)
+// Confetti Particle Widget - Updated for Dark Mode
 class _ConfettiParticle extends StatefulWidget {
   final int index;
 
@@ -397,12 +417,15 @@ class _ConfettiParticleState extends State<_ConfettiParticle>
     leftPosition = random.nextDouble() * 400;
     delay = random.nextDouble() * 2;
 
+    // Confetti colors - these work well in both light and dark mode
     final colors = [
-      const Color(0xFF1DAB87),
-      const Color(0xFFFF6B6B),
-      const Color(0xFF4ECDC4),
-      const Color(0xFFFFE66D),
-      const Color(0xFFFF9ECD),
+      const Color(0xFF1DAB87), // Primary green
+      const Color(0xFFFF6B6B), // Red/Pink
+      const Color(0xFF4ECDC4), // Teal
+      const Color(0xFFFFE66D), // Yellow
+      const Color(0xFFFF9ECD), // Pink
+      const Color(0xFFF97316), // Orange (accent)
+      const Color(0xFFB19CD9), // Purple
     ];
     color = colors[random.nextInt(colors.length)];
 
@@ -437,7 +460,18 @@ class _ConfettiParticleState extends State<_ConfettiParticle>
             child: Container(
               width: 8,
               height: 8,
-              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+                // Add subtle glow effect for dark mode
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withOpacity(0.5),
+                    blurRadius: 4,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
             ),
           ),
         );

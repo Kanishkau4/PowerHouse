@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:powerhouse/core/theme/theme_extensions.dart';
 import 'package:powerhouse/screens/tips/bookmarked_tips_screen.dart';
 import 'package:powerhouse/widgets/animated_message.dart';
 import 'package:provider/provider.dart';
@@ -1539,72 +1540,73 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     // Try to get local asset path
     final assetPath = BadgeIcons.getAssetPath(badge.badgeName);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Gold color for badges (same in both modes for visibility)
+    const goldColor = Color(0xFFFFD700);
 
     return GestureDetector(
       onTap: () => _showBadgeDetail(badge),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 70,
-            height: 70,
-            decoration: BoxDecoration(
-              color: const Color(0xFF1DAB87),
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF1DAB87).withOpacity(0.3),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          // ✅ Optional: subtle background in dark mode for better visibility
+          color: isDark
+              ? context.cardBackground.withOpacity(0.5)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Badge icon without background circle
+            SizedBox(
+              width: 90,
+              height: 90,
               child: assetPath != null
                   ? Image.asset(
                       assetPath,
-                      color: Colors.white,
+                      fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) {
                         return const Icon(
                           Icons.emoji_events,
-                          color: Colors.white,
-                          size: 35,
+                          color: goldColor,
+                          size: 70,
                         );
                       },
                     )
                   : (badge.iconUrl != null && badge.iconUrl!.isNotEmpty
                         ? Image.network(
                             badge.iconUrl!,
-                            color: Colors.white,
+                            fit: BoxFit.contain,
                             errorBuilder: (context, error, stackTrace) {
                               return const Icon(
                                 Icons.emoji_events,
-                                color: Colors.white,
-                                size: 35,
+                                color: goldColor,
+                                size: 70,
                               );
                             },
                           )
                         : const Icon(
                             Icons.emoji_events,
-                            color: Colors.white,
-                            size: 35,
+                            color: goldColor,
+                            size: 70,
                           )),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            badge.badgeName,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: Colors.black,
+            const SizedBox(height: 8),
+            Text(
+              badge.badgeName,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: context.primaryText,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
