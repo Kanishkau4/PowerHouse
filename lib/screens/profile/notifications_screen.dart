@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:powerhouse/widgets/animated_message.dart';
 import 'package:provider/provider.dart';
-import 'package:powerhouse/services/user_service.dart';
 import 'package:powerhouse/core/theme/theme_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:powerhouse/services/notification_service.dart';
@@ -14,8 +13,6 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
-  final _userService = UserService();
-
   // General Notifications
   bool _pushNotifications = true;
   bool _emailNotifications = true;
@@ -68,17 +65,32 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Future<void> _loadNotificationSettings() async {
     try {
-      final user = await _userService.getCurrentUserProfile();
-      if (user != null) {
-        // In a real app, these settings would be stored in the database
-      }
+      final prefs = await SharedPreferences.getInstance();
 
       // Load daily tips settings
-      final prefs = await SharedPreferences.getInstance();
       _dailyTipsEnabled = prefs.getBool('daily_tips_enabled') ?? false;
       final hour = prefs.getInt('notification_hour') ?? 9;
       final minute = prefs.getInt('notification_minute') ?? 0;
       _notificationTime = TimeOfDay(hour: hour, minute: minute);
+
+      // Load workout reminder settings
+      _workoutReminders = prefs.getBool('workout_reminders') ?? true;
+      _workoutReminderTime =
+          prefs.getString('workout_reminder_time') ?? '07:00 AM';
+
+      // Load meal reminder settings
+      _mealReminders = prefs.getBool('meal_reminders') ?? true;
+      _breakfastTime = prefs.getString('breakfast_time') ?? '08:00 AM';
+      _lunchTime = prefs.getString('lunch_time') ?? '12:30 PM';
+      _dinnerTime = prefs.getString('dinner_time') ?? '07:00 PM';
+
+      // Load water reminder settings
+      _waterReminders = prefs.getBool('water_reminders') ?? true;
+
+      // Load progress report settings
+      _weeklyProgressReport = prefs.getBool('weekly_progress_report') ?? true;
+      _weeklyReportDay = prefs.getString('weekly_report_day') ?? 'Sunday';
+      _monthlyReport = prefs.getBool('monthly_report') ?? true;
 
       setState(() {
         _isLoading = false;
@@ -216,7 +228,29 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             title: 'Workout Reminders',
             subtitle: 'Daily reminders to complete your workout',
             value: _workoutReminders,
-            onChanged: (value) {
+            onChanged: (value) async {
+              if (value) {
+                final time = await _parseTimeString(_workoutReminderTime);
+                await NotificationService().scheduleWorkoutReminder(
+                  hour: time.hour,
+                  minute: time.minute,
+                );
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setBool('workout_reminders', true);
+                if (mounted) {
+                  AnimatedMessage.show(
+                    context,
+                    message: 'Workout reminders enabled!',
+                    backgroundColor: Color(0xFF1DAB87),
+                    icon: Icons.check_circle_rounded,
+                    duration: const Duration(seconds: 2),
+                  );
+                }
+              } else {
+                await NotificationService().cancelWorkoutReminder();
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setBool('workout_reminders', false);
+              }
               setState(() {
                 _workoutReminders = value;
               });
@@ -231,10 +265,20 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               title: 'Reminder Time',
               time: _workoutReminderTime,
               onTap: () =>
-                  _selectTime(context, _workoutReminderTime, (newTime) {
+                  _selectTime(context, _workoutReminderTime, (newTime) async {
                     setState(() {
                       _workoutReminderTime = newTime;
                     });
+                    // Save and reschedule immediately
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setString('workout_reminder_time', newTime);
+                    if (_workoutReminders) {
+                      final time = await _parseTimeString(newTime);
+                      await NotificationService().scheduleWorkoutReminder(
+                        hour: time.hour,
+                        minute: time.minute,
+                      );
+                    }
                   }),
               isDarkMode: isDarkMode,
             ),
@@ -280,7 +324,36 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             title: 'Meal Reminders',
             subtitle: 'Reminders to log your meals',
             value: _mealReminders,
-            onChanged: (value) {
+            onChanged: (value) async {
+              if (value) {
+                final breakfast = await _parseTimeString(_breakfastTime);
+                final lunch = await _parseTimeString(_lunchTime);
+                final dinner = await _parseTimeString(_dinnerTime);
+
+                await NotificationService().scheduleMealReminders(
+                  breakfastHour: breakfast.hour,
+                  breakfastMinute: breakfast.minute,
+                  lunchHour: lunch.hour,
+                  lunchMinute: lunch.minute,
+                  dinnerHour: dinner.hour,
+                  dinnerMinute: dinner.minute,
+                );
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setBool('meal_reminders', true);
+                if (mounted) {
+                  AnimatedMessage.show(
+                    context,
+                    message: 'Meal reminders enabled!',
+                    backgroundColor: Color(0xFF1DAB87),
+                    icon: Icons.check_circle_rounded,
+                    duration: const Duration(seconds: 2),
+                  );
+                }
+              } else {
+                await NotificationService().cancelMealReminders();
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setBool('meal_reminders', false);
+              }
               setState(() {
                 _mealReminders = value;
               });
@@ -294,21 +367,54 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             _buildTimePicker(
               title: 'Breakfast Time',
               time: _breakfastTime,
-              onTap: () => _selectTime(context, _breakfastTime, (newTime) {
-                setState(() {
-                  _breakfastTime = newTime;
-                });
-              }),
+              onTap: () =>
+                  _selectTime(context, _breakfastTime, (newTime) async {
+                    setState(() {
+                      _breakfastTime = newTime;
+                    });
+                    // Save and reschedule immediately
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setString('breakfast_time', newTime);
+                    if (_mealReminders) {
+                      final breakfast = await _parseTimeString(_breakfastTime);
+                      final lunch = await _parseTimeString(_lunchTime);
+                      final dinner = await _parseTimeString(_dinnerTime);
+                      await NotificationService().scheduleMealReminders(
+                        breakfastHour: breakfast.hour,
+                        breakfastMinute: breakfast.minute,
+                        lunchHour: lunch.hour,
+                        lunchMinute: lunch.minute,
+                        dinnerHour: dinner.hour,
+                        dinnerMinute: dinner.minute,
+                      );
+                    }
+                  }),
               isDarkMode: isDarkMode,
             ),
             const SizedBox(height: 8),
             _buildTimePicker(
               title: 'Lunch Time',
               time: _lunchTime,
-              onTap: () => _selectTime(context, _lunchTime, (newTime) {
+              onTap: () => _selectTime(context, _lunchTime, (newTime) async {
                 setState(() {
                   _lunchTime = newTime;
                 });
+                // Save and reschedule immediately
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setString('lunch_time', newTime);
+                if (_mealReminders) {
+                  final breakfast = await _parseTimeString(_breakfastTime);
+                  final lunch = await _parseTimeString(_lunchTime);
+                  final dinner = await _parseTimeString(_dinnerTime);
+                  await NotificationService().scheduleMealReminders(
+                    breakfastHour: breakfast.hour,
+                    breakfastMinute: breakfast.minute,
+                    lunchHour: lunch.hour,
+                    lunchMinute: lunch.minute,
+                    dinnerHour: dinner.hour,
+                    dinnerMinute: dinner.minute,
+                  );
+                }
               }),
               isDarkMode: isDarkMode,
             ),
@@ -316,10 +422,26 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             _buildTimePicker(
               title: 'Dinner Time',
               time: _dinnerTime,
-              onTap: () => _selectTime(context, _dinnerTime, (newTime) {
+              onTap: () => _selectTime(context, _dinnerTime, (newTime) async {
                 setState(() {
                   _dinnerTime = newTime;
                 });
+                // Save and reschedule immediately
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setString('dinner_time', newTime);
+                if (_mealReminders) {
+                  final breakfast = await _parseTimeString(_breakfastTime);
+                  final lunch = await _parseTimeString(_lunchTime);
+                  final dinner = await _parseTimeString(_dinnerTime);
+                  await NotificationService().scheduleMealReminders(
+                    breakfastHour: breakfast.hour,
+                    breakfastMinute: breakfast.minute,
+                    lunchHour: lunch.hour,
+                    lunchMinute: lunch.minute,
+                    dinnerHour: dinner.hour,
+                    dinnerMinute: dinner.minute,
+                  );
+                }
               }),
               isDarkMode: isDarkMode,
             ),
@@ -331,7 +453,25 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             title: 'Water Reminders',
             subtitle: 'Hourly reminders to drink water',
             value: _waterReminders,
-            onChanged: (value) {
+            onChanged: (value) async {
+              if (value) {
+                await NotificationService().scheduleWaterReminders();
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setBool('water_reminders', true);
+                if (mounted) {
+                  AnimatedMessage.show(
+                    context,
+                    message: 'Water reminders enabled!',
+                    backgroundColor: Color(0xFF1DAB87),
+                    icon: Icons.check_circle_rounded,
+                    duration: const Duration(seconds: 2),
+                  );
+                }
+              } else {
+                await NotificationService().cancelWaterReminders();
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setBool('water_reminders', false);
+              }
               setState(() {
                 _waterReminders = value;
               });
@@ -520,7 +660,28 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             title: 'Weekly Progress Report',
             subtitle: 'Summary of your weekly progress',
             value: _weeklyProgressReport,
-            onChanged: (value) {
+            onChanged: (value) async {
+              if (value) {
+                final dayOfWeek = _getDayOfWeekNumber(_weeklyReportDay);
+                await NotificationService().scheduleWeeklyReport(
+                  dayOfWeek: dayOfWeek,
+                );
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setBool('weekly_progress_report', true);
+                if (mounted) {
+                  AnimatedMessage.show(
+                    context,
+                    message: 'Weekly reports enabled!',
+                    backgroundColor: Color(0xFF1DAB87),
+                    icon: Icons.check_circle_rounded,
+                    duration: const Duration(seconds: 2),
+                  );
+                }
+              } else {
+                await NotificationService().cancelWeeklyReport();
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setBool('weekly_progress_report', false);
+              }
               setState(() {
                 _weeklyProgressReport = value;
               });
@@ -543,10 +704,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 'Saturday',
                 'Sunday',
               ],
-              onChanged: (value) {
+              onChanged: (value) async {
                 setState(() {
                   _weeklyReportDay = value!;
                 });
+                // Save and reschedule immediately
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setString('weekly_report_day', value!);
+                if (_weeklyProgressReport) {
+                  final dayOfWeek = _getDayOfWeekNumber(value);
+                  await NotificationService().scheduleWeeklyReport(
+                    dayOfWeek: dayOfWeek,
+                  );
+                }
               },
               isDarkMode: isDarkMode,
             ),
@@ -558,7 +728,25 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             title: 'Monthly Progress Report',
             subtitle: 'Summary of your monthly progress',
             value: _monthlyReport,
-            onChanged: (value) {
+            onChanged: (value) async {
+              if (value) {
+                await NotificationService().scheduleMonthlyReport();
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setBool('monthly_report', true);
+                if (mounted) {
+                  AnimatedMessage.show(
+                    context,
+                    message: 'Monthly reports enabled!',
+                    backgroundColor: Color(0xFF1DAB87),
+                    icon: Icons.check_circle_rounded,
+                    duration: const Duration(seconds: 2),
+                  );
+                }
+              } else {
+                await NotificationService().cancelMonthlyReport();
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setBool('monthly_report', false);
+              }
               setState(() {
                 _monthlyReport = value;
               });
@@ -954,5 +1142,44 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         ),
       ),
     );
+  }
+
+  // Helper method to parse time string like "07:00 AM" to TimeOfDay
+  Future<TimeOfDay> _parseTimeString(String timeString) async {
+    final parts = timeString.split(' ');
+    final timeParts = parts[0].split(':');
+    int hour = int.parse(timeParts[0]);
+    final minute = int.parse(timeParts[1]);
+    final isPM = parts[1] == 'PM';
+
+    if (isPM && hour != 12) {
+      hour += 12;
+    } else if (!isPM && hour == 12) {
+      hour = 0;
+    }
+
+    return TimeOfDay(hour: hour, minute: minute);
+  }
+
+  // Helper method to convert day name to day of week number (1 = Monday, 7 = Sunday)
+  int _getDayOfWeekNumber(String dayName) {
+    switch (dayName) {
+      case 'Monday':
+        return 1;
+      case 'Tuesday':
+        return 2;
+      case 'Wednesday':
+        return 3;
+      case 'Thursday':
+        return 4;
+      case 'Friday':
+        return 5;
+      case 'Saturday':
+        return 6;
+      case 'Sunday':
+        return 7;
+      default:
+        return 7; // Default to Sunday
+    }
   }
 }

@@ -13,18 +13,13 @@ class SignUpScreen extends StatefulWidget {
 
 class _SignUpScreenState extends State<SignUpScreen> {
   final _authService = AuthService();
-  // Form key for validation
   final _formKey = GlobalKey<FormState>();
 
-  // Text controllers
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  // Password visibility
   bool _isPasswordVisible = false;
-
-  // Loading state
   bool _isLoading = false;
 
   @override
@@ -38,7 +33,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: context.surfaceColor,
+      backgroundColor: context.surfaceColor, // ✅ DARK MODE
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
@@ -57,7 +52,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   Text(
                     'Create Account',
                     style: TextStyle(
-                      color: context.primaryText,
+                      color: context.primaryText, // ✅ DARK MODE
                       fontSize: 32,
                       fontWeight: FontWeight.w800,
                     ),
@@ -66,10 +61,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   const SizedBox(height: 8),
 
                   // Subtitle
-                  const Text(
+                  Text(
                     'Fill the details to create account',
                     style: TextStyle(
-                      color: Color(0xFF979797),
+                      color: context.secondaryText, // ✅ DARK MODE
                       fontSize: 15,
                       fontWeight: FontWeight.w500,
                     ),
@@ -132,8 +127,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
-  // Top Bar with Back Button and Help
-  // Top Bar with Back Button and Help
   Widget _buildTopBar(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -145,22 +138,32 @@ class _SignUpScreenState extends State<SignUpScreen> {
             width: 40,
             height: 40,
             child: Image.asset(
-              'assets/icons/back_arrow.png', // Replace with your icon filename
+              'assets/icons/back_arrow.png',
               width: 24,
               height: 24,
               fit: BoxFit.contain,
+              // ✅ Add color filter for dark mode
+              color: context.primaryText,
+              errorBuilder: (context, error, stackTrace) {
+                return Icon(
+                  Icons.arrow_back,
+                  size: 24,
+                  color: context.primaryText, // ✅ DARK MODE
+                );
+              },
             ),
           ),
         ),
+
         // Need Help
         GestureDetector(
           onTap: () {
             _showHelpDialog();
           },
-          child: const Text(
+          child: Text(
             'Need Help?',
             style: TextStyle(
-              color: Color(0xFF979797),
+              color: context.secondaryText, // ✅ DARK MODE
               fontSize: 15,
               fontWeight: FontWeight.w500,
             ),
@@ -170,7 +173,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
-  // Text Field Widget
   Widget _buildTextField({
     required String label,
     required TextEditingController controller,
@@ -184,7 +186,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         Text(
           label,
           style: TextStyle(
-            color: context.primaryText,
+            color: context.primaryText, // ✅ DARK MODE
             fontSize: 18,
             fontWeight: FontWeight.w700,
           ),
@@ -194,26 +196,46 @@ class _SignUpScreenState extends State<SignUpScreen> {
           controller: controller,
           keyboardType: keyboardType,
           validator: validator,
+          style: TextStyle(
+            color: context.primaryText, // ✅ DARK MODE
+            fontSize: 15,
+          ),
           decoration: InputDecoration(
             hintText: hintText,
-            hintStyle: const TextStyle(color: Color(0xFFB0B0B0), fontSize: 15),
+            hintStyle: TextStyle(
+              color: context.secondaryText.withOpacity(0.6), // ✅ DARK MODE
+              fontSize: 15,
+            ),
             filled: true,
-            fillColor: Colors.white,
+            fillColor: context.inputBackground, // ✅ DARK MODE
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: Color(0xFF979797), width: 1),
+              borderSide: BorderSide(
+                color: context.borderColor, // ✅ DARK MODE
+                width: 1,
+              ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: Color(0xFF979797), width: 1),
+              borderSide: BorderSide(
+                color: context.borderColor, // ✅ DARK MODE
+                width: 1,
+              ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: Color(0xFF1DAB87), width: 2),
+              borderSide: BorderSide(
+                color: context.primaryColor, // ✅ DARK MODE
+                width: 2,
+              ),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
               borderSide: const BorderSide(color: Colors.red, width: 1),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Colors.red, width: 2),
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 20,
@@ -225,15 +247,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
-  // Password Field with Visibility Toggle
   Widget _buildPasswordField() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Password',
           style: TextStyle(
-            color: Colors.black,
+            color: context.primaryText, // ✅ DARK MODE
             fontSize: 18,
             fontWeight: FontWeight.w700,
           ),
@@ -242,6 +263,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
         TextFormField(
           controller: _passwordController,
           obscureText: !_isPasswordVisible,
+          style: TextStyle(
+            color: context.primaryText, // ✅ DARK MODE
+            fontSize: 15,
+          ),
           validator: (value) {
             if (value == null || value.isEmpty) {
               return 'Please enter a password';
@@ -253,13 +278,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
           },
           decoration: InputDecoration(
             hintText: 'Enter your password',
-            hintStyle: const TextStyle(color: Color(0xFFB0B0B0), fontSize: 15),
+            hintStyle: TextStyle(
+              color: context.secondaryText.withOpacity(0.6), // ✅ DARK MODE
+              fontSize: 15,
+            ),
             filled: true,
-            fillColor: Colors.white,
+            fillColor: context.inputBackground, // ✅ DARK MODE
             suffixIcon: IconButton(
               icon: Icon(
                 _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                color: const Color(0xFF979797),
+                color: context.secondaryText, // ✅ DARK MODE
               ),
               onPressed: () {
                 setState(() {
@@ -269,19 +297,32 @@ class _SignUpScreenState extends State<SignUpScreen> {
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: Color(0xFF979797), width: 1),
+              borderSide: BorderSide(
+                color: context.borderColor, // ✅ DARK MODE
+                width: 1,
+              ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: Color(0xFF979797), width: 1),
+              borderSide: BorderSide(
+                color: context.borderColor, // ✅ DARK MODE
+                width: 1,
+              ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: Color(0xFF1DAB87), width: 2),
+              borderSide: BorderSide(
+                color: context.primaryColor, // ✅ DARK MODE
+                width: 2,
+              ),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
               borderSide: const BorderSide(color: Colors.red, width: 1),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Colors.red, width: 2),
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 20,
@@ -289,11 +330,31 @@ class _SignUpScreenState extends State<SignUpScreen> {
             ),
           ),
         ),
+
+        const SizedBox(height: 8),
+
+        // Password Requirements Hint
+        Row(
+          children: [
+            Icon(
+              Icons.info_outline,
+              size: 14,
+              color: context.secondaryText.withOpacity(0.7), // ✅ DARK MODE
+            ),
+            const SizedBox(width: 6),
+            Text(
+              'Password must be at least 6 characters',
+              style: TextStyle(
+                fontSize: 12,
+                color: context.secondaryText.withOpacity(0.7), // ✅ DARK MODE
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
 
-  // Sign Up Button
   Widget _buildSignUpButton() {
     return GestureDetector(
       onTap: _isLoading ? null : _handleSignUp,
@@ -301,11 +362,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
         width: double.infinity,
         height: 56,
         decoration: BoxDecoration(
-          color: const Color(0xFF1DAB87),
+          color: context.primaryColor, // ✅ DARK MODE
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF1DAB87).withOpacity(0.3),
+              color: context.primaryColor.withOpacity(0.3), // ✅ DARK MODE
               blurRadius: 15,
               offset: const Offset(0, 5),
             ),
@@ -327,16 +388,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
-  // Sign In Link
   Widget _buildSignInLink(BuildContext context) {
     return Center(
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text(
+          Text(
             'Already have an account? ',
             style: TextStyle(
-              color: Color(0xFF676B74),
+              color: context.secondaryText, // ✅ DARK MODE
               fontSize: 15,
               fontWeight: FontWeight.w500,
             ),
@@ -345,13 +405,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
             onTap: () {
               Navigator.pushNamed(context, '/signin');
             },
-            child: const Text(
+            child: Text(
               'Sign In.',
               style: TextStyle(
-                color: Color(0xFFF97316),
+                color: context.accentColor, // ✅ DARK MODE (Orange)
                 fontSize: 15,
-                fontWeight: FontWeight.w500,
-                //decoration: TextDecoration.underline,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -360,7 +419,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
-  // Handle Sign Up
   void _handleSignUp() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
@@ -379,15 +437,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
         });
 
         if (response.user != null) {
-          // Show success message
           AnimatedMessage.show(
             context,
             message: 'Verification code sent to your email!',
-            backgroundColor: const Color(0xFF1DAB87),
+            backgroundColor: context.primaryColor,
             icon: Icons.check_circle_rounded,
           );
 
-          // Navigate to verification screen with email
           Navigator.pushNamed(
             context,
             '/verification',
@@ -401,7 +457,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
         String errorMessage = 'Sign up failed';
 
-        // Handle specific error cases
         if (e.message.contains('already registered')) {
           errorMessage = 'This email is already registered. Please sign in.';
         } else if (e.message.contains('Invalid email')) {
@@ -433,20 +488,35 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
-  // Help Dialog
   void _showHelpDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: context.cardBackground, // ✅ DARK MODE
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Need Help?'),
-        content: const Text(
+        title: Text(
+          'Need Help?',
+          style: TextStyle(
+            color: context.primaryText, // ✅ DARK MODE
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        content: Text(
           'Contact us at:\nsupport@powerhouse.lk\n\nOr call: +94 77 123 4567',
+          style: TextStyle(
+            color: context.secondaryText, // ✅ DARK MODE
+          ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(
+              'OK',
+              style: TextStyle(
+                color: context.primaryColor, // ✅ DARK MODE
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),

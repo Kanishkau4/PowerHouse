@@ -32,6 +32,9 @@ void main() async {
   await NotificationService().initialize();
   await NotificationService().requestPermissions();
 
+  // Schedule inactivity reminder (will notify if user doesn't use app for 3 days)
+  await NotificationService().scheduleInactivityReminder();
+
   runApp(const MyApp());
 }
 

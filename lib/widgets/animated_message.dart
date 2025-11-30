@@ -146,45 +146,49 @@ class _AnimatedMessageWidgetState extends State<_AnimatedMessageWidget>
             child: Center(
               child: Transform.scale(
                 scale: _scaleAnimation.value,
-                child: Container(
-                  width: currentWidth,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: widget.backgroundColor,
-                    borderRadius: BorderRadius.circular(30),
-                    boxShadow: [
-                      BoxShadow(
-                        color: widget.backgroundColor.withOpacity(0.4),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(widget.icon, color: Colors.white, size: 28),
-                      if (isExpanded) ...[
-                        const SizedBox(width: 12),
-                        Flexible(
-                          child: Opacity(
-                            opacity: _widthAnimation.value,
-                            child: Text(
-                              widget.message,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
+                child: Material(
+                  color: Colors.transparent,
+                  child: Container(
+                    width: currentWidth,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: widget.backgroundColor,
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: [
+                        BoxShadow(
+                          color: widget.backgroundColor.withOpacity(0.4),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(widget.icon, color: Colors.white, size: 28),
+                        if (isExpanded) ...[
+                          const SizedBox(width: 12),
+                          Flexible(
+                            child: Opacity(
+                              opacity: _widthAnimation.value,
+                              child: Text(
+                                widget.message,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  decoration: TextDecoration.none,
+                                ),
+                                textAlign: TextAlign.center,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              textAlign: TextAlign.center,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
+                          const SizedBox(width: 12),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),

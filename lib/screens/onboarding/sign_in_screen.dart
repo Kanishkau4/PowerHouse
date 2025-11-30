@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:powerhouse/core/theme/theme_extensions.dart';
 import 'package:powerhouse/services/auth_service.dart';
-import 'package:powerhouse/widgets/animated_message.dart'; // Add this import
+import 'package:powerhouse/widgets/animated_message.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SignInScreen extends StatefulWidget {
@@ -31,7 +31,7 @@ class _SignInScreenState extends State<SignInScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: context.surfaceColor,
+      backgroundColor: context.surfaceColor, // ✅ DARK MODE
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
@@ -44,10 +44,11 @@ class _SignInScreenState extends State<SignInScreen> {
                   _buildTopBar(context),
                   const SizedBox(height: 40),
 
+                  // Title
                   Text(
                     'Sign In',
                     style: TextStyle(
-                      color: context.primaryText,
+                      color: context.primaryText, // ✅ DARK MODE
                       fontSize: 32,
                       fontWeight: FontWeight.w800,
                     ),
@@ -55,10 +56,11 @@ class _SignInScreenState extends State<SignInScreen> {
 
                   const SizedBox(height: 8),
 
-                  const Text(
+                  // Subtitle
+                  Text(
                     'Fill the details to sign in account',
                     style: TextStyle(
-                      color: Color(0xFF979797),
+                      color: context.secondaryText, // ✅ DARK MODE
                       fontSize: 15,
                       fontWeight: FontWeight.w500,
                     ),
@@ -66,6 +68,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
                   const SizedBox(height: 50),
 
+                  // Email Field
                   _buildTextField(
                     label: 'Email',
                     controller: _emailController,
@@ -84,18 +87,22 @@ class _SignInScreenState extends State<SignInScreen> {
 
                   const SizedBox(height: 24),
 
+                  // Password Field
                   _buildPasswordField(),
 
                   const SizedBox(height: 40),
 
+                  // Sign In Button
                   _buildSignInButton(),
 
                   const SizedBox(height: 30),
 
+                  // Forgot Password Link
                   _buildForgotPasswordLink(),
 
                   const SizedBox(height: 100),
 
+                  // Create Account Link
                   _buildCreateAccountLink(context),
                 ],
               ),
@@ -110,6 +117,7 @@ class _SignInScreenState extends State<SignInScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
+        // Back Button with Custom Icon
         GestureDetector(
           onTap: () => Navigator.pop(context),
           child: SizedBox(
@@ -120,20 +128,28 @@ class _SignInScreenState extends State<SignInScreen> {
               width: 24,
               height: 24,
               fit: BoxFit.contain,
+              // ✅ Add color filter for dark mode
+              color: context.primaryText,
               errorBuilder: (context, error, stackTrace) {
-                return const Icon(Icons.arrow_back, size: 24);
+                return Icon(
+                  Icons.arrow_back,
+                  size: 24,
+                  color: context.primaryText, // ✅ DARK MODE
+                );
               },
             ),
           ),
         ),
+
+        // Need Help
         GestureDetector(
           onTap: () {
             _showHelpDialog();
           },
-          child: const Text(
+          child: Text(
             'Need Help?',
             style: TextStyle(
-              color: Color(0xFF979797),
+              color: context.secondaryText, // ✅ DARK MODE
               fontSize: 15,
               fontWeight: FontWeight.w500,
             ),
@@ -150,13 +166,15 @@ class _SignInScreenState extends State<SignInScreen> {
     String? Function(String?)? validator,
     TextInputType? keyboardType,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
           style: TextStyle(
-            color: context.primaryText,
+            color: context.primaryText, // ✅ DARK MODE
             fontSize: 18,
             fontWeight: FontWeight.w700,
           ),
@@ -166,26 +184,46 @@ class _SignInScreenState extends State<SignInScreen> {
           controller: controller,
           keyboardType: keyboardType,
           validator: validator,
+          style: TextStyle(
+            color: context.primaryText, // ✅ DARK MODE
+            fontSize: 15,
+          ),
           decoration: InputDecoration(
             hintText: hintText,
-            hintStyle: const TextStyle(color: Color(0xFFB0B0B0), fontSize: 15),
+            hintStyle: TextStyle(
+              color: context.secondaryText.withOpacity(0.6), // ✅ DARK MODE
+              fontSize: 15,
+            ),
             filled: true,
-            fillColor: Colors.white,
+            fillColor: context.inputBackground, // ✅ DARK MODE
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: Color(0xFF979797), width: 1),
+              borderSide: BorderSide(
+                color: context.borderColor, // ✅ DARK MODE
+                width: 1,
+              ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: Color(0xFF979797), width: 1),
+              borderSide: BorderSide(
+                color: context.borderColor, // ✅ DARK MODE
+                width: 1,
+              ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: Color(0xFF1DAB87), width: 2),
+              borderSide: BorderSide(
+                color: context.primaryColor, // ✅ DARK MODE
+                width: 2,
+              ),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
               borderSide: const BorderSide(color: Colors.red, width: 1),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Colors.red, width: 2),
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 20,
@@ -198,13 +236,15 @@ class _SignInScreenState extends State<SignInScreen> {
   }
 
   Widget _buildPasswordField() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Password',
           style: TextStyle(
-            color: context.primaryText,
+            color: context.primaryText, // ✅ DARK MODE
             fontSize: 18,
             fontWeight: FontWeight.w700,
           ),
@@ -213,6 +253,10 @@ class _SignInScreenState extends State<SignInScreen> {
         TextFormField(
           controller: _passwordController,
           obscureText: !_isPasswordVisible,
+          style: TextStyle(
+            color: context.primaryText, // ✅ DARK MODE
+            fontSize: 15,
+          ),
           validator: (value) {
             if (value == null || value.isEmpty) {
               return 'Please enter your password';
@@ -224,13 +268,16 @@ class _SignInScreenState extends State<SignInScreen> {
           },
           decoration: InputDecoration(
             hintText: 'Enter your password',
-            hintStyle: const TextStyle(color: Color(0xFFB0B0B0), fontSize: 15),
+            hintStyle: TextStyle(
+              color: context.secondaryText.withOpacity(0.6), // ✅ DARK MODE
+              fontSize: 15,
+            ),
             filled: true,
-            fillColor: Colors.white,
+            fillColor: context.inputBackground, // ✅ DARK MODE
             suffixIcon: IconButton(
               icon: Icon(
                 _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                color: const Color(0xFF979797),
+                color: context.secondaryText, // ✅ DARK MODE
               ),
               onPressed: () {
                 setState(() {
@@ -240,19 +287,32 @@ class _SignInScreenState extends State<SignInScreen> {
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: Color(0xFF979797), width: 1),
+              borderSide: BorderSide(
+                color: context.borderColor, // ✅ DARK MODE
+                width: 1,
+              ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: Color(0xFF979797), width: 1),
+              borderSide: BorderSide(
+                color: context.borderColor, // ✅ DARK MODE
+                width: 1,
+              ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: Color(0xFF1DAB87), width: 2),
+              borderSide: BorderSide(
+                color: context.primaryColor, // ✅ DARK MODE
+                width: 2,
+              ),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
               borderSide: const BorderSide(color: Colors.red, width: 1),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Colors.red, width: 2),
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 20,
@@ -271,11 +331,11 @@ class _SignInScreenState extends State<SignInScreen> {
         width: double.infinity,
         height: 56,
         decoration: BoxDecoration(
-          color: const Color(0xFF1DAB87),
+          color: context.primaryColor, // ✅ DARK MODE
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF1DAB87).withOpacity(0.3),
+              color: context.primaryColor.withOpacity(0.3), // ✅ DARK MODE
               blurRadius: 15,
               offset: const Offset(0, 5),
             ),
@@ -303,10 +363,10 @@ class _SignInScreenState extends State<SignInScreen> {
         onTap: () {
           _showForgotPasswordDialog();
         },
-        child: const Text(
+        child: Text(
           'Forgot Password?',
           style: TextStyle(
-            color: Color(0xFFF15223),
+            color: context.accentColor, // ✅ DARK MODE (Orange)
             fontSize: 15,
             fontWeight: FontWeight.w500,
           ),
@@ -320,10 +380,10 @@ class _SignInScreenState extends State<SignInScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text(
+          Text(
             "Don't have an account? ",
             style: TextStyle(
-              color: Color(0xFF676B74),
+              color: context.secondaryText, // ✅ DARK MODE
               fontSize: 15,
               fontWeight: FontWeight.w500,
             ),
@@ -332,10 +392,10 @@ class _SignInScreenState extends State<SignInScreen> {
             onTap: () {
               Navigator.pushNamed(context, '/signup');
             },
-            child: const Text(
+            child: Text(
               'Create Account',
               style: TextStyle(
-                color: Color(0xFF1DAB87),
+                color: context.primaryColor, // ✅ DARK MODE
                 fontSize: 15,
                 fontWeight: FontWeight.bold,
               ),
@@ -369,7 +429,7 @@ class _SignInScreenState extends State<SignInScreen> {
             AnimatedMessage.show(
               context,
               message: 'Please complete your profile setup',
-              backgroundColor: const Color(0xFFF97316),
+              backgroundColor: context.accentColor,
               icon: Icons.warning_rounded,
             );
             Navigator.pushReplacementNamed(context, '/gender');
@@ -383,11 +443,10 @@ class _SignInScreenState extends State<SignInScreen> {
               AnimatedMessage.show(
                 context,
                 message: 'Welcome back!',
-                backgroundColor: const Color(0xFF1DAB87),
+                backgroundColor: context.primaryColor,
                 icon: Icons.check_circle_rounded,
               );
 
-              // Delay navigation to show the animation
               Future.delayed(const Duration(milliseconds: 500), () {
                 Navigator.pushReplacementNamed(context, '/home');
               });
@@ -395,7 +454,7 @@ class _SignInScreenState extends State<SignInScreen> {
               AnimatedMessage.show(
                 context,
                 message: 'Please complete your profile setup',
-                backgroundColor: const Color(0xFFF97316),
+                backgroundColor: context.accentColor,
                 icon: Icons.warning_rounded,
               );
               Navigator.pushReplacementNamed(context, '/gender');
@@ -441,16 +500,32 @@ class _SignInScreenState extends State<SignInScreen> {
   void _showHelpDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: context.cardBackground, // ✅ DARK MODE
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Need Help?'),
-        content: const Text(
+        title: Text(
+          'Need Help?',
+          style: TextStyle(
+            color: context.primaryText, // ✅ DARK MODE
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        content: Text(
           'Contact us at:\nsupport@powerhouse.lk\n\nOr call: +94 77 123 4567',
+          style: TextStyle(
+            color: context.secondaryText, // ✅ DARK MODE
+          ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK', style: TextStyle(color: Color(0xFF1DAB87))),
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(
+              'OK',
+              style: TextStyle(
+                color: context.primaryColor, // ✅ DARK MODE
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),
@@ -459,26 +534,61 @@ class _SignInScreenState extends State<SignInScreen> {
 
   void _showForgotPasswordDialog() {
     final emailController = TextEditingController();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: context.cardBackground, // ✅ DARK MODE
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Forgot Password?'),
+        title: Text(
+          'Forgot Password?',
+          style: TextStyle(
+            color: context.primaryText, // ✅ DARK MODE
+            fontWeight: FontWeight.w700,
+          ),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
+            Text(
               'Enter your email address and we will send you a reset link.',
+              style: TextStyle(
+                color: context.secondaryText, // ✅ DARK MODE
+              ),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: emailController,
               keyboardType: TextInputType.emailAddress,
+              style: TextStyle(
+                color: context.primaryText, // ✅ DARK MODE
+              ),
               decoration: InputDecoration(
                 hintText: 'Email address',
+                hintStyle: TextStyle(
+                  color: context.secondaryText.withOpacity(0.6), // ✅ DARK MODE
+                ),
+                filled: true,
+                fillColor: context.inputBackground, // ✅ DARK MODE
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: context.borderColor, // ✅ DARK MODE
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: context.borderColor, // ✅ DARK MODE
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: context.primaryColor, // ✅ DARK MODE
+                    width: 2,
+                  ),
                 ),
               ),
             ),
@@ -486,23 +596,28 @@ class _SignInScreenState extends State<SignInScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: context.secondaryText, // ✅ DARK MODE
+              ),
+            ),
           ),
           TextButton(
             onPressed: () async {
               try {
                 await _authService.resetPassword(emailController.text.trim());
-                Navigator.pop(context);
+                Navigator.pop(dialogContext);
 
                 AnimatedMessage.show(
                   context,
                   message: 'Password reset link sent to your email!',
-                  backgroundColor: const Color(0xFF1DAB87),
+                  backgroundColor: context.primaryColor,
                   icon: Icons.check_circle_rounded,
                 );
               } catch (e) {
-                Navigator.pop(context);
+                Navigator.pop(dialogContext);
 
                 AnimatedMessage.show(
                   context,
@@ -512,9 +627,12 @@ class _SignInScreenState extends State<SignInScreen> {
                 );
               }
             },
-            child: const Text(
+            child: Text(
               'Send',
-              style: TextStyle(color: Color(0xFF1DAB87)),
+              style: TextStyle(
+                color: context.primaryColor, // ✅ DARK MODE
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
