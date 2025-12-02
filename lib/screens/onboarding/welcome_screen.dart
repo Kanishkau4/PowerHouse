@@ -90,109 +90,159 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   }
 
   Widget _buildPage(OnboardingData data) {
+    // Get screen dimensions for responsive sizing
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // Calculate responsive sizes based on screen height
+    final isSmallScreen = screenHeight < 700;
+    final isMediumScreen = screenHeight >= 700 && screenHeight < 850;
+
+    // Responsive animation size
+    final animationContainerHeight = isSmallScreen
+        ? screenHeight * 0.30
+        : isMediumScreen
+        ? screenHeight * 0.35
+        : screenHeight * 0.40;
+
+    final circleSize = animationContainerHeight * 0.85;
+
+    // Responsive font sizes
+    final titleFontSize = isSmallScreen
+        ? 22.0
+        : isMediumScreen
+        ? 26.0
+        : 28.0;
+    final descFontSize = isSmallScreen
+        ? 13.0
+        : isMediumScreen
+        ? 14.0
+        : 15.0;
+
+    // Responsive spacing
+    final topSpacing = isSmallScreen ? 16.0 : 40.0;
+    final middleSpacing = isSmallScreen ? 16.0 : 30.0;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 30.0),
+      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.08),
       child: Column(
         children: [
-          const SizedBox(height: 40),
+          SizedBox(height: topSpacing),
 
-          // Lottie Animation with Background Circles
-          SizedBox(
-            height: 360,
-            width: double.infinity,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // Large background circle
-                Container(
-                  width: 320,
-                  height: 320,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: const Color(0xFF2DD4A3).withOpacity(0.1),
+          // Lottie Animation with Background Circles - FLEXIBLE
+          Flexible(
+            flex: 5,
+            child: SizedBox(
+              height: animationContainerHeight,
+              width: double.infinity,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Large background circle
+                  Container(
+                    width: circleSize,
+                    height: circleSize,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFF2DD4A3).withOpacity(0.1),
+                    ),
                   ),
-                ),
 
-                // Medium circle
-                Container(
-                  width: 260,
-                  height: 260,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: const Color(0xFF2DD4A3).withOpacity(0.15),
+                  // Medium circle
+                  Container(
+                    width: circleSize * 0.8,
+                    height: circleSize * 0.8,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFF2DD4A3).withOpacity(0.15),
+                    ),
                   ),
-                ),
 
-                // Small inner circle
-                Container(
-                  width: 200,
-                  height: 200,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: const Color(0xFF1DB386).withOpacity(0.1),
+                  // Small inner circle
+                  Container(
+                    width: circleSize * 0.6,
+                    height: circleSize * 0.6,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFF1DB386).withOpacity(0.1),
+                    ),
                   ),
-                ),
 
-                // Lottie Animation on top
-                FutureBuilder(
-                  future: _checkAssetExists(data.lottieAsset),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const CircularProgressIndicator(
-                        color: Color(0xFF2DD4A3),
+                  // Lottie Animation on top
+                  FutureBuilder(
+                    future: _checkAssetExists(data.lottieAsset),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const CircularProgressIndicator(
+                          color: Color(0xFF2DD4A3),
+                        );
+                      }
+                      if (snapshot.hasData && snapshot.data == true) {
+                        return Lottie.asset(
+                          data.lottieAsset,
+                          width: circleSize,
+                          height: circleSize,
+                          fit: BoxFit.contain,
+                        );
+                      }
+                      // Fallback icon if Lottie file doesn't exist
+                      return Icon(
+                        _getIconForPage(_currentPage),
+                        size: circleSize * 0.4,
+                        color: const Color(0xFF2DD4A3),
                       );
-                    }
-                    if (snapshot.hasData && snapshot.data == true) {
-                      return Lottie.asset(
-                        data.lottieAsset,
-                        width: 320,
-                        height: 320,
-                        fit: BoxFit.contain,
-                      );
-                    }
-                    // Fallback icon if Lottie file doesn't exist
-                    return Icon(
-                      _getIconForPage(_currentPage),
-                      size: 140,
-                      color: const Color(0xFF2DD4A3),
-                    );
-                  },
-                ),
-              ],
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
 
-          const SizedBox(height: 40),
+          SizedBox(height: middleSpacing),
 
           // Page Indicator
           _buildPageIndicator(),
 
-          const SizedBox(height: 30),
+          SizedBox(height: isSmallScreen ? 16 : 24),
 
-          // Title
-          Text(
-            data.title,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-              height: 1.3,
+          // Title and Description - FLEXIBLE with minimum space
+          Flexible(
+            flex: 3,
+            child: SingleChildScrollView(
+              physics: const NeverScrollableScrollPhysics(),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Title
+                  Text(
+                    data.title,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: titleFontSize,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                      height: 1.3,
+                    ),
+                  ),
+
+                  SizedBox(height: isSmallScreen ? 12 : 16),
+
+                  // Description
+                  Text(
+                    data.description,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: descFontSize,
+                      color: Colors.black.withOpacity(0.6),
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
 
-          const SizedBox(height: 16),
-
-          // Description
-          Text(
-            data.description,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 15,
-              color: Colors.black.withOpacity(0.6),
-              height: 1.5,
-            ),
-          ),
+          const SizedBox(height: 8),
         ],
       ),
     );
@@ -203,7 +253,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(
         _pages.length,
-        (index) => Container(
+        (index) => AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
           margin: const EdgeInsets.symmetric(horizontal: 4),
           width: _currentPage == index ? 24 : 8,
           height: 8,
@@ -219,8 +270,16 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   }
 
   Widget _buildBottomSection() {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isSmallScreen = screenHeight < 700;
+
     return Padding(
-      padding: const EdgeInsets.all(30.0),
+      padding: EdgeInsets.fromLTRB(
+        24,
+        isSmallScreen ? 12 : 20,
+        24,
+        isSmallScreen ? 16 : 24,
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -256,8 +315,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               }
             },
             child: Container(
-              width: 140,
-              height: 56,
+              width: isSmallScreen ? 120 : 140,
+              height: isSmallScreen ? 48 : 56,
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   colors: [Color(0xFF2DD4A3), Color(0xFF1DB386)],

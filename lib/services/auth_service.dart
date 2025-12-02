@@ -192,14 +192,71 @@ class AuthService {
   // ========== GOOGLE SIGN IN ==========
   Future<bool> signInWithGoogle() async {
     try {
+      print('🔵 Starting Google Sign-In...');
+
       await _supabase.auth.signInWithOAuth(
         OAuthProvider.google,
         redirectTo: 'io.supabase.powerhouse://login-callback/',
       );
+
+      print('✅ Google OAuth initiated successfully');
+      print('📱 Redirect URL: io.supabase.powerhouse://login-callback/');
+
+      // The actual sign-in will be handled by the auth state listener
+      // in main.dart when the OAuth callback is received
+
       return true;
     } catch (e) {
-      print('Google sign in error: $e');
+      print('❌ Google sign in error: $e');
       return false;
+    }
+  }
+
+  // ========== CREATE PROFILE FOR OAUTH USERS ==========
+  Future<void> createOAuthUserProfile() async {
+    try {
+      final user = currentUser;
+      if (user == null) {
+        print('❌ No user found for OAuth profile creation');
+        return;
+      }
+
+      print('🔍 Checking if OAuth user profile exists...');
+
+      final existing = await _supabase
+          .from('users')
+          .select('user_id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+      if (existing != null) {
+        print('✅ Profile already exists for OAuth user: ${user.id}');
+        return;
+      }
+
+      print('📝 Creating new profile for OAuth user...');
+
+      // Extract user info from OAuth metadata
+      final email = user.email ?? '';
+      final username =
+          user.userMetadata?['full_name'] ??
+          user.userMetadata?['name'] ??
+          email.split('@').first;
+
+      await _supabase.from('users').insert({
+        'user_id': user.id,
+        'email': email,
+        'username': username,
+        'xp_points': 0,
+        'level': 1,
+        'created_at': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toIso8601String(),
+      });
+
+      print('✅ OAuth user profile created successfully');
+      print('👤 Username: $username, Email: $email');
+    } catch (e) {
+      print('❌ Error creating OAuth user profile: $e');
     }
   }
 

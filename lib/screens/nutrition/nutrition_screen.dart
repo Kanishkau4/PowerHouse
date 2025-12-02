@@ -404,8 +404,9 @@ class _NutritionScreenState extends State<NutritionScreen> {
     String getDateLabel(DateTime date) {
       final dateOnly = DateTime(date.year, date.month, date.day);
       if (dateOnly == todayDate) return 'Today';
-      if (dateOnly == todayDate.subtract(const Duration(days: 1)))
+      if (dateOnly == todayDate.subtract(const Duration(days: 1))) {
         return 'Yesterday';
+      }
       if (dateOnly == todayDate.add(const Duration(days: 1))) return 'Tomorrow';
       return DateFormat('MMM dd').format(date);
     }

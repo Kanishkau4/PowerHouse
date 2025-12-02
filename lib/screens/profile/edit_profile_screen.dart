@@ -623,7 +623,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     };
 
     return DropdownButtonFormField<String>(
-      value: _selectedGoal,
+      initialValue: _selectedGoal,
       dropdownColor: context.cardBackground, // ✅ DARK MODE
       style: TextStyle(
         fontSize: 16,
@@ -862,7 +862,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     required void Function(String?) onChanged,
   }) {
     return DropdownButtonFormField<String>(
-      value: value,
+      initialValue: value,
       dropdownColor: context.cardBackground, // ✅ DARK MODE
       style: TextStyle(
         fontSize: 16,
