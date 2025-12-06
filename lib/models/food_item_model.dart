@@ -9,6 +9,7 @@ class FoodItemModel {
   final bool isSriLankan;
   final String? imageUrl;
   final String? localImagePath; // Path to locally scanned image
+  final String? userId; // User who created/scanned this food
   final DateTime createdAt;
 
   FoodItemModel({
@@ -22,6 +23,7 @@ class FoodItemModel {
     this.isSriLankan = false,
     this.imageUrl,
     this.localImagePath,
+    this.userId,
     required this.createdAt,
   });
 
@@ -37,6 +39,7 @@ class FoodItemModel {
       isSriLankan: json['is_sri_lankan'] as bool? ?? false,
       imageUrl: json['image_url'] as String?,
       localImagePath: json['local_image_path'] as String?,
+      userId: json['user_id'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }
@@ -53,6 +56,7 @@ class FoodItemModel {
       'is_sri_lankan': isSriLankan,
       'image_url': imageUrl,
       'local_image_path': localImagePath,
+      'user_id': userId,
     };
   }
 

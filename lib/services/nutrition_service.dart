@@ -46,10 +46,18 @@ class NutritionService {
   // ========== GET NON-SRI LANKAN FOODS (OTHER FOODS) ==========
   Future<List<FoodItemModel>> getNonSriLankanFoods() async {
     try {
+      final userId = _supabase.auth.currentUser?.id;
+
+      if (userId == null) {
+        print('⚠️ No user logged in, returning empty list');
+        return [];
+      }
+
       final response = await _supabase
           .from('foods')
           .select()
           .eq('is_sri_lankan', false)
+          .eq('user_id', userId)
           .order('created_at', ascending: false);
 
       return (response as List)

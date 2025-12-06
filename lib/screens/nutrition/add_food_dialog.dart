@@ -359,9 +359,9 @@ class _AddFoodDialogState extends State<AddFoodDialog>
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.public, size: 20),
+                      Icon(Icons.person, size: 20),
                       SizedBox(width: 8),
-                      Text('Other Foods'),
+                      Text('My Foods'),
                     ],
                   ),
                 ),
