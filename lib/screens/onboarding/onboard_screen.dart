@@ -109,7 +109,7 @@ class _OnboardScreenState extends State<OnboardScreen> {
               // App Name with Gradient
               _buildGradientTitle(),
 
-              const SizedBox(height: 60),
+              const SizedBox(height: 50),
 
               // Sign in with Apple Button
               _buildAppleSignInButton(context),
@@ -150,34 +150,25 @@ class _OnboardScreenState extends State<OnboardScreen> {
     );
   }
 
-  // Gradient Title Widget
+  // Logo Widget (replaces the gradient title)
   Widget _buildGradientTitle() {
-    return Stack(
-      children: [
-        // Outline text
-        Text(
+    return Image.asset(
+      'assets/images/logo.png', // Update this path to your logo location
+      height: 120, // Adjust this to match your desired size
+      width: 280, // Keep it square since your image is 500x500
+      fit: BoxFit.contain,
+      errorBuilder: (context, error, stackTrace) {
+        // Fallback to text if image fails to load
+        return const Text(
           'PowerHouse',
           style: TextStyle(
-            fontSize: 48,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -2,
-            foreground: Paint()
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = 2
-              ..color = const Color.fromARGB(255, 0, 0, 0),
-          ),
-        ),
-        // Solid text
-        const Text(
-          'PowerHouse',
-          style: TextStyle(
-            color: Colors.white,
+            color: Colors.black,
             fontSize: 48,
             fontWeight: FontWeight.w700,
             letterSpacing: -2,
           ),
-        ),
-      ],
+        );
+      },
     );
   }
 

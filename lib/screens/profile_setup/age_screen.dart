@@ -43,12 +43,12 @@ class _AgeScreenState extends State<AgeScreen> {
               // Title with outline effect
               _buildOutlineTitle(),
 
-              const SizedBox(height: 60),
+              const SizedBox(height: 15),
 
               // Main heading
               _buildHeading(),
 
-              const SizedBox(height: 60),
+              const SizedBox(height: 30),
 
               // Age Picker
               Expanded(child: _buildAgePicker()),
@@ -70,35 +70,43 @@ class _AgeScreenState extends State<AgeScreen> {
   Widget _buildOutlineTitle() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Stack(
-      children: [
-        // Outline text
-        Text(
-          'PowerHouse',
-          style: TextStyle(
-            fontSize: 48,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -2,
-            foreground: Paint()
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = 2
-              ..color = isDark
-                  ? Colors
-                        .white // ✅ DARK MODE: White outline
-                  : Colors.black, // Light mode: Black outline
-          ),
-        ),
-        // Solid text (transparent/surface color fill)
-        Text(
-          'PowerHouse',
-          style: TextStyle(
-            color: context.surfaceColor, // ✅ DARK MODE: Matches background
-            fontSize: 48,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -2,
-          ),
-        ),
-      ],
+    return Center(
+      child: Image.asset(
+        'assets/images/logo.png',
+        height: 120,
+        width: 280,
+        fit: BoxFit.contain,
+        // Optional: Apply color filter for dark mode if logo is dark
+        color: isDark ? Colors.white : null,
+        colorBlendMode: isDark ? BlendMode.srcIn : null,
+        errorBuilder: (context, error, stackTrace) {
+          return Stack(
+            children: [
+              Text(
+                'PowerHouse',
+                style: TextStyle(
+                  fontSize: 48,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -2,
+                  foreground: Paint()
+                    ..style = PaintingStyle.stroke
+                    ..strokeWidth = 2
+                    ..color = isDark ? Colors.white : Colors.black,
+                ),
+              ),
+              Text(
+                'PowerHouse',
+                style: TextStyle(
+                  color: context.surfaceColor,
+                  fontSize: 48,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -2,
+                ),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 
