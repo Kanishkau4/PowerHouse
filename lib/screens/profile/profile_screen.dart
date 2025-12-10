@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:powerhouse/core/theme/theme_extensions.dart';
 import 'package:powerhouse/screens/tips/bookmarked_tips_screen.dart';
 import 'package:powerhouse/widgets/animated_message.dart';
@@ -39,6 +40,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   List<UserBadgeModel> _userBadges = [];
   List<WeightHistoryModel> _weightHistory = [];
   Map<DateTime, int> _workoutDuration = {};
+  int _currentStreak = 3; // Mock streak for now
 
   // Settings
   String selectedLanguage = 'English';
@@ -404,6 +406,55 @@ class _ProfileScreenState extends State<ProfileScreen> {
             fontSize: 12,
             fontWeight: FontWeight.w500,
             color: Color(0xFF7E7E7E),
+          ),
+        ),
+        SizedBox(height: 12),
+        // Sleek Bar-style Streak Badge
+        Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 8,
+          ), // wider, lower height
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFFFF6B35), Color(0xFFFF8E53)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(40), // pill shape
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFFF6B35).withOpacity(0.25),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6), // smaller circle
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const FaIcon(
+                  FontAwesomeIcons.fire,
+                  size: 18,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                '$_currentStreak Day Streak 🔥',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ],
           ),
         ),
       ],

@@ -5,29 +5,46 @@ class TipsService {
   final _supabase = SupabaseConfig.client;
 
   // ========== GET TIP OF THE DAY ==========
-  // Returns a random featured tip
+  // Returns a random tip based on the current date (changes daily)
   Future<TipModel?> getTipOfTheDay() async {
     try {
+      // Get all featured tips
       final response = await _supabase
           .from('tips')
           .select()
-          .eq('is_featured', true)
-          .order('created_at', ascending: false)
-          .limit(1);
+          .eq('is_featured', true);
 
       if (response.isEmpty) {
-        // If no featured tips, return any random tip
-        final anyTip = await _supabase.from('tips').select().limit(1);
+        // If no featured tips, get all tips
+        final anyTips = await _supabase.from('tips').select();
+        if (anyTips.isEmpty) return null;
 
-        if (anyTip.isEmpty) return null;
-        return TipModel.fromJson(anyTip.first);
+        // Use date-based index for random selection
+        final tipIndex = _getDailyTipIndex(anyTips.length);
+        return TipModel.fromJson(anyTips[tipIndex]);
       }
 
-      return TipModel.fromJson(response.first);
+      // Use date-based index to select a random tip from featured tips
+      final tipIndex = _getDailyTipIndex(response.length);
+      return TipModel.fromJson(response[tipIndex]);
     } catch (e) {
       print('Error getting tip of the day: $e');
       return null;
     }
+  }
+
+  // Helper: Calculate tip index based on current date
+  // This ensures the same tip is shown all day, but changes daily
+  int _getDailyTipIndex(int totalTips) {
+    if (totalTips == 0) return 0;
+
+    final now = DateTime.now();
+    // Create a seed from year + day of year (1-365/366)
+    final dayOfYear = now.difference(DateTime(now.year, 1, 1)).inDays + 1;
+    final seed = now.year + dayOfYear;
+
+    // Use modulo to get an index within the tips array
+    return seed % totalTips;
   }
 
   // ========== GET ALL TIPS ==========

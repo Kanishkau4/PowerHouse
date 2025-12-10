@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart'; // Add this import
+import 'package:lottie/lottie.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:powerhouse/core/theme/theme_extensions.dart';
 import 'package:powerhouse/screens/workouts/workout_detail_screen.dart';
 import 'package:powerhouse/services/user_service.dart';
@@ -753,7 +754,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // ==================== TASK ITEM ====================
+  // ==================== TASK ITEM NO 2 ====================
   Widget _buildTaskItem(BuildContext context, Map<String, dynamic> task) {
     final isCompleted = task['is_completed'] as bool? ?? false;
     final taskId = task['task_id'] as String;
@@ -761,54 +762,55 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final duration = task['duration'] as int?;
     final calories = task['calories'] as int?;
 
+    // Categorize
+    final taskIcon = _getTaskIcon(title);
+    final taskColor = _getTaskColor(title);
+
     // Theme-aware colors
     final cardBg = isCompleted
-        ? context.primaryColor.withOpacity(0.1)
+        ? context.primaryColor.withOpacity(0.05)
         : context.cardBackground;
-    final borderColor = isCompleted
-        ? context.primaryColor
-        : context.borderColor;
+    final borderColor = isCompleted ? context.primaryColor : Colors.transparent;
     final titleColor = isCompleted
         ? context.secondaryText
         : context.primaryText;
-    final checkboxBorderColor = isCompleted
-        ? context.primaryColor
-        : context.dividerColor;
 
     return GestureDetector(
       onTap: () => _onTaskTap(task),
-      child: Container(
-        padding: const EdgeInsets.all(12),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: cardBg,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: borderColor, width: isCompleted ? 2 : 1),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: borderColor.withOpacity(isCompleted ? 0.0 : 0.0),
+            width: 0,
+          ), // Subtle border logic if needed
           boxShadow: [
             BoxShadow(
-              color: context.shadowColor,
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              color: context.shadowColor.withOpacity(isCompleted ? 0.0 : 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
         child: Row(
           children: [
-            // Checkbox
-            GestureDetector(
-              onTap: () => _toggleTaskCompletion(taskId, isCompleted),
-              child: Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: isCompleted
-                      ? context.primaryColor
-                      : Colors.transparent,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: checkboxBorderColor, width: 2),
-                ),
-                child: isCompleted
-                    ? Icon(Icons.check, color: Colors.white, size: 18)
-                    : null,
+            // Categorization Icon Container
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: isCompleted
+                    ? context.secondaryText.withOpacity(0.1)
+                    : taskColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(
+                taskIcon,
+                color: isCompleted ? context.secondaryText : taskColor,
+                size: 24,
               ),
             ),
 
@@ -823,45 +825,46 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     title,
                     style: TextStyle(
                       fontSize: 16,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                       color: titleColor,
                       decoration: isCompleted
                           ? TextDecoration.lineThrough
                           : TextDecoration.none,
                     ),
                   ),
-                  if (duration != null || calories != null) ...[
+                  if (!isCompleted &&
+                      (duration != null || calories != null)) ...[
                     const SizedBox(height: 6),
                     Row(
                       children: [
                         if (duration != null) ...[
                           Icon(
-                            Icons.access_time,
+                            Icons.schedule,
                             size: 14,
-                            color: context.primaryColor,
+                            color: context.secondaryText,
                           ),
                           const SizedBox(width: 4),
                           Text(
                             '$duration min',
                             style: TextStyle(
                               fontSize: 13,
-                              color: context.primaryColor,
+                              color: context.secondaryText,
                             ),
                           ),
-                          if (calories != null) const SizedBox(width: 12),
+                          const SizedBox(width: 12),
                         ],
                         if (calories != null) ...[
-                          Icon(
+                          const Icon(
                             Icons.local_fire_department,
                             size: 14,
-                            color: context.accentColor,
+                            color: Color(0xFFFF844B),
                           ),
                           const SizedBox(width: 4),
                           Text(
                             '$calories cal',
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 13,
-                              color: context.accentColor,
+                              color: Color(0xFFFF844B),
                             ),
                           ),
                         ],
@@ -872,65 +875,154 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
             ),
 
-            // XP Badge
-            if (!isCompleted)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            const SizedBox(width: 12),
+
+            // Checkbox
+            GestureDetector(
+              onTap: () => _toggleTaskCompletion(taskId, isCompleted),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: 28,
+                height: 28,
                 decoration: BoxDecoration(
-                  color: context.accentColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  color: isCompleted
+                      ? context.primaryColor
+                      : Colors
+                            .transparent, // context.cardBackground would be white? NO, transparent to show bg
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isCompleted
+                        ? context.primaryColor
+                        : context.dividerColor,
+                    width: 2,
+                  ),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.star, size: 12, color: context.accentColor),
-                    const SizedBox(width: 2),
-                    Text(
-                      '+5',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: context.accentColor,
-                      ),
-                    ),
-                  ],
-                ),
+                child: isCompleted
+                    ? const Icon(Icons.check, color: Colors.white, size: 18)
+                    : null,
               ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  // ==================== TOGGLE TASK COMPLETION ====================
-  Future<void> _toggleTaskCompletion(String taskId, bool currentStatus) async {
-    try {
-      if (currentStatus) {
-        // Uncomplete task
-        await _dailyTasksService.uncompleteTask(taskId);
-      } else {
-        // Complete task
-        final result = await _dailyTasksService.completeTask(taskId);
+  // ==================== TASK HELPERS ====================
+  IconData _getTaskIcon(String title) {
+    title = title.toLowerCase();
+    if (title.contains('workout') ||
+        title.contains('run') ||
+        title.contains('gym') ||
+        title.contains('exercise')) {
+      return FontAwesomeIcons.dumbbell;
+    }
+    if (title.contains('water') ||
+        title.contains('drink') ||
+        title.contains('hydrate')) {
+      return FontAwesomeIcons.glassWater;
+    }
+    if (title.contains('eat') ||
+        title.contains('meal') ||
+        title.contains('nutrition') ||
+        title.contains('food') ||
+        title.contains('calor')) {
+      return FontAwesomeIcons.bowlFood;
+    }
+    if (title.contains('sleep') ||
+        title.contains('bed') ||
+        title.contains('rest') ||
+        title.contains('meditate')) {
+      return FontAwesomeIcons.bed;
+    }
+    if (title.contains('read') ||
+        title.contains('learn') ||
+        title.contains('study')) {
+      return FontAwesomeIcons.bookOpen;
+    }
+    return FontAwesomeIcons.circleCheck; // Default
+  }
 
-        // Show XP gain
+  Color _getTaskColor(String title) {
+    title = title.toLowerCase();
+    if (title.contains('workout') ||
+        title.contains('run') ||
+        title.contains('gym') ||
+        title.contains('exercise')) {
+      return const Color(0xFFF15223); // Orange/Red
+    }
+    if (title.contains('water') ||
+        title.contains('drink') ||
+        title.contains('hydrate')) {
+      return Colors.blue;
+    }
+    if (title.contains('eat') ||
+        title.contains('meal') ||
+        title.contains('nutrition') ||
+        title.contains('food')) {
+      return const Color(0xFF1DAB87); // Green
+    }
+    if (title.contains('sleep') ||
+        title.contains('bed') ||
+        title.contains('rest') ||
+        title.contains('meditate')) {
+      return Colors.deepPurple;
+    }
+    return const Color(0xFFFFA000); // Default Yellow/Amber
+  }
+
+  // ==================== TOGGLE TASK COMPLETION (OPTIMISTIC UI) ====================
+  Future<void> _toggleTaskCompletion(String taskId, bool currentStatus) async {
+    // Find the task index
+    final taskIndex = dailyTasks.indexWhere((t) => t['task_id'] == taskId);
+    if (taskIndex == -1) return;
+
+    // Store original state for rollback
+    final originalTask = Map<String, dynamic>.from(dailyTasks[taskIndex]);
+    final originalCompleted = completedTasks;
+
+    try {
+      // OPTIMISTIC UPDATE: Update UI immediately
+      setState(() {
+        dailyTasks[taskIndex]['is_completed'] = !currentStatus;
+        if (!currentStatus) {
+          completedTasks++;
+        } else {
+          completedTasks--;
+        }
+      });
+
+      // Show immediate feedback
+      if (!currentStatus) {
         AnimatedMessage.show(
           context,
-          message: '+${result['xp_added']} XP earned!',
+          message: '+5 XP earned!',
           backgroundColor: const Color(0xFF1DAB87),
           icon: Icons.star,
           duration: const Duration(seconds: 2),
         );
+      }
+
+      // Background: Update backend
+      if (currentStatus) {
+        await _dailyTasksService.uncompleteTask(taskId);
+      } else {
+        final result = await _dailyTasksService.completeTask(taskId);
 
         // Check for level up
         if (result['leveled_up'] == true) {
           _showLevelUpDialog(result['current_level']);
         }
       }
-
-      // Refresh tasks
-      await _loadDailyTasks();
     } catch (e) {
       print('Error toggling task: $e');
+
+      // ROLLBACK: Revert optimistic update on error
+      setState(() {
+        dailyTasks[taskIndex] = originalTask;
+        completedTasks = originalCompleted;
+      });
+
       AnimatedMessage.show(
         context,
         message: 'Failed to update task',
