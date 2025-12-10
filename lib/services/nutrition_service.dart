@@ -48,6 +48,9 @@ class NutritionService {
     try {
       final userId = _supabase.auth.currentUser?.id;
 
+      print('🔍 getNonSriLankanFoods called');
+      print('🔍 Current user ID: $userId');
+
       if (userId == null) {
         print('⚠️ No user logged in, returning empty list');
         return [];
@@ -59,6 +62,11 @@ class NutritionService {
           .eq('is_sri_lankan', false)
           .eq('user_id', userId)
           .order('created_at', ascending: false);
+
+      print('🔍 Query response: ${response.length} foods found');
+      if (response.isNotEmpty) {
+        print('🔍 First food: ${response[0]}');
+      }
 
       return (response as List)
           .map((json) => FoodItemModel.fromJson(json))
@@ -118,6 +126,7 @@ class NutritionService {
               'fat': scannedFood.fat,
               'is_sri_lankan': scannedFood.isSriLankan,
               'image_url': scannedFood.imageUrl, // Save the uploaded image URL
+              'user_id': userId, // Track which user scanned this food
             })
             .select('food_id')
             .single();

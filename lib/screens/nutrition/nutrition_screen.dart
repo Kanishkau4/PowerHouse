@@ -5,6 +5,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:powerhouse/core/theme/theme_extensions.dart';
 import 'package:intl/intl.dart';
 import 'package:powerhouse/screens/nutrition/add_food_dialog.dart';
+import 'package:powerhouse/screens/nutrition/all_recipes_screen.dart';
 import 'package:powerhouse/screens/nutrition/recipe_detail_screen.dart';
 import 'package:powerhouse/screens/profile/profile_screen.dart';
 import 'package:powerhouse/services/nutrition_service.dart';
@@ -1240,11 +1241,9 @@ class _NutritionScreenState extends State<NutritionScreen> {
   }
 
   void _onSeeAllRecipes() {
-    AnimatedMessage.show(
+    Navigator.push(
       context,
-      message: 'Recipes screen coming soon!',
-      backgroundColor: const Color(0xFF1DAB87),
-      icon: Icons.info_rounded,
+      MaterialPageRoute(builder: (context) => const AllRecipesScreen()),
     );
   }
 

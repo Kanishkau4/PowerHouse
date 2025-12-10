@@ -218,7 +218,7 @@ class _AddFoodDialogState extends State<AddFoodDialog>
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Add to ${widget.mealType}',
+                  'Add Food',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w800,
