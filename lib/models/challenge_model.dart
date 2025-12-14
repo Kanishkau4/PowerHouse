@@ -7,6 +7,9 @@ class ChallengeModel {
   final int durationDays;
   final int xpReward;
   final String? imageUrl;
+  final String
+  challengeType; // 'physical', 'nutrition', 'mindfulness', 'social'
+  final Map<String, dynamic> metaData;
   final DateTime createdAt;
 
   ChallengeModel({
@@ -18,6 +21,8 @@ class ChallengeModel {
     required this.durationDays,
     this.xpReward = 0,
     this.imageUrl,
+    this.challengeType = 'physical',
+    this.metaData = const {},
     required this.createdAt,
   });
 
@@ -31,6 +36,8 @@ class ChallengeModel {
       durationDays: json['duration_days'] as int,
       xpReward: json['xp_reward'] as int? ?? 0,
       imageUrl: json['image_url'] as String?,
+      challengeType: json['challenge_type'] as String? ?? 'physical',
+      metaData: json['meta_data'] as Map<String, dynamic>? ?? {},
       createdAt: DateTime.parse(json['created_at']),
     );
   }
@@ -45,6 +52,8 @@ class ChallengeModel {
       'duration_days': durationDays,
       'xp_reward': xpReward,
       'image_url': imageUrl,
+      'challenge_type': challengeType,
+      'meta_data': metaData,
     };
   }
 }

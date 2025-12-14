@@ -1,30 +1,27 @@
-import 'dart:async';
-import 'dart:math';
+import 'package:health/health.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class HealthService {
-  // Simulated step counter for development
-  // Replace this with actual health package integration when ready
-  int _simulatedSteps = 0;
-  Timer? _stepTimer;
+  final Health _health = Health();
 
-  HealthService() {
-    _startSimulatedStepCounter();
-  }
-
-  void _startSimulatedStepCounter() {
-    // Simulate step counting for development
-    final random = Random();
-    _stepTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
-      _simulatedSteps += random.nextInt(50); // Add 0-50 steps every 10 seconds
-    });
-  }
+  // Define data types we want to read
+  final List<HealthDataType> _types = [
+    HealthDataType.STEPS,
+    HealthDataType.ACTIVE_ENERGY_BURNED,
+    HealthDataType.DISTANCE_DELTA,
+  ];
 
   // Request permissions
   Future<bool> requestPermissions() async {
     try {
-      // For now, always return true
-      // TODO: Implement actual health permission request
-      return true;
+      // Check activity recognition permission first (Android specific)
+      var status = await Permission.activityRecognition.status;
+      if (status.isDenied) {
+        await Permission.activityRecognition.request();
+      }
+
+      bool requested = await _health.requestAuthorization(_types);
+      return requested;
     } catch (e) {
       print('Error requesting health permissions: $e');
       return false;
@@ -34,33 +31,38 @@ class HealthService {
   // Get steps for today
   Future<int> getTodaySteps() async {
     try {
-      // TODO: Replace with actual health data
-      // For now, return simulated steps
-      return _simulatedSteps;
+      final now = DateTime.now();
+      final midnight = DateTime(now.year, now.month, now.day);
+
+      int? steps = await _health.getTotalStepsInInterval(midnight, now);
+      return steps ?? 0;
     } catch (e) {
       print('Error getting steps: $e');
       return 0;
     }
   }
 
-  // Get steps for a date range
-  Future<int> getStepsForDateRange(DateTime start, DateTime end) async {
-    try {
-      // TODO: Replace with actual health data
-      final days = end.difference(start).inDays + 1;
-      return _simulatedSteps * days;
-    } catch (e) {
-      print('Error getting steps for date range: $e');
-      return 0;
-    }
-  }
-
-  // Get calories burned today
+  // Get calories burned today (Active Energy)
   Future<int> getTodayCalories() async {
     try {
-      // TODO: Replace with actual health data
-      // Rough estimate: 0.04 calories per step
-      return (_simulatedSteps * 0.04).round();
+      final now = DateTime.now();
+      final midnight = DateTime(now.year, now.month, now.day);
+
+      // Fetch active energy burned
+      List<HealthDataPoint> healthData = await _health.getHealthDataFromTypes(
+        startTime: midnight,
+        endTime: now,
+        types: [HealthDataType.ACTIVE_ENERGY_BURNED],
+      );
+
+      // Sum up the values
+      double totalCalories = 0;
+      for (var point in healthData) {
+        if (point.value is NumericHealthValue) {
+          totalCalories += (point.value as NumericHealthValue).numericValue;
+        }
+      }
+      return totalCalories.round();
     } catch (e) {
       print('Error getting calories: $e');
       return 0;
@@ -70,16 +72,46 @@ class HealthService {
   // Get distance for today (in meters)
   Future<double> getTodayDistance() async {
     try {
-      // TODO: Replace with actual health data
-      // Rough estimate: 0.75 meters per step
-      return _simulatedSteps * 0.75;
+      final now = DateTime.now();
+      final midnight = DateTime(now.year, now.month, now.day);
+
+      // Fetch distance delta
+      List<HealthDataPoint> healthData = await _health.getHealthDataFromTypes(
+        startTime: midnight,
+        endTime: now,
+        types: [HealthDataType.DISTANCE_DELTA],
+      );
+
+      // Sum up the values
+      double totalDistance = 0;
+      for (var point in healthData) {
+        if (point.value is NumericHealthValue) {
+          totalDistance += (point.value as NumericHealthValue).numericValue;
+        }
+      }
+      return totalDistance;
     } catch (e) {
       print('Error getting distance: $e');
-      return 0;
+      return 0.0;
     }
   }
 
-  void dispose() {
-    _stepTimer?.cancel();
+  // Debug method to check raw data
+  Future<void> debugPrintHealthData() async {
+    final now = DateTime.now();
+    final midnight = DateTime(now.year, now.month, now.day);
+
+    List<HealthDataPoint> healthData = await _health.getHealthDataFromTypes(
+      startTime: midnight,
+      endTime: now,
+      types: _types,
+    );
+
+    print('--- HEALTH DATA DEBUG ---');
+    print('Found ${healthData.length} data points today');
+    for (var point in healthData) {
+      print('${point.type}: ${point.value}');
+    }
+    print('-------------------------');
   }
 }

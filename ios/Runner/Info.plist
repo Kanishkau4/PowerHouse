@@ -49,5 +49,9 @@
 	<string>We need camera access to scan your meals</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>We need photo library access to select meal images</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>We need access to your health data to track your challenge progress.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>We need access to your health data to update your challenge progress.</string>
 </dict>
 </plist>

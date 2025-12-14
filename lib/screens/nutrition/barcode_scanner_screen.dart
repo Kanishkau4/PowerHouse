@@ -64,10 +64,10 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
                       IconButton(
                         onPressed: () => cameraController.toggleTorch(),
                         icon: ValueListenableBuilder(
-                          valueListenable: cameraController.torchState,
+                          valueListenable: cameraController,
                           builder: (context, state, child) {
                             return Icon(
-                              state == TorchState.off
+                              state.torchState == TorchState.off
                                   ? Icons.flash_off
                                   : Icons.flash_on,
                               color: Colors.white,

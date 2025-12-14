@@ -6,34 +6,33 @@ plugins {
 
 android {
     namespace = "com.example.powerhouse"
-    compileSdk = flutter.compileSdkVersion
+    // 👇 1. මෙතන 35 කරන්න (36 ඉල්ලුවට 35 බොහෝ විට හරියනවා)
+    compileSdk = 35 
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        // Updated to VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
         isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
-        jvmTarget = "1.8"
+        // Updated JVM target to 17
+        jvmTarget = "17"
     }
 
     defaultConfig {
         applicationId = "com.example.powerhouse"
-        minSdk = flutter.minSdkVersion
+        minSdk = 26
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-        
-        // multiDexEnabled = true 
     }
 
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("debug")
-            
-            // 👇 මේ දෙක false කළාම Build Error එක එන්නේ නෑ
             isMinifyEnabled = false
             isShrinkResources = false
         }

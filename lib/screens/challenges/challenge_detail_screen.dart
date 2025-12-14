@@ -6,6 +6,7 @@ import 'package:powerhouse/services/challenge_service.dart';
 import 'package:powerhouse/services/health_service.dart';
 import 'package:powerhouse/core/config/supabase_config.dart';
 import 'dart:async';
+import 'package:powerhouse/widgets/challenges/challenge_map_widget.dart';
 
 class ChallengeDetailScreen extends StatefulWidget {
   final UserChallengeModel userChallenge;
@@ -242,6 +243,10 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
                     daysLeft!,
                   ),
 
+                  const SizedBox(height: 24),
+
+                  // Map Visualization
+                  _buildMapSection(challenge, progressPercentage),
                   const SizedBox(height: 24),
 
                   // Progress Bar
@@ -757,5 +762,34 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
           'Celebrate small wins',
         ];
     }
+  }
+
+  Widget _buildMapSection(ChallengeModel challenge, double progressPercentage) {
+    final metaData = challenge.metaData;
+    if (!metaData.containsKey('map_image_url')) {
+      return const SizedBox.shrink();
+    }
+
+    final String? mapImageUrl = metaData['map_image_url'];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Virtual Map',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            color: context.primaryText,
+          ),
+        ),
+        const SizedBox(height: 16),
+        ChallengeMapWidget(
+          progress: progressPercentage,
+          mapImageUrl: mapImageUrl,
+        ),
+        const SizedBox(height: 32),
+      ],
+    );
   }
 }

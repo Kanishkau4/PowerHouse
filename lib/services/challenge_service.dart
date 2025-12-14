@@ -10,6 +10,11 @@ class ChallengeService {
   final _progressService = ProgressService();
   final _healthService = HealthService();
 
+  // ========== REQUEST PERMISSIONS ==========
+  Future<bool> requestHealthPermissions() async {
+    return await _healthService.requestPermissions();
+  }
+
   // ========== GET ALL CHALLENGES ==========
   Future<List<ChallengeModel>> getAllChallenges() async {
     try {

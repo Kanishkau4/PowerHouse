@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:powerhouse/core/constants/badge_icons.dart';
 import 'package:powerhouse/core/theme/theme_extensions.dart';
 import 'package:powerhouse/services/challenge_service.dart';
@@ -11,6 +11,8 @@ import 'package:powerhouse/models/user_badge_model.dart';
 import 'package:powerhouse/models/badge_model.dart';
 import 'package:powerhouse/screens/challenges/challenge_detail_screen.dart';
 import 'package:powerhouse/widgets/skeleton_widgets.dart';
+import 'package:powerhouse/widgets/challenges/active_challenge_card.dart';
+import 'package:powerhouse/widgets/challenges/available_challenge_card.dart';
 
 class ChallengesScreen extends StatefulWidget {
   const ChallengesScreen({super.key});
@@ -36,6 +38,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
 
   // Loading state
   bool _isLoading = true;
+  bool _isSyncing = false;
 
   @override
   void initState() {
@@ -90,6 +93,68 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
       setState(() {
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _syncHealthData() async {
+    setState(() => _isSyncing = true);
+    try {
+      final hasPermissions = await _challengeService.requestHealthPermissions();
+      if (!hasPermissions) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Health permissions needed to sync data'),
+              backgroundColor: context.accentColor,
+              action: SnackBarAction(
+                label: 'Settings',
+                onPressed: () => _challengeService.requestHealthPermissions(),
+              ),
+            ),
+          );
+        }
+        setState(() => _isSyncing = false);
+        return;
+      }
+
+      int syncedCount = 0;
+      for (final userChallenge in _activeChallenges) {
+        final unit = userChallenge.challenge?.unit.toLowerCase() ?? '';
+        if (['steps', 'calories', 'distance', 'km'].contains(unit)) {
+          await _challengeService.syncHealthData(
+            userChallenge.challengeId,
+            unit,
+          );
+          syncedCount++;
+        }
+      }
+
+      await _loadChallengesData();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Synced health data for $syncedCount active challenges',
+            ),
+            backgroundColor: context.primaryColor,
+          ),
+        );
+      }
+    } catch (e) {
+      print('Sync Error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Failed to sync health data'),
+            backgroundColor: context.accentColor,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSyncing = false);
+      }
     }
   }
 
@@ -341,7 +406,11 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Active Challenges Section
-            _buildSectionHeader('Active Challenges', '', null),
+            _buildSectionHeader(
+              'Active Challenges',
+              _isSyncing ? 'Syncing...' : 'Sync Data',
+              _isSyncing ? null : _syncHealthData,
+            ),
 
             const SizedBox(height: 16),
 
@@ -398,7 +467,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
 
   // ==================== LEADERBOARD TAB ====================
   Widget _buildLeaderboardTab() {
-    print('🔍 Leaderboard users count: ${_leaderboardUsers.length}');
+    print('ðŸ” Leaderboard users count: ${_leaderboardUsers.length}');
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
@@ -572,183 +641,10 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
 
   // ==================== ACTIVE CHALLENGE CARD ====================
   Widget _buildActiveChallengeCard(UserChallengeModel userChallenge) {
-    final challenge = userChallenge.challenge;
-    if (challenge == null) return const SizedBox.shrink();
-
-    final progress = userChallenge.progress;
-    final progressPercentage = userChallenge.progressPercentage;
-
-    return GestureDetector(
+    if (userChallenge.challenge == null) return const SizedBox.shrink();
+    return ActiveChallengeCard(
+      userChallenge: userChallenge,
       onTap: () => _onChallengeTap(userChallenge),
-      child: Container(
-        height: 178,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(25),
-          boxShadow: [
-            BoxShadow(
-              color: context.shadowColor,
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Stack(
-          children: [
-            // Background Image
-            ClipRRect(
-              borderRadius: BorderRadius.circular(25),
-              child: SizedBox(
-                width: double.infinity,
-                height: double.infinity,
-                child:
-                    challenge.imageUrl != null && challenge.imageUrl!.isNotEmpty
-                    ? Image.network(
-                        challenge.imageUrl!,
-                        fit: BoxFit.cover,
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  context.primaryColor,
-                                  context.primaryColor.withOpacity(0.7),
-                                ],
-                              ),
-                            ),
-                            child: const Center(
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              ),
-                            ),
-                          );
-                        },
-                        errorBuilder: (context, error, stackTrace) {
-                          print('Error loading image: $error');
-                          return Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  context.primaryColor,
-                                  context.primaryColor.withOpacity(0.7),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      )
-                    : Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              context.primaryColor,
-                              context.primaryColor.withOpacity(0.7),
-                            ],
-                          ),
-                        ),
-                      ),
-              ),
-            ),
-
-            // Gradient Overlay
-            Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(25),
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withOpacity(0.3),
-                    Colors.black.withOpacity(0.7),
-                  ],
-                ),
-              ),
-            ),
-
-            // Content
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              challenge.challengeName,
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              '$progress / ${challenge.targetValue} ${challenge.unit}',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      // Progress Circle
-                      _buildProgressCircle(progressPercentage),
-                    ],
-                  ),
-
-                  const Spacer(),
-
-                  // Continue Button
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(13),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: const [
-                        Text(
-                          'Continue Challenge',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.black,
-                          ),
-                        ),
-                        SizedBox(width: 12),
-                        Icon(
-                          Icons.arrow_forward,
-                          color: Colors.black,
-                          size: 20,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -789,109 +685,10 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
 
   // ==================== AVAILABLE CHALLENGE CARD ====================
   Widget _buildAvailableChallengeCard(ChallengeModel challenge) {
-    return Container(
-      height: 120,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: context.cardBackground,
-        borderRadius: BorderRadius.circular(25),
-        border: Border.all(
-          color: context.borderColor.withOpacity(0.5),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        children: [
-          // Icon
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: context.primaryColor.withOpacity(0.2),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              _getChallengeIcon(challenge.unit),
-              size: 25,
-              color: context.primaryColor,
-            ),
-          ),
-
-          const SizedBox(width: 16),
-
-          // Text
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  challenge.challengeName,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: context.primaryText,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${challenge.targetValue} ${challenge.unit} in ${challenge.durationDays} days',
-                  style: TextStyle(fontSize: 12, color: context.secondaryText),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '+${challenge.xpReward} XP',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: context.accentColor,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Join Button
-          GestureDetector(
-            onTap: () => _onJoinChallenge(challenge),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              decoration: BoxDecoration(
-                color: context.primaryColor,
-                borderRadius: BorderRadius.circular(25),
-              ),
-              child: const Text(
-                'Join',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+    return AvailableChallengeCard(
+      challenge: challenge,
+      onJoin: () => _onJoinChallenge(challenge),
     );
-  }
-
-  // ==================== GET CHALLENGE ICON ====================
-  IconData _getChallengeIcon(String unit) {
-    switch (unit.toLowerCase()) {
-      case 'steps':
-        return Icons.directions_walk;
-      case 'calories':
-        return Icons.local_fire_department;
-      case 'workouts':
-        return Icons.fitness_center;
-      case 'km':
-      case 'distance':
-        return Icons.directions_run;
-      default:
-        return Icons.emoji_events;
-    }
   }
 
   // ==================== ACHIEVEMENTS BADGES ====================

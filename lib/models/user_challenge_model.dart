@@ -67,4 +67,6 @@ class UserChallengeModel {
     final remaining = endDate.difference(DateTime.now()).inDays;
     return remaining > 0 ? remaining : 0;
   }
+
+  get endDate => null;
 }
