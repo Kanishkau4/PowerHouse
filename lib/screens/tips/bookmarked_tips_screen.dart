@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:powerhouse/core/theme/theme_extensions.dart';
 import 'package:powerhouse/models/models.dart';
+import 'package:powerhouse/screens/tips/tips_library_screen.dart';
 import 'package:powerhouse/services/tips_service.dart';
 import 'package:powerhouse/widgets/tips/tip_card.dart';
 
@@ -200,8 +201,12 @@ class _BookmarkedTipsScreenState extends State<BookmarkedTipsScreen> {
             // Browse Tips Button
             ElevatedButton.icon(
               onPressed: () {
-                Navigator.pop(context);
-                // Navigate to tips library
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const TipsLibraryScreen(),
+                  ),
+                );
               },
               icon: const Icon(Icons.explore_outlined),
               label: const Text('Browse Tips'),

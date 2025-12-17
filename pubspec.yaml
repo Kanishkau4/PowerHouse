@@ -71,6 +71,7 @@ dependencies:
   health: ^11.0.0
   # pedometer: ^4.0.1
   permission_handler: ^11.0.1
+  uuid: ^4.5.1
 
 dev_dependencies:
   flutter_test:
@@ -101,6 +102,7 @@ flutter:
   assets:
     - .env
     - assets/images/
+    - assets/images/maps/
     - assets/icons/
     - assets/animations/
     # Explicitly list problematic icon files

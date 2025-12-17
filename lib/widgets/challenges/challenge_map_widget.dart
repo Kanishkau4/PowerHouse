@@ -308,13 +308,22 @@ class _ChallengeMapWidgetState extends State<ChallengeMapWidget>
     if (widget.mapImageUrl != null) {
       return Stack(
         children: [
-          Image.network(
-            widget.mapImageUrl!,
-            height: 220,
-            width: double.infinity,
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => _buildGradientBackground(),
-          ),
+          // Use Image.asset for local assets, Image.network for URLs
+          widget.mapImageUrl!.startsWith('http')
+              ? Image.network(
+                  widget.mapImageUrl!,
+                  height: 220,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => _buildGradientBackground(),
+                )
+              : Image.asset(
+                  widget.mapImageUrl!,
+                  height: 220,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => _buildGradientBackground(),
+                ),
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(

@@ -104,7 +104,7 @@ class BadgeService {
 
       // Get workout count
       final workoutCount = await _getWorkoutCount();
-      
+
       // Get total calories burned
       final totalCalories = await _getTotalCalories();
 
@@ -149,6 +149,100 @@ class BadgeService {
     } catch (e) {
       print('Error checking badges: $e');
       return [];
+    }
+  }
+
+  // ========== CHECK AND AWARD CHALLENGE BADGES ==========
+  Future<List<BadgeModel>> checkAndAwardChallengeBadges() async {
+    try {
+      final userId = SupabaseConfig.currentUserId;
+      if (userId == null) return [];
+
+      final newBadges = <BadgeModel>[];
+
+      // Get completed challenges count
+      final completedCount = await _getCompletedChallengesCount();
+
+      // Check challenge completion badges
+      if (completedCount >= 1) {
+        final badge = await _checkAndAwardBadgeByName('First Challenge');
+        if (badge != null) newBadges.add(badge);
+      }
+      if (completedCount >= 3) {
+        final badge = await _checkAndAwardBadgeByName('Challenge Rookie');
+        if (badge != null) newBadges.add(badge);
+      }
+      if (completedCount >= 10) {
+        final badge = await _checkAndAwardBadgeByName('Challenge Master');
+        if (badge != null) newBadges.add(badge);
+      }
+      if (completedCount >= 25) {
+        final badge = await _checkAndAwardBadgeByName('Challenge Legend');
+        if (badge != null) newBadges.add(badge);
+      }
+
+      // Check for team challenge completion
+      final teamChallengesCount = await _getCompletedTeamChallengesCount();
+      if (teamChallengesCount >= 1) {
+        final badge = await _checkAndAwardBadgeByName('Team Player');
+        if (badge != null) newBadges.add(badge);
+      }
+
+      return newBadges;
+    } catch (e) {
+      print('Error checking challenge badges: $e');
+      return [];
+    }
+  }
+
+  // ========== HELPER: GET COMPLETED CHALLENGES COUNT ==========
+  Future<int> _getCompletedChallengesCount() async {
+    try {
+      final userId = SupabaseConfig.currentUserId;
+      if (userId == null) return 0;
+
+      final response = await _supabase
+          .from('user_challenges')
+          .select('challenge_id')
+          .eq('user_id', userId)
+          .eq('status', 'Completed');
+
+      return (response as List).length;
+    } catch (e) {
+      print('Error getting completed challenges count: $e');
+      return 0;
+    }
+  }
+
+  // ========== HELPER: GET COMPLETED TEAM CHALLENGES COUNT ==========
+  Future<int> _getCompletedTeamChallengesCount() async {
+    try {
+      final userId = SupabaseConfig.currentUserId;
+      if (userId == null) return 0;
+
+      final response = await _supabase
+          .from('team_challenges')
+          .select('team_challenge_id, team_id')
+          .eq('status', 'Completed');
+
+      // Check if user is member of any of these teams
+      int count = 0;
+      for (var challenge in (response as List)) {
+        final teamId = challenge['team_id'];
+        final memberCheck = await _supabase
+            .from('team_members')
+            .select('user_id')
+            .eq('team_id', teamId)
+            .eq('user_id', userId)
+            .maybeSingle();
+
+        if (memberCheck != null) count++;
+      }
+
+      return count;
+    } catch (e) {
+      print('Error getting team challenges count: $e');
+      return 0;
     }
   }
 

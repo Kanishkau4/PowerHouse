@@ -10,6 +10,7 @@ import 'package:powerhouse/models/user_challenge_model.dart';
 import 'package:powerhouse/models/user_badge_model.dart';
 import 'package:powerhouse/models/badge_model.dart';
 import 'package:powerhouse/screens/challenges/challenge_detail_screen.dart';
+import 'package:powerhouse/screens/challenges/team_challenge_screen.dart';
 import 'package:powerhouse/widgets/skeleton_widgets.dart';
 import 'package:powerhouse/widgets/challenges/active_challenge_card.dart';
 import 'package:powerhouse/widgets/challenges/available_challenge_card.dart';
@@ -34,6 +35,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
   List<UserChallengeModel> _activeChallenges = [];
   List<ChallengeModel> _availableChallenges = [];
   List<UserBadgeModel> _userBadges = [];
+  List<BadgeModel> _allBadges = []; // All available badges
   List<UserModel> _leaderboardUsers = [];
 
   // Loading state
@@ -65,6 +67,9 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
       // Load user badges
       final userBadges = await _badgeService.getUserBadges();
 
+      // Load ALL badges (for locked/unlocked display)
+      final allBadges = await _badgeService.getAllBadges();
+
       // Load leaderboard users (top 10 by XP)
       final leaderboardUsers = await _userService.getLeaderboardUsers(10);
 
@@ -83,6 +88,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
         _activeChallenges = activeChallenges;
         _availableChallenges = filteredAvailableChallenges;
         _userBadges = userBadges;
+        _allBadges = allBadges;
         _leaderboardUsers = leaderboardUsers;
         _isLoading = false;
       });
@@ -281,24 +287,43 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
               color: context.primaryText,
             ),
           ),
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: context.primaryColor, width: 2),
-            ),
-            child: ClipOval(
-              child: _userProfile?.profilePictureUrl != null
-                  ? Image.network(
-                      _userProfile!.profilePictureUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return _buildProfileFallback();
-                      },
-                    )
-                  : _buildProfileFallback(),
-            ),
+          Row(
+            children: [
+              // Team Challenges Button
+              IconButton(
+                icon: Icon(Icons.groups, color: context.primaryColor),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const TeamChallengeScreen(),
+                    ),
+                  );
+                },
+                tooltip: 'Team Challenges',
+              ),
+              const SizedBox(width: 8),
+              // Profile Picture
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: context.primaryColor, width: 2),
+                ),
+                child: ClipOval(
+                  child: _userProfile?.profilePictureUrl != null
+                      ? Image.network(
+                          _userProfile!.profilePictureUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return _buildProfileFallback();
+                          },
+                        )
+                      : _buildProfileFallback(),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -452,7 +477,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
             const SizedBox(height: 24),
 
             // Achievements Section
-            if (_userBadges.isNotEmpty) ...[
+            if (_allBadges.isNotEmpty) ...[
               _buildSectionHeader('Achievements', '', null),
               const SizedBox(height: 16),
               _buildAchievementsBadges(),
@@ -467,7 +492,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
 
   // ==================== LEADERBOARD TAB ====================
   Widget _buildLeaderboardTab() {
-    print('ðŸ” Leaderboard users count: ${_leaderboardUsers.length}');
+    print('🔍 Leaderboard users count: ${_leaderboardUsers.length}');
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
@@ -693,54 +718,185 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
 
   // ==================== ACHIEVEMENTS BADGES ====================
   Widget _buildAchievementsBadges() {
-    return Wrap(
-      spacing: 16,
-      runSpacing: 16,
-      children: _userBadges.take(6).map((userBadge) {
-        return _buildAchievementBadge(userBadge);
-      }).toList(),
+    // Get user's earned badge IDs
+    final earnedBadgeIds = _userBadges.map((ub) => ub.badgeId).toSet();
+
+    // Calculate item width based on screen width
+    // We want 4 badges per row with proper spacing
+    final screenWidth = MediaQuery.of(context).size.width;
+    final availableWidth = screenWidth - 48; // 24 padding on each side
+    final spacing = 12.0;
+    final itemsPerRow = 4;
+    final totalSpacing = spacing * (itemsPerRow - 1);
+    final itemWidth = (availableWidth - totalSpacing) / itemsPerRow;
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: itemsPerRow,
+        crossAxisSpacing: spacing,
+        mainAxisSpacing: 16,
+        childAspectRatio: 0.75, // Taller than wide to fit name below
+      ),
+      itemCount: _allBadges.length,
+      itemBuilder: (context, index) {
+        final badge = _allBadges[index];
+        final isUnlocked = earnedBadgeIds.contains(badge.badgeId);
+        return _buildAchievementBadge(badge, isUnlocked, itemWidth);
+      },
     );
   }
 
   // ==================== ACHIEVEMENT BADGE ====================
-  Widget _buildAchievementBadge(UserBadgeModel userBadge) {
-    final badge = userBadge.badge;
-    if (badge == null) return const SizedBox.shrink();
-
+  Widget _buildAchievementBadge(
+    BadgeModel badge,
+    bool isUnlocked,
+    double itemWidth,
+  ) {
     return GestureDetector(
-      onTap: () => _onBadgeTap(userBadge),
+      onTap: () => _onBadgeTap(badge, isUnlocked),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: context.primaryColor,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: context.primaryColor.withOpacity(0.3),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
+          // Badge Icon with locked/unlocked state
+          Expanded(
+            child: AspectRatio(
+              aspectRatio: 1,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: isUnlocked
+                      ? Colors.transparent
+                      : context.inputBackground.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isUnlocked
+                        ? context.primaryColor.withOpacity(0.3)
+                        : context.borderColor.withOpacity(0.3),
+                    width: 2,
+                  ),
+                  // Subtle glow effect for unlocked badges
+                  boxShadow: isUnlocked
+                      ? [
+                          BoxShadow(
+                            color: context.primaryColor.withOpacity(0.3),
+                            blurRadius: 8,
+                            spreadRadius: 1,
+                          ),
+                        ]
+                      : null,
                 ),
-              ],
-            ),
-            child: _buildBadgeIcon(badge),
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: 80,
-            child: Text(
-              badge.badgeName,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: context.primaryText,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Shimmer/shine overlay for unlocked badges
+                    if (isUnlocked)
+                      Positioned.fill(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: ShaderMask(
+                            shaderCallback: (bounds) {
+                              return LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  Colors.white.withOpacity(0.0),
+                                  Colors.white.withOpacity(0.15),
+                                  Colors.white.withOpacity(0.0),
+                                ],
+                                stops: const [0.0, 0.5, 1.0],
+                              ).createShader(bounds);
+                            },
+                            blendMode: BlendMode.srcATop,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    Colors.transparent,
+                                    Colors.white.withOpacity(0.1),
+                                    Colors.transparent,
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    // Badge icon
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: ColorFiltered(
+                        colorFilter: isUnlocked
+                            ? const ColorFilter.mode(
+                                Colors.transparent,
+                                BlendMode.multiply,
+                              )
+                            : const ColorFilter.matrix([
+                                0.2126, 0.7152, 0.0722, 0, 0, // Red
+                                0.2126, 0.7152, 0.0722, 0, 0, // Green
+                                0.2126, 0.7152, 0.0722, 0, 0, // Blue
+                                0,
+                                0,
+                                0,
+                                0.5,
+                                0, // Alpha (more transparent for locked)
+                              ]),
+                        child: _buildBadgeIcon(badge),
+                      ),
+                    ),
+                    // Lock icon for locked badges
+                    if (!isUnlocked)
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: context.cardBackground.withOpacity(0.8),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.lock,
+                          color: context.secondaryText,
+                          size: 16,
+                        ),
+                      ),
+                    // Small sparkle indicator for unlocked
+                    if (isUnlocked)
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: context.primaryColor,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: context.primaryColor.withOpacity(0.5),
+                                blurRadius: 4,
+                                spreadRadius: 1,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
             ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            badge.badgeName,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: isUnlocked ? context.primaryText : context.secondaryText,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -752,37 +908,33 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
     final assetPath = BadgeIcons.getAssetPath(badge.badgeName);
 
     if (assetPath != null) {
-      return Padding(
-        padding: const EdgeInsets.all(15),
-        child: Image.asset(
-          assetPath,
-          color: Colors.white,
-          errorBuilder: (context, error, stackTrace) {
-            return const Icon(
-              Icons.emoji_events,
-              color: Colors.white,
-              size: 30,
-            );
-          },
-        ),
+      return Image.asset(
+        assetPath,
+        // Remove the color parameter to show actual colors
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) {
+          return Icon(
+            Icons.emoji_events,
+            color: context.primaryColor,
+            size: 40,
+          );
+        },
       );
     } else if (badge.iconUrl != null && badge.iconUrl!.isNotEmpty) {
-      return Padding(
-        padding: const EdgeInsets.all(15),
-        child: Image.network(
-          badge.iconUrl!,
-          color: Colors.white,
-          errorBuilder: (context, error, stackTrace) {
-            return const Icon(
-              Icons.emoji_events,
-              color: Colors.white,
-              size: 30,
-            );
-          },
-        ),
+      return Image.network(
+        badge.iconUrl!,
+        // Remove the color parameter to show actual colors
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) {
+          return Icon(
+            Icons.emoji_events,
+            color: context.primaryColor,
+            size: 40,
+          );
+        },
       );
     } else {
-      return const Icon(Icons.emoji_events, color: Colors.white, size: 30);
+      return Icon(Icons.emoji_events, color: context.primaryColor, size: 40);
     }
   }
 
@@ -1057,35 +1209,74 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
     }
   }
 
-  void _onBadgeTap(UserBadgeModel userBadge) {
-    final badge = userBadge.badge;
-    if (badge == null) return;
-
+  // ==================== ON BADGE TAP ====================
+  void _onBadgeTap(BadgeModel badge, bool isUnlocked) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: context.cardBackground,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
-            Icon(Icons.emoji_events, color: context.primaryColor),
-            const SizedBox(width: 12),
+            if (!isUnlocked)
+              Icon(Icons.lock, color: context.secondaryText, size: 24),
+            if (!isUnlocked) const SizedBox(width: 8),
             Expanded(
               child: Text(
                 badge.badgeName,
-                style: TextStyle(color: context.primaryText),
+                style: TextStyle(
+                  color: isUnlocked
+                      ? context.primaryText
+                      : context.secondaryText,
+                ),
               ),
             ),
           ],
         ),
-        content: Text(
-          badge.description ?? 'Achievement unlocked!',
-          style: TextStyle(color: context.secondaryText),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(width: 120, height: 120, child: _buildBadgeIcon(badge)),
+            const SizedBox(height: 16),
+            Text(
+              badge.description ?? 'Achievement unlocked!',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, color: context.secondaryText),
+            ),
+            if (!isUnlocked) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: context.inputBackground,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: context.secondaryText,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Keep going to unlock!',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: context.secondaryText,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Close', style: TextStyle(color: context.primaryColor)),
+            child: const Text('Close'),
           ),
         ],
       ),

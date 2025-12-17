@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:powerhouse/models/challenge_model.dart';
 import 'package:powerhouse/core/theme/theme_extensions.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class AvailableChallengeCard extends StatelessWidget {
   final ChallengeModel challenge;
@@ -32,17 +33,18 @@ class AvailableChallengeCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Icon Background with Gradient
+            // Icon Background with Solid Color
             Container(
               width: 55,
               height: 55,
               decoration: BoxDecoration(
-                gradient: _getChallengeGradient(challenge.challengeType),
+                color: _getSolidColor(challenge.challengeType),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: _getGradientColor(challenge.challengeType)
-                        .withOpacity(0.3),
+                    color: _getSolidColor(
+                      challenge.challengeType,
+                    ).withOpacity(0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
                   ),
@@ -81,8 +83,9 @@ class AvailableChallengeCard extends StatelessWidget {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: _getGradientColor(challenge.challengeType)
-                          .withOpacity(0.15),
+                      color: _getSolidColor(
+                        challenge.challengeType,
+                      ).withOpacity(0.15),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -90,7 +93,7 @@ class AvailableChallengeCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
-                        color: _getGradientColor(challenge.challengeType),
+                        color: _getSolidColor(challenge.challengeType),
                       ),
                     ),
                   ),
@@ -153,11 +156,7 @@ class AvailableChallengeCard extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
-                        Icons.bolt,
-                        color: Colors.amber,
-                        size: 14,
-                      ),
+                      const Icon(Icons.bolt, color: Colors.amber, size: 14),
                       const SizedBox(width: 2),
                       Text(
                         '+${challenge.xpReward}',
@@ -209,64 +208,36 @@ class AvailableChallengeCard extends StatelessWidget {
   IconData _getChallengeIcon(String unit) {
     switch (unit.toLowerCase()) {
       case 'steps':
-        return Icons.directions_walk;
+        return FontAwesomeIcons.shoePrints;
       case 'calories':
-        return Icons.local_fire_department;
+        return FontAwesomeIcons.fireFlameCurved;
       case 'km':
       case 'distance':
-        return Icons.map;
+        return FontAwesomeIcons.route;
       case 'glasses':
-        return Icons.local_drink;
+        return FontAwesomeIcons.glassWater;
       case 'minutes':
-        return Icons.timer;
+        return FontAwesomeIcons.clock;
       case 'days':
-        return Icons.calendar_today;
+        return FontAwesomeIcons.calendarDays;
+      case 'workouts':
+        return FontAwesomeIcons.dumbbell;
       default:
-        return Icons.fitness_center;
+        return FontAwesomeIcons.heartPulse;
     }
   }
 
-  Color _getGradientColor(String type) {
+  Color _getSolidColor(String type) {
     switch (type.toLowerCase()) {
       case 'nutrition':
-        return const Color(0xFF00C6FB);
+        return const Color(0xFF4CAF50); // Green
       case 'mindfulness':
-        return const Color(0xFFA18CD1);
+        return const Color(0xFF9C27B0); // Purple
       case 'social':
-        return const Color(0xFFfa709a);
+        return const Color(0xFFFF5722); // Deep Orange
       case 'physical':
       default:
-        return const Color(0xFF43E97B);
-    }
-  }
-
-  LinearGradient _getChallengeGradient(String type) {
-    switch (type.toLowerCase()) {
-      case 'nutrition':
-        return const LinearGradient(
-          colors: [Color(0xFF00C6FB), Color(0xFF005BEA)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        );
-      case 'mindfulness':
-        return const LinearGradient(
-          colors: [Color(0xFFA18CD1), Color(0xFFFBC2EB)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        );
-      case 'social':
-        return const LinearGradient(
-          colors: [Color(0xFFfa709a), Color(0xFFfee140)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        );
-      case 'physical':
-      default:
-        return const LinearGradient(
-          colors: [Color(0xFF43E97B), Color(0xFF38F9D7)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        );
+        return const Color(0xFF2196F3); // Blue
     }
   }
 }
