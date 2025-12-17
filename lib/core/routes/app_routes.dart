@@ -12,4 +12,5 @@ class AppRoutes {
   static const String goal = '/goal';
   static const String congratulations = '/congratulations';
   static const String MainNavigation = '/home';
+  static const String progressReport = '/progress-report';
 }

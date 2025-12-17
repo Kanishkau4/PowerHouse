@@ -3,6 +3,7 @@ import 'package:lottie/lottie.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:powerhouse/core/theme/theme_extensions.dart';
 import 'package:powerhouse/screens/workouts/workout_detail_screen.dart';
+import 'package:powerhouse/screens/workouts/workouts_screen.dart';
 import 'package:powerhouse/services/user_service.dart';
 import 'package:powerhouse/services/workout_service.dart';
 import 'package:powerhouse/services/daily_tasks_service.dart';
@@ -1187,9 +1188,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   void _onSeeAllWorkouts() {
-    print('See all workouts tapped');
-    // Navigate to workouts tab
-    // You could use a TabController or Navigator
+    // Navigate to workouts screen
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const WorkoutsScreen(),
+      ),
+    );
   }
 
   void _onWorkoutTap(Map<String, dynamic> workout) async {

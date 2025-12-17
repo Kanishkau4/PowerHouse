@@ -20,6 +20,7 @@ import 'package:powerhouse/screens/profile_setup/weight_screen.dart';
 import 'package:powerhouse/screens/profile_setup/height_screen.dart';
 import 'package:powerhouse/screens/profile_setup/goal_screen.dart';
 import 'package:powerhouse/screens/profile_setup/congratulations_screen.dart';
+import 'package:powerhouse/screens/profile/progress_report_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
@@ -76,6 +77,8 @@ class _PowerHouseAppState extends State<PowerHouseApp> {
   @override
   void initState() {
     super.initState();
+    // Pass navigator key to notification service for navigation
+    NotificationService().setNavigatorKey(_navigatorKey);
     _setupAuthListener();
   }
 
@@ -177,6 +180,14 @@ class _PowerHouseAppState extends State<PowerHouseApp> {
             AppRoutes.congratulations: (context) =>
                 const CongratulationsScreen(),
             AppRoutes.MainNavigation: (context) => const MainNavigation(),
+            AppRoutes.progressReport: (context) {
+              final args =
+                  ModalRoute.of(context)!.settings.arguments
+                      as Map<String, dynamic>;
+              return ProgressReportScreen(
+                reportType: args['reportType'] as String,
+              );
+            },
           },
         );
       },

@@ -12,6 +12,9 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _notifications =
       FlutterLocalNotificationsPlugin();
 
+  // Global navigator key for navigation from notifications
+  GlobalKey<NavigatorState>? _navigatorKey;
+
   // Notification IDs
   static const int dailyTipId = 0;
   static const int workoutReminderId = 1;
@@ -71,6 +74,11 @@ class NotificationService {
           IOSFlutterLocalNotificationsPlugin
         >();
     await iosPlugin?.requestPermissions(alert: true, badge: true, sound: true);
+  }
+
+  // Set the navigator key for navigation from notifications
+  void setNavigatorKey(GlobalKey<NavigatorState> navigatorKey) {
+    _navigatorKey = navigatorKey;
   }
 
   // ==================== DAILY TIPS ====================
@@ -356,6 +364,7 @@ class NotificationService {
         ),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+        payload: 'weekly_report',
       );
 
       print('✅ Weekly report scheduled successfully!');
@@ -403,6 +412,7 @@ class NotificationService {
         ),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         matchDateTimeComponents: DateTimeComponents.dayOfMonthAndTime,
+        payload: 'monthly_report',
       );
 
       print('✅ Monthly report scheduled successfully!');
@@ -481,9 +491,28 @@ class NotificationService {
   }
 
   void _onNotificationTapped(NotificationResponse response) {
-    // Navigate to appropriate screen when notification is tapped
-    // You'll need to implement navigation using a global navigator key
     print('Notification tapped: ${response.payload}');
+
+    // Handle navigation based on payload
+    if (_navigatorKey?.currentState == null) {
+      print('❌ Navigator key not set or context not available');
+      return;
+    }
+
+    final payload = response.payload;
+    if (payload == null) return;
+
+    try {
+      if (payload == 'weekly_report' || payload == 'monthly_report') {
+        final reportType = payload == 'weekly_report' ? 'weekly' : 'monthly';
+        _navigatorKey!.currentState!.pushNamed(
+          '/progress-report',
+          arguments: {'reportType': reportType},
+        );
+      }
+    } catch (e) {
+      print('❌ Error navigating from notification: $e');
+    }
   }
 
   // ==================== INACTIVITY REMINDER ====================

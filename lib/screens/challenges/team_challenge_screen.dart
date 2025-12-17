@@ -3,6 +3,7 @@ import 'package:powerhouse/core/theme/theme_extensions.dart';
 import 'package:powerhouse/models/team_model.dart';
 import 'package:powerhouse/services/team_service.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:powerhouse/widgets/animated_message.dart';
 
 class TeamChallengeScreen extends StatefulWidget {
   const TeamChallengeScreen({super.key});
@@ -568,16 +569,22 @@ class _TeamChallengeScreenState extends State<TeamChallengeScreen> {
 
                 if (mounted) {
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Team created successfully!')),
+                  AnimatedMessage.show(
+                    context,
+                    message: 'Team created successfully!',
+                    backgroundColor: context.primaryColor,
+                    icon: Icons.check,
                   );
                   _loadData();
                 }
               } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(
+                  AnimatedMessage.show(
                     context,
-                  ).showSnackBar(SnackBar(content: Text('Error: $e')));
+                    message: 'Error: $e',
+                    backgroundColor: Colors.red,
+                    icon: Icons.error,
+                  );
                 }
               }
             },
@@ -591,14 +598,20 @@ class _TeamChallengeScreenState extends State<TeamChallengeScreen> {
   Future<void> _joinTeam(String teamId) async {
     try {
       await _teamService.joinTeam(teamId);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Joined team successfully!')),
+      AnimatedMessage.show(
+        context,
+        message: 'Joined team successfully!',
+        backgroundColor: context.primaryColor,
+        icon: Icons.check,
       );
       _loadData();
     } catch (e) {
-      ScaffoldMessenger.of(
+      AnimatedMessage.show(
         context,
-      ).showSnackBar(SnackBar(content: Text('Error joining team: $e')));
+        message: 'Error joining team: $e',
+        backgroundColor: Colors.red,
+        icon: Icons.error,
+      );
     }
   }
 }

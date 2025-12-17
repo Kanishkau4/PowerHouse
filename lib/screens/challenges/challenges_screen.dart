@@ -11,6 +11,7 @@ import 'package:powerhouse/models/user_badge_model.dart';
 import 'package:powerhouse/models/badge_model.dart';
 import 'package:powerhouse/screens/challenges/challenge_detail_screen.dart';
 import 'package:powerhouse/screens/challenges/team_challenge_screen.dart';
+import 'package:powerhouse/widgets/animated_message.dart';
 import 'package:powerhouse/widgets/skeleton_widgets.dart';
 import 'package:powerhouse/widgets/challenges/active_challenge_card.dart';
 import 'package:powerhouse/widgets/challenges/available_challenge_card.dart';
@@ -138,23 +139,21 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
       await _loadChallengesData();
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Synced health data for $syncedCount active challenges',
-            ),
-            backgroundColor: context.primaryColor,
-          ),
+        AnimatedMessage.show(
+          context,
+          message: 'Synced health data for $syncedCount active challenges',
+          backgroundColor: context.primaryColor,
+          icon: Icons.check,
         );
       }
     } catch (e) {
       print('Sync Error: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Failed to sync health data'),
-            backgroundColor: context.accentColor,
-          ),
+        AnimatedMessage.show(
+          context,
+          message: 'Failed to sync health data',
+          backgroundColor: Colors.red,
+          icon: Icons.error,
         );
       }
     } finally {
@@ -1188,23 +1187,21 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
       );
       Navigator.pop(context);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Joined ${challenge.challengeName}! +${result['xp_added']} XP',
-          ),
-          backgroundColor: context.primaryColor,
-        ),
+      AnimatedMessage.show(
+        context,
+        message: 'Joined ${challenge.challengeName}! +${result['xp_added']} XP',
+        backgroundColor: context.primaryColor,
+        icon: Icons.check,
       );
 
       await _loadChallengesData();
     } catch (e) {
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Failed to join challenge'),
-          backgroundColor: context.accentColor,
-        ),
+      AnimatedMessage.show(
+        context,
+        message: 'Failed to join challenge',
+        backgroundColor: Colors.red,
+        icon: Icons.error,
       );
     }
   }
