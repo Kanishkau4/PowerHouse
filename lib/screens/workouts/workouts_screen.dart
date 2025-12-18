@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:powerhouse/core/theme/theme_extensions.dart';
+import 'package:powerhouse/screens/profile/profile_screen.dart';
 import 'package:powerhouse/screens/workouts/workout_detail_screen.dart';
 import 'package:powerhouse/services/workout_service.dart';
 import 'package:powerhouse/services/user_service.dart';
@@ -551,6 +552,10 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
 
   void _onProfileTap() {
     print('Profile tapped');
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const ProfileScreen()),
+    );
   }
 
   void _onWorkoutTap(WorkoutModel workout) async {

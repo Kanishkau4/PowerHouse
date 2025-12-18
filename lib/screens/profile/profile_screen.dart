@@ -12,6 +12,7 @@ import 'package:powerhouse/services/user_service.dart';
 import 'package:powerhouse/services/badge_service.dart';
 import 'package:powerhouse/services/weight_history_service.dart';
 import 'package:powerhouse/services/workout_service.dart';
+import 'package:powerhouse/services/daily_tasks_service.dart';
 import 'package:powerhouse/models/user_model.dart';
 import 'package:powerhouse/models/user_badge_model.dart';
 import 'package:powerhouse/models/weight_history_model.dart';
@@ -34,13 +35,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _badgeService = BadgeService();
   final _weightHistoryService = WeightHistoryService();
   final _workoutService = WorkoutService();
+  final _dailyTasksService = DailyTasksService();
 
   // User data
   UserModel? _userProfile;
   List<UserBadgeModel> _userBadges = [];
   List<WeightHistoryModel> _weightHistory = [];
   Map<DateTime, int> _workoutDuration = {};
-  int _currentStreak = 3; // Mock streak for now
+  int _currentStreak = 0;
 
   // Settings
   String selectedLanguage = 'English';
@@ -75,6 +77,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // Check if user logged weight today
       final hasLoggedToday = await _weightHistoryService.hasLoggedWeightToday();
 
+      // Get Current Streak
+      final streak = await _dailyTasksService.getCurrentStreak();
+
       print('✅ Loaded ${badges.length} badges for user');
       print('✅ Loaded ${weightHistory.length} weight entries');
       print('✅ Loaded ${workoutDuration.length} workout days');
@@ -84,6 +89,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _userBadges = badges;
         _weightHistory = weightHistory;
         _workoutDuration = workoutDuration;
+        _currentStreak = streak;
         _isLoading = false;
       });
 
@@ -447,7 +453,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(width: 12),
               Text(
-                '$_currentStreak Day Streak 🔥',
+                '$_currentStreak Day Streak ⚡',
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,

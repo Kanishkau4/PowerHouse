@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+
 import 'package:powerhouse/core/theme/theme_extensions.dart';
+import 'package:powerhouse/screens/profile/profile_screen.dart';
 import 'package:powerhouse/screens/workouts/workout_detail_screen.dart';
 import 'package:powerhouse/screens/workouts/workouts_screen.dart';
 import 'package:powerhouse/services/user_service.dart';
@@ -11,6 +12,9 @@ import 'package:powerhouse/services/progress_service.dart';
 import 'package:powerhouse/services/tips_service.dart';
 import 'package:powerhouse/screens/tips/tips_library_screen.dart';
 import 'package:powerhouse/widgets/animated_message.dart';
+import 'package:powerhouse/screens/tasks/daily_plan_screen.dart';
+import 'package:powerhouse/widgets/tasks/task_item_card.dart';
+
 import 'package:powerhouse/widgets/tips/tip_of_day_card.dart';
 import 'package:powerhouse/widgets/skeleton_widgets.dart';
 import 'package:powerhouse/models/models.dart';
@@ -328,12 +332,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   const SizedBox(height: 16),
 
                   // Daily Tasks List
-                  ...dailyTasks.map(
-                    (task) => Padding(
+                  ...dailyTasks.map((task) {
+                    final isCompleted = task['is_completed'] as bool? ?? false;
+                    return Padding(
                       padding: const EdgeInsets.only(bottom: 12),
-                      child: _buildTaskItem(context, task),
-                    ),
-                  ),
+                      child: TaskItemCard(
+                        task: task,
+                        onTap: () => _onTaskTap(task),
+                        onToggle: (val) =>
+                            _toggleTaskCompletion(task['task_id'], isCompleted),
+                      ),
+                    );
+                  }),
 
                   const SizedBox(height: 100), // Space for bottom nav
                 ],
@@ -755,223 +765,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // ==================== TASK ITEM NO 2 ====================
-  Widget _buildTaskItem(BuildContext context, Map<String, dynamic> task) {
-    final isCompleted = task['is_completed'] as bool? ?? false;
-    final taskId = task['task_id'] as String;
-    final title = task['task_title'] as String;
-    final duration = task['duration'] as int?;
-    final calories = task['calories'] as int?;
-
-    // Categorize
-    final taskIcon = _getTaskIcon(title);
-    final taskColor = _getTaskColor(title);
-
-    // Theme-aware colors
-    final cardBg = isCompleted
-        ? context.primaryColor.withOpacity(0.05)
-        : context.cardBackground;
-    final borderColor = isCompleted ? context.primaryColor : Colors.transparent;
-    final titleColor = isCompleted
-        ? context.secondaryText
-        : context.primaryText;
-
-    return GestureDetector(
-      onTap: () => _onTaskTap(task),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: cardBg,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: borderColor.withOpacity(isCompleted ? 0.0 : 0.0),
-            width: 0,
-          ), // Subtle border logic if needed
-          boxShadow: [
-            BoxShadow(
-              color: context.shadowColor.withOpacity(isCompleted ? 0.0 : 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            // Categorization Icon Container
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: isCompleted
-                    ? context.secondaryText.withOpacity(0.1)
-                    : taskColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(
-                taskIcon,
-                color: isCompleted ? context.secondaryText : taskColor,
-                size: 24,
-              ),
-            ),
-
-            const SizedBox(width: 16),
-
-            // Task Details
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: titleColor,
-                      decoration: isCompleted
-                          ? TextDecoration.lineThrough
-                          : TextDecoration.none,
-                    ),
-                  ),
-                  if (!isCompleted &&
-                      (duration != null || calories != null)) ...[
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        if (duration != null) ...[
-                          Icon(
-                            Icons.schedule,
-                            size: 14,
-                            color: context.secondaryText,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '$duration min',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: context.secondaryText,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                        ],
-                        if (calories != null) ...[
-                          const Icon(
-                            Icons.local_fire_department,
-                            size: 14,
-                            color: Color(0xFFFF844B),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '$calories cal',
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: Color(0xFFFF844B),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
-                ],
-              ),
-            ),
-
-            const SizedBox(width: 12),
-
-            // Checkbox
-            GestureDetector(
-              onTap: () => _toggleTaskCompletion(taskId, isCompleted),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: isCompleted
-                      ? context.primaryColor
-                      : Colors
-                            .transparent, // context.cardBackground would be white? NO, transparent to show bg
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isCompleted
-                        ? context.primaryColor
-                        : context.dividerColor,
-                    width: 2,
-                  ),
-                ),
-                child: isCompleted
-                    ? const Icon(Icons.check, color: Colors.white, size: 18)
-                    : null,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ==================== TASK HELPERS ====================
-  IconData _getTaskIcon(String title) {
-    title = title.toLowerCase();
-    if (title.contains('workout') ||
-        title.contains('run') ||
-        title.contains('gym') ||
-        title.contains('exercise')) {
-      return FontAwesomeIcons.dumbbell;
-    }
-    if (title.contains('water') ||
-        title.contains('drink') ||
-        title.contains('hydrate')) {
-      return FontAwesomeIcons.glassWater;
-    }
-    if (title.contains('eat') ||
-        title.contains('meal') ||
-        title.contains('nutrition') ||
-        title.contains('food') ||
-        title.contains('calor')) {
-      return FontAwesomeIcons.bowlFood;
-    }
-    if (title.contains('sleep') ||
-        title.contains('bed') ||
-        title.contains('rest') ||
-        title.contains('meditate')) {
-      return FontAwesomeIcons.bed;
-    }
-    if (title.contains('read') ||
-        title.contains('learn') ||
-        title.contains('study')) {
-      return FontAwesomeIcons.bookOpen;
-    }
-    return FontAwesomeIcons.circleCheck; // Default
-  }
-
-  Color _getTaskColor(String title) {
-    title = title.toLowerCase();
-    if (title.contains('workout') ||
-        title.contains('run') ||
-        title.contains('gym') ||
-        title.contains('exercise')) {
-      return const Color(0xFFF15223); // Orange/Red
-    }
-    if (title.contains('water') ||
-        title.contains('drink') ||
-        title.contains('hydrate')) {
-      return Colors.blue;
-    }
-    if (title.contains('eat') ||
-        title.contains('meal') ||
-        title.contains('nutrition') ||
-        title.contains('food')) {
-      return const Color(0xFF1DAB87); // Green
-    }
-    if (title.contains('sleep') ||
-        title.contains('bed') ||
-        title.contains('rest') ||
-        title.contains('meditate')) {
-      return Colors.deepPurple;
-    }
-    return const Color(0xFFFFA000); // Default Yellow/Amber
-  }
-
   // ==================== TOGGLE TASK COMPLETION (OPTIMISTIC UI) ====================
   Future<void> _toggleTaskCompletion(String taskId, bool currentStatus) async {
     // Find the task index
@@ -1179,21 +972,25 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   void _onProfileTap() {
     print('Profile tapped');
-    // Navigate to profile screen (already handled by bottom nav)
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const ProfileScreen()),
+    ).then((_) => _loadHomeData()); // Refresh home data when returning
   }
 
   void _onPlanCardTap() {
     print('Plan card tapped');
-    // Could show detailed view of all tasks
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const DailyPlanScreen()),
+    ).then((_) => _loadHomeData()); // Refresh home data when returning
   }
 
   void _onSeeAllWorkouts() {
     // Navigate to workouts screen
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const WorkoutsScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const WorkoutsScreen()),
     );
   }
 

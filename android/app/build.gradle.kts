@@ -7,7 +7,7 @@ plugins {
 android {
     namespace = "com.example.powerhouse"
     // 👇 1. මෙතන 35 කරන්න (36 ඉල්ලුවට 35 බොහෝ විට හරියනවා)
-    compileSdk = 35 
+    compileSdk = 36 
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
