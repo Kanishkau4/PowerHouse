@@ -8,10 +8,10 @@ class AvailableChallengeCard extends StatelessWidget {
   final VoidCallback onJoin;
 
   const AvailableChallengeCard({
-    Key? key,
+    super.key,
     required this.challenge,
     required this.onJoin,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

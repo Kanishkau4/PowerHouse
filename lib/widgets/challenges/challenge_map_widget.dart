@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:powerhouse/core/theme/theme_extensions.dart';
 
 class ChallengeMapWidget extends StatefulWidget {
   final double progress; // 0.0 to 1.0

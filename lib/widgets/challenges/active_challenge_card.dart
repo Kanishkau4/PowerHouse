@@ -7,10 +7,10 @@ class ActiveChallengeCard extends StatelessWidget {
   final VoidCallback onTap;
 
   const ActiveChallengeCard({
-    Key? key,
+    super.key,
     required this.userChallenge,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -21,8 +21,9 @@ class ActiveChallengeCard extends StatelessWidget {
 
     // Safely calculate progress
     final int targetValue = userChallenge.challenge?.targetValue ?? 0;
-    final double rawProgress =
-        targetValue > 0 ? (userChallenge.progress / targetValue) : 0.0;
+    final double rawProgress = targetValue > 0
+        ? (userChallenge.progress / targetValue)
+        : 0.0;
     final double progress = rawProgress.clamp(0.0, 1.0);
     final int progressPercent = (progress * 100).toInt();
 

@@ -123,7 +123,7 @@ class _DailyPlanScreenState extends State<DailyPlanScreen> {
   Future<void> _addNewTask() async {
     // Logic to add new task dialog
     // For now, minimal placeholder or simple dialog
-    final TextEditingController _controller = TextEditingController();
+    final TextEditingController controller = TextEditingController();
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -133,7 +133,7 @@ class _DailyPlanScreenState extends State<DailyPlanScreen> {
           style: TextStyle(color: context.primaryText),
         ),
         content: TextField(
-          controller: _controller,
+          controller: controller,
           style: TextStyle(color: context.primaryText),
           decoration: InputDecoration(
             hintText: 'e.g., Drink water',
@@ -150,8 +150,8 @@ class _DailyPlanScreenState extends State<DailyPlanScreen> {
           ),
           TextButton(
             onPressed: () async {
-              if (_controller.text.isNotEmpty) {
-                await _dailyTasksService.addCustomTask(title: _controller.text);
+              if (controller.text.isNotEmpty) {
+                await _dailyTasksService.addCustomTask(title: controller.text);
                 if (mounted) {
                   Navigator.pop(context);
                   _loadTasks(); // Reload to show new task
