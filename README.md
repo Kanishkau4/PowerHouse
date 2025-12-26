@@ -428,15 +428,14 @@ stateDiagram-v2
 <div align="center">
   <table>
     <tr>
-      <td><img src="assets/images/homescreen.png" width="200" alt="Home Screen"><br><sub>Home Screen</sub></td>
-      <td><img src="assets/images/workoutscreen.png" width="200" alt="Workout Tracking"><br><sub>Workout Tracking</sub></td>
-    </tr>
-    <tr>
-      <td><img src="assets/images/addmealscreen.png" width="200" alt="Meal Scanner"><br><sub>Meal Scanner</sub></td>
-      <td><img src="assets/images/profilescreen.png" width="200" alt="Profile"><br><sub>Profile</sub></td>
+      <td><img src="assets/images/homescreen.png" width="150" alt="Home Screen"><br><sub>Home Screen</sub></td>
+      <td><img src="assets/images/workoutscreen.png" width="150" alt="Workout Tracking"><br><sub>Workout Tracking</sub></td>
+      <td><img src="assets/images/addmealscreen.png" width="150" alt="Meal Scanner"><br><sub>Meal Scanner</sub></td>
+      <td><img src="assets/images/profilescreen.png" width="150" alt="Profile"><br><sub>Profile</sub></td>
     </tr>
   </table>
 </div>
+
 
 
 ---
