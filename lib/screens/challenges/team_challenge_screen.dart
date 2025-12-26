@@ -369,7 +369,9 @@ class _TeamChallengeScreenState extends State<TeamChallengeScreen> {
                 Padding(
                   padding: const EdgeInsets.only(left: 8.0),
                   child: ElevatedButton(
-                    onPressed: () => _joinTeam(team.teamId),
+                    onPressed: _joiningTeamIds.contains(team.teamId)
+                        ? null
+                        : () => _joinTeam(team.teamId),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: context.primaryColor,
                       foregroundColor: Colors.white,
@@ -382,10 +384,19 @@ class _TeamChallengeScreenState extends State<TeamChallengeScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text(
-                      'Join',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
+                    child: _joiningTeamIds.contains(team.teamId)
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text(
+                            'Join',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
                   ),
                 ),
             ],
@@ -595,23 +606,41 @@ class _TeamChallengeScreenState extends State<TeamChallengeScreen> {
     );
   }
 
+  final Set<String> _joiningTeamIds = {};
+
   Future<void> _joinTeam(String teamId) async {
+    if (_joiningTeamIds.contains(teamId)) return;
+
+    setState(() {
+      _joiningTeamIds.add(teamId);
+    });
+
     try {
       await _teamService.joinTeam(teamId);
-      AnimatedMessage.show(
-        context,
-        message: 'Joined team successfully!',
-        backgroundColor: context.primaryColor,
-        icon: Icons.check,
-      );
-      _loadData();
+      if (mounted) {
+        AnimatedMessage.show(
+          context,
+          message: 'Joined team successfully!',
+          backgroundColor: context.primaryColor,
+          icon: Icons.check,
+        );
+        _loadData();
+      }
     } catch (e) {
-      AnimatedMessage.show(
-        context,
-        message: 'Error joining team: $e',
-        backgroundColor: Colors.red,
-        icon: Icons.error,
-      );
+      if (mounted) {
+        AnimatedMessage.show(
+          context,
+          message: 'Error joining team: $e',
+          backgroundColor: Colors.red,
+          icon: Icons.error,
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _joiningTeamIds.remove(teamId);
+        });
+      }
     }
   }
 }

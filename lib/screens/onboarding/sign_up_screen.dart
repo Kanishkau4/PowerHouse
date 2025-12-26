@@ -81,6 +81,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       if (value == null || value.isEmpty) {
                         return 'Please enter your name';
                       }
+                      if (value.trim().toLowerCase() == 'admin') {
+                        return 'This username is reserved. Please choose another name';
+                      }
                       return null;
                     },
                   ),

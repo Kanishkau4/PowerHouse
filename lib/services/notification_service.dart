@@ -14,6 +14,7 @@ class NotificationService {
 
   // Global navigator key for navigation from notifications
   GlobalKey<NavigatorState>? _navigatorKey;
+  String? _pendingPayload;
 
   // Notification IDs
   static const int dailyTipId = 0;
@@ -56,6 +57,17 @@ class NotificationService {
         onDidReceiveNotificationResponse: _onNotificationTapped,
       );
 
+      // Check if app was launched by notification
+      final launchDetails = await _notifications
+          .getNotificationAppLaunchDetails();
+      if (launchDetails != null &&
+          launchDetails.didNotificationLaunchApp &&
+          launchDetails.notificationResponse != null) {
+        final payload = launchDetails.notificationResponse!.payload;
+        print('🚀 App launched from notification with payload: $payload');
+        _pendingPayload = payload;
+      }
+
       print('✅ Notification service initialized: $initialized');
     } catch (e) {
       print('❌ Error initializing notification service: $e');
@@ -79,6 +91,42 @@ class NotificationService {
   // Set the navigator key for navigation from notifications
   void setNavigatorKey(GlobalKey<NavigatorState> navigatorKey) {
     _navigatorKey = navigatorKey;
+    print('🧭 Navigator key set successfully');
+
+    // Handle any pending payload
+    if (_pendingPayload != null) {
+      print('⏳ Processing pending payload: $_pendingPayload');
+      // Small delay to ensure navigator context is ready
+      Future.delayed(const Duration(milliseconds: 500), () {
+        _handlePayload(_pendingPayload!);
+        _pendingPayload = null;
+      });
+    }
+  }
+
+  // Handle navigation based on payload
+  void _handlePayload(String payload) {
+    if (_navigatorKey?.currentState == null) {
+      print(
+        '❌ Navigator key not set or context not available inside _handlePayload',
+      );
+      return;
+    }
+
+    try {
+      if (payload == 'weekly_report' || payload == 'monthly_report') {
+        final reportType = payload == 'weekly_report' ? 'weekly' : 'monthly';
+        print('👉 Navigating to progress report: $reportType');
+        _navigatorKey!.currentState!.pushNamed(
+          '/progress-report',
+          arguments: {'reportType': reportType},
+        );
+      } else {
+        print('ℹ️ Unknown payload: $payload');
+      }
+    } catch (e) {
+      print('❌ Error navigating from notification: $e');
+    }
   }
 
   // ==================== DAILY TIPS ====================
@@ -493,26 +541,17 @@ class NotificationService {
   void _onNotificationTapped(NotificationResponse response) {
     print('Notification tapped: ${response.payload}');
 
-    // Handle navigation based on payload
-    if (_navigatorKey?.currentState == null) {
-      print('❌ Navigator key not set or context not available');
-      return;
-    }
-
     final payload = response.payload;
     if (payload == null) return;
 
-    try {
-      if (payload == 'weekly_report' || payload == 'monthly_report') {
-        final reportType = payload == 'weekly_report' ? 'weekly' : 'monthly';
-        _navigatorKey!.currentState!.pushNamed(
-          '/progress-report',
-          arguments: {'reportType': reportType},
-        );
-      }
-    } catch (e) {
-      print('❌ Error navigating from notification: $e');
+    // Handle navigation based on payload
+    if (_navigatorKey?.currentState == null) {
+      print('⚠️ Navigator key not set yet. Storing payload as pending.');
+      _pendingPayload = payload;
+      return;
     }
+
+    _handlePayload(payload);
   }
 
   // ==================== INACTIVITY REMINDER ====================

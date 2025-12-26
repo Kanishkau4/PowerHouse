@@ -31,10 +31,7 @@ class UserService {
       final userId = SupabaseConfig.currentUserId;
       if (userId == null) throw Exception('No user logged in');
 
-      await _supabase
-          .from('users')
-          .update(updates)
-          .eq('user_id', userId);
+      await _supabase.from('users').update(updates).eq('user_id', userId);
     } catch (e) {
       rethrow;
     }
@@ -51,10 +48,10 @@ class UserService {
       final newXP = (user?.xpPoints ?? 0) + points;
       final newLevel = _calculateLevel(newXP);
 
-      await _supabase.from('users').update({
-        'xp_points': newXP,
-        'level': newLevel,
-      }).eq('user_id', userId);
+      await _supabase
+          .from('users')
+          .update({'xp_points': newXP, 'level': newLevel})
+          .eq('user_id', userId);
     } catch (e) {
       rethrow;
     }
@@ -71,6 +68,7 @@ class UserService {
       final response = await _supabase
           .from('users')
           .select()
+          .neq('username', 'Admin') // Exclude admin users
           .order('xp_points', ascending: false)
           .limit(limit);
 
@@ -91,27 +89,32 @@ class UserService {
 
       // Create a unique file name
       final fileExt = imageFile.path.split('.').last;
-      final fileName = '$userId-${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+      final fileName =
+          '$userId-${DateTime.now().millisecondsSinceEpoch}.$fileExt';
       final filePath = 'profile_pictures/$fileName';
 
       // Upload to Supabase Storage
-      await _supabase.storage.from('avatars').upload(
+      await _supabase.storage
+          .from('avatars')
+          .upload(
             filePath,
             imageFile,
-            fileOptions: const FileOptions(
-              cacheControl: '3600',
-              upsert: false,
-            ),
+            fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
           );
 
       // Get public URL
-      final publicUrl = _supabase.storage.from('avatars').getPublicUrl(filePath);
+      final publicUrl = _supabase.storage
+          .from('avatars')
+          .getPublicUrl(filePath);
 
       // Update user profile with new URL
-      await _supabase.from('users').update({
-        'profile_picture_url': publicUrl,
-        'updated_at': DateTime.now().toIso8601String(),
-      }).eq('user_id', userId);
+      await _supabase
+          .from('users')
+          .update({
+            'profile_picture_url': publicUrl,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('user_id', userId);
 
       return publicUrl;
     } catch (e) {
@@ -128,14 +131,15 @@ class UserService {
       // Extract file path from URL
       final uri = Uri.parse(oldUrl);
       final path = uri.pathSegments.last;
-      
+
       if (path.isNotEmpty && path.contains('profile_pictures')) {
-        await _supabase.storage.from('avatars').remove(['profile_pictures/$path']);
+        await _supabase.storage.from('avatars').remove([
+          'profile_pictures/$path',
+        ]);
       }
     } catch (e) {
       print('Error deleting old profile picture: $e');
       // Don't throw - we still want to proceed even if deletion fails
     }
   }
-
 }

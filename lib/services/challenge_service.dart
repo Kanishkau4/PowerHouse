@@ -246,8 +246,11 @@ class ChallengeService {
     try {
       final response = await _supabase
           .from('user_challenges')
-          .select('user_id, progress, users(username, profile_picture_url)')
+          .select(
+            'user_id, progress, users!inner(username, profile_picture_url)',
+          )
           .eq('challenge_id', challengeId)
+          .neq('users.username', 'Admin') // Exclude admin users
           .order('progress', ascending: false)
           .limit(10);
 
@@ -267,6 +270,7 @@ class ChallengeService {
       final response = await _supabase
           .from('users')
           .select('user_id, username, profile_picture_url, xp_points, level')
+          .neq('username', 'Admin') // Exclude admin users
           .order('xp_points', ascending: false)
           .limit(10);
 

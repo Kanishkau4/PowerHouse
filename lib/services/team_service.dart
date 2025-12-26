@@ -61,6 +61,19 @@ class TeamService {
       final userId = SupabaseConfig.currentUserId;
       if (userId == null) throw Exception('No user logged in');
 
+      // Check if already a member to avoid duplicate key error
+      final existingMember = await _supabase
+          .from('team_members')
+          .select()
+          .eq('team_id', teamId)
+          .eq('user_id', userId)
+          .maybeSingle();
+
+      if (existingMember != null) {
+        // User is already a member, return gracefully
+        return;
+      }
+
       // Add user to team
       await _supabase.from('team_members').insert({
         'team_id': teamId,

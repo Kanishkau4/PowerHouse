@@ -100,12 +100,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
     // Responsive animation size
     final animationContainerHeight = isSmallScreen
-        ? screenHeight * 0.30
+        ? screenHeight * 0.33
         : isMediumScreen
-        ? screenHeight * 0.35
-        : screenHeight * 0.40;
+        ? screenHeight * 0.38
+        : screenHeight * 0.43;
 
-    final circleSize = animationContainerHeight * 0.85;
+    final circleSize = animationContainerHeight * 0.92;
 
     // Responsive font sizes
     final titleFontSize = isSmallScreen
@@ -120,8 +120,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
         : 15.0;
 
     // Responsive spacing
-    final topSpacing = isSmallScreen ? 16.0 : 40.0;
-    final middleSpacing = isSmallScreen ? 16.0 : 30.0;
+    final topSpacing = isSmallScreen ? 12.0 : 24.0;
+    final middleSpacing = isSmallScreen ? 12.0 : 20.0;
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.08),
