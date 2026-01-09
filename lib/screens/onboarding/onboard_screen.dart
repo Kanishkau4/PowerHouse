@@ -85,85 +85,128 @@ class _OnboardScreenState extends State<OnboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // Determine screen size category
+    final isSmallScreen = screenHeight < 700;
+    final isMediumScreen = screenHeight >= 700 && screenHeight < 850;
+
+    // Responsive font sizes
+    final welcomeFontSize = isSmallScreen
+        ? 36.0
+        : isMediumScreen
+        ? 44.0
+        : 48.0;
+    final orFontSize = isSmallScreen ? 16.0 : 18.0;
+    final createAccountFontSize = isSmallScreen ? 18.0 : 20.0;
+    final signInFontSize = isSmallScreen ? 13.0 : 14.0;
+
+    // Responsive asset sizes
+    final logoHeight = isSmallScreen
+        ? 100.0
+        : isMediumScreen
+        ? 120.0
+        : 140.0;
+
+    // Responsive spacing
+    final topPadding = isSmallScreen ? 40.0 : 60.0;
+    final sectionSpacing = isSmallScreen ? 30.0 : 50.0;
+    final itemSpacing = isSmallScreen ? 15.0 : 20.0;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 28.0),
-          child: Column(
-            children: [
-              const SizedBox(height: 80),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: screenWidth * 0.08,
+                    ),
+                    child: Column(
+                      children: [
+                        SizedBox(height: topPadding),
 
-              // Welcome Text
-              const Text(
-                'Welcome To',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 42,
-                  fontWeight: FontWeight.w800,
-                  height: 1.2,
+                        // Welcome Text
+                        Text(
+                          'Welcome To',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: welcomeFontSize,
+                            fontWeight: FontWeight.w800,
+                            height: 1.2,
+                          ),
+                        ),
+
+                        // App Name / Logo
+                        _buildGradientTitle(logoHeight),
+
+                        SizedBox(height: sectionSpacing),
+
+                        // Sign in with Apple Button
+                        _buildAppleSignInButton(context, isSmallScreen),
+
+                        SizedBox(height: itemSpacing),
+
+                        // Sign in with Google Button
+                        _buildGoogleSignInButton(context, isSmallScreen),
+
+                        SizedBox(height: sectionSpacing),
+
+                        // Or Text
+                        Text(
+                          'Or',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: const Color(0xFF979797),
+                            fontSize: orFontSize,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+
+                        SizedBox(height: isSmallScreen ? 20 : 30),
+
+                        // Create New Account Button
+                        _buildCreateAccountButton(
+                          context,
+                          createAccountFontSize,
+                        ),
+
+                        const Spacer(), // This will push the content below to the bottom
+                        // Already have account? Sign in
+                        _buildSignInLink(context, signInFontSize),
+
+                        const SizedBox(height: 30),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-
-              // App Name with Gradient
-              _buildGradientTitle(),
-
-              const SizedBox(height: 50),
-
-              // Sign in with Apple Button
-              _buildAppleSignInButton(context),
-
-              const SizedBox(height: 20),
-
-              // Sign in with Google Button
-              _buildGoogleSignInButton(context),
-
-              const SizedBox(height: 50),
-
-              // Or Text
-              const Text(
-                'Or',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Color(0xFF979797),
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-
-              const SizedBox(height: 30),
-
-              // Create New Account Button
-              _buildCreateAccountButton(context),
-
-              const Spacer(),
-
-              // Already have account? Sign in
-              _buildSignInLink(context),
-
-              const SizedBox(height: 30),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
   }
 
-  // Logo Widget (replaces the gradient title)
-  Widget _buildGradientTitle() {
+  // Logo Widget
+  Widget _buildGradientTitle(double height) {
     return Image.asset(
-      'assets/images/logo.png', // Update this path to your logo location
-      height: 120, // Adjust this to match your desired size
-      width: 280, // Keep it square since your image is 500x500
+      'assets/images/logo.png',
+      height: height,
+      width: height * (280 / 120), // Maintain aspect ratio
       fit: BoxFit.contain,
       errorBuilder: (context, error, stackTrace) {
-        // Fallback to text if image fails to load
-        return const Text(
+        return Text(
           'PowerHouse',
           style: TextStyle(
             color: Colors.black,
-            fontSize: 48,
+            fontSize: height * 0.4,
             fontWeight: FontWeight.w700,
             letterSpacing: -2,
           ),
@@ -173,16 +216,19 @@ class _OnboardScreenState extends State<OnboardScreen> {
   }
 
   // Apple Sign-In Button
-  Widget _buildAppleSignInButton(BuildContext context) {
+  Widget _buildAppleSignInButton(BuildContext context, bool isSmall) {
+    final buttonHeight = isSmall ? 52.0 : 58.0;
+    final fontSize = isSmall ? 16.0 : 18.0;
+    final iconSize = isSmall ? 24.0 : 28.0;
+
     return GestureDetector(
       onTap: () {
-        // TODO: Implement Apple Sign-In
         print('Apple Sign-In tapped');
         _showComingSoonDialog(context, 'Apple Sign-In');
       },
       child: Container(
         width: double.infinity,
-        height: 58,
+        height: buttonHeight,
         decoration: BoxDecoration(
           color: Colors.white,
           border: Border.all(color: const Color(0xFF979797)),
@@ -193,18 +239,18 @@ class _OnboardScreenState extends State<OnboardScreen> {
           children: [
             Image.asset(
               'assets/icons/apple_logo.png',
-              width: 28,
-              height: 28,
+              width: iconSize,
+              height: iconSize,
               errorBuilder: (context, error, stackTrace) {
-                return const Icon(Icons.apple, size: 28);
+                return Icon(Icons.apple, size: iconSize);
               },
             ),
             const SizedBox(width: 12),
-            const Text(
+            Text(
               'Sign in with Apple',
               style: TextStyle(
                 color: Colors.black,
-                fontSize: 18,
+                fontSize: fontSize,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -215,12 +261,16 @@ class _OnboardScreenState extends State<OnboardScreen> {
   }
 
   // Google Sign-In Button
-  Widget _buildGoogleSignInButton(BuildContext context) {
+  Widget _buildGoogleSignInButton(BuildContext context, bool isSmall) {
+    final buttonHeight = isSmall ? 52.0 : 58.0;
+    final fontSize = isSmall ? 16.0 : 18.0;
+    final iconSize = isSmall ? 24.0 : 28.0;
+
     return GestureDetector(
       onTap: _isProcessingAuth ? null : () => _handleGoogleSignIn(context),
       child: Container(
         width: double.infinity,
-        height: 58,
+        height: buttonHeight,
         decoration: BoxDecoration(
           color: Colors.white,
           border: Border.all(color: const Color(0xFF979797)),
@@ -230,10 +280,10 @@ class _OnboardScreenState extends State<OnboardScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (_isProcessingAuth)
-              const SizedBox(
-                width: 28,
-                height: 28,
-                child: CircularProgressIndicator(
+              SizedBox(
+                width: iconSize,
+                height: iconSize,
+                child: const CircularProgressIndicator(
                   strokeWidth: 2,
                   valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6489FA)),
                 ),
@@ -241,22 +291,22 @@ class _OnboardScreenState extends State<OnboardScreen> {
             else
               Image.asset(
                 'assets/icons/google_logo.png',
-                width: 28,
-                height: 28,
+                width: iconSize,
+                height: iconSize,
                 errorBuilder: (context, error, stackTrace) {
-                  return const Icon(
+                  return Icon(
                     Icons.g_mobiledata,
-                    size: 28,
-                    color: Color(0xFF6489FA),
+                    size: iconSize,
+                    color: const Color(0xFF6489FA),
                   );
                 },
               ),
             const SizedBox(width: 12),
             Text(
               _isProcessingAuth ? 'Signing in...' : 'Sign in with Google',
-              style: const TextStyle(
-                color: Color(0xFF6489FA),
-                fontSize: 18,
+              style: TextStyle(
+                color: const Color(0xFF6489FA),
+                fontSize: fontSize,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -267,22 +317,20 @@ class _OnboardScreenState extends State<OnboardScreen> {
   }
 
   // Create New Account Button
-  Widget _buildCreateAccountButton(BuildContext context) {
+  Widget _buildCreateAccountButton(BuildContext context, double fontSize) {
     return GestureDetector(
       onTap: () {
-        // Navigate to Sign Up Screen
         Navigator.pushNamed(context, '/signup');
       },
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8),
-        child: const Text(
+        child: Text(
           'Create New Account',
           textAlign: TextAlign.center,
           style: TextStyle(
-            color: Color(0xFFFF844B),
-            fontSize: 22,
+            color: const Color(0xFFFF844B),
+            fontSize: fontSize,
             fontWeight: FontWeight.w600,
-            // decoration: TextDecoration.underline,
           ),
         ),
       ),
@@ -290,26 +338,24 @@ class _OnboardScreenState extends State<OnboardScreen> {
   }
 
   // Sign In Link at Bottom
-  Widget _buildSignInLink(BuildContext context) {
+  Widget _buildSignInLink(BuildContext context, double fontSize) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text(
+        Text(
           'Already have an account? ',
-          style: TextStyle(color: Color(0xFF979797), fontSize: 14),
+          style: TextStyle(color: const Color(0xFF979797), fontSize: fontSize),
         ),
         GestureDetector(
           onTap: () {
-            // Navigate to Sign In Screen
             Navigator.pushNamed(context, '/signin');
           },
-          child: const Text(
+          child: Text(
             'Sign In',
             style: TextStyle(
-              color: Color(0xFF1DB386),
-              fontSize: 14,
+              color: const Color(0xFF1DB386),
+              fontSize: fontSize,
               fontWeight: FontWeight.bold,
-              //decoration: TextDecoration.underline,
             ),
           ),
         ),

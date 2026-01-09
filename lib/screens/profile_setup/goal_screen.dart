@@ -41,70 +41,93 @@ class _GoalScreenState extends State<GoalScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // Determine screen size category
+    final isSmallScreen = screenHeight < 700;
+    final isMediumScreen = screenHeight >= 700 && screenHeight < 850;
+
+    // Responsive sizes
+    final topPadding = isSmallScreen ? 15.0 : 30.0;
+    final logoHeight = isSmallScreen
+        ? 80.0
+        : isMediumScreen
+        ? 100.0
+        : 120.0;
+    final sectionSpacing = isSmallScreen ? 15.0 : 30.0;
+    final headingFontSize = isSmallScreen
+        ? 36.0
+        : isMediumScreen
+        ? 44.0
+        : 54.0;
+
     return Scaffold(
-      backgroundColor: context.surfaceColor, // ✅ DARK MODE
+      backgroundColor: context.surfaceColor,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 30.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 40),
-
-              // Outline Title
-              _buildOutlineTitle(),
-
-              const SizedBox(height: 20),
-
-              // Heading
-              _buildHeading(),
-
-              const SizedBox(height: 40),
-
-              // Goal Cards
-              Expanded(
-                child: ListView.separated(
-                  itemCount: goals.length,
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    return _buildGoalCard(goals[index]);
-                  },
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: screenWidth * 0.08,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(height: topPadding),
+                        _buildOutlineTitle(logoHeight),
+                        SizedBox(height: sectionSpacing),
+                        _buildHeading(headingFontSize),
+                        SizedBox(height: sectionSpacing),
+                        // Goal Cards - Use Column for deterministic layout in scroll
+                        Column(
+                          children: goals
+                              .map(
+                                (goal) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 12.0),
+                                  child: _buildGoalCard(goal, isSmallScreen),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                        const Spacer(),
+                        _buildNextButton(),
+                        SizedBox(height: isSmallScreen ? 30 : 60),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-
-              const SizedBox(height: 40),
-
-              // Next Button
-              _buildNextButton(),
-
-              const SizedBox(height: 60),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _buildOutlineTitle() {
+  Widget _buildOutlineTitle(double height) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Center(
       child: Image.asset(
         'assets/images/logo.png',
-        height: 120,
-        width: 280,
+        height: height,
+        width: height * (280 / 120),
         fit: BoxFit.contain,
-        // Optional: Apply color filter for dark mode if logo is dark
         color: isDark ? Colors.white : null,
         colorBlendMode: isDark ? BlendMode.srcIn : null,
         errorBuilder: (context, error, stackTrace) {
+          final fontSize = height * 0.4;
           return Stack(
             children: [
               Text(
                 'PowerHouse',
                 style: TextStyle(
-                  fontSize: 48,
+                  fontSize: fontSize,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -2,
                   foreground: Paint()
@@ -117,7 +140,7 @@ class _GoalScreenState extends State<GoalScreen> {
                 'PowerHouse',
                 style: TextStyle(
                   color: context.surfaceColor,
-                  fontSize: 48,
+                  fontSize: fontSize,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -2,
                 ),
@@ -129,7 +152,7 @@ class _GoalScreenState extends State<GoalScreen> {
     );
   }
 
-  Widget _buildHeading() {
+  Widget _buildHeading(double fontSize) {
     return Center(
       child: RichText(
         textAlign: TextAlign.center,
@@ -138,8 +161,8 @@ class _GoalScreenState extends State<GoalScreen> {
             TextSpan(
               text: 'What is your\n',
               style: TextStyle(
-                color: context.primaryText, // ✅ DARK MODE
-                fontSize: 48,
+                color: context.primaryText,
+                fontSize: fontSize,
                 fontWeight: FontWeight.w800,
                 height: 1.1,
               ),
@@ -147,8 +170,8 @@ class _GoalScreenState extends State<GoalScreen> {
             TextSpan(
               text: 'Goal?',
               style: TextStyle(
-                color: context.primaryColor, // ✅ DARK MODE
-                fontSize: 48,
+                color: context.primaryColor,
+                fontSize: fontSize,
                 fontWeight: FontWeight.w800,
                 height: 1.1,
               ),
@@ -159,30 +182,23 @@ class _GoalScreenState extends State<GoalScreen> {
     );
   }
 
-  Widget _buildGoalCard(GoalOption goal) {
+  Widget _buildGoalCard(GoalOption goal, bool isSmall) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isSelected = selectedGoal == goal.id;
 
-    // Background colors based on theme and selection
     final selectedBgColor = context.accentColor.withOpacity(isDark ? 0.2 : 0.1);
     final unselectedBgColor = isDark
-        ? context
-              .cardBackground // ✅ DARK MODE
+        ? context.cardBackground
         : const Color(0xFFF3F3F3);
-
-    // Border colors
     final selectedBorderColor = context.accentColor;
     final unselectedBorderColor = Colors.transparent;
-
-    // Text color
-    final textColor = context.primaryText; // ✅ DARK MODE
-
-    // Unselected checkbox border
+    final textColor = context.primaryText;
     final checkboxBorderColor = isDark
-        ? Colors
-              .grey
-              .shade600 // ✅ DARK MODE
+        ? Colors.grey.shade600
         : const Color(0xFFD7D7D8);
+
+    final cardPadding = isSmall ? 12.0 : 20.0;
+    final iconSize = isSmall ? 36.0 : 48.0;
 
     return GestureDetector(
       onTap: () {
@@ -192,7 +208,7 @@ class _GoalScreenState extends State<GoalScreen> {
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(cardPadding),
         decoration: BoxDecoration(
           color: isSelected ? selectedBgColor : unselectedBgColor,
           borderRadius: BorderRadius.circular(19),
@@ -220,14 +236,12 @@ class _GoalScreenState extends State<GoalScreen> {
         ),
         child: Row(
           children: [
-            // Icon
             Container(
-              width: 48,
-              height: 48,
+              width: iconSize,
+              height: iconSize,
               decoration: BoxDecoration(
                 color: isSelected
-                    ? context
-                          .accentColor // ✅ DARK MODE
+                    ? context.accentColor
                     : goal.color.withOpacity(isDark ? 0.3 : 0.2),
                 shape: BoxShape.circle,
               ),
@@ -235,34 +249,27 @@ class _GoalScreenState extends State<GoalScreen> {
                 goal.icon,
                 color: isSelected
                     ? Colors.white
-                    : (isDark
-                          ? goal.color.withOpacity(0.9) // Brighter in dark mode
-                          : goal.color),
-                size: 24,
+                    : (isDark ? goal.color.withOpacity(0.9) : goal.color),
+                size: iconSize * 0.5,
               ),
             ),
-
             const SizedBox(width: 16),
-
-            // Title
             Expanded(
               child: Text(
                 goal.title,
                 style: TextStyle(
-                  color: textColor, // ✅ DARK MODE
-                  fontSize: 16,
+                  color: textColor,
+                  fontSize: isSmall ? 14 : 16,
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
                 ),
               ),
             ),
-
-            // Checkmark
             if (isSelected)
               Container(
                 width: 28,
                 height: 28,
                 decoration: BoxDecoration(
-                  color: context.accentColor, // ✅ DARK MODE
+                  color: context.accentColor,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.check, color: Colors.white, size: 18),
@@ -273,10 +280,7 @@ class _GoalScreenState extends State<GoalScreen> {
                 height: 28,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: checkboxBorderColor, // ✅ DARK MODE
-                    width: 2,
-                  ),
+                  border: Border.all(color: checkboxBorderColor, width: 2),
                 ),
               ),
           ],
@@ -290,7 +294,7 @@ class _GoalScreenState extends State<GoalScreen> {
 
     return Center(
       child: CircularProgressButton(
-        progress: 1.0, // 100% progress (step 5/5)
+        progress: 1.0,
         onTap: isEnabled ? _handleNext : null,
         isEnabled: isEnabled,
       ),
@@ -299,14 +303,9 @@ class _GoalScreenState extends State<GoalScreen> {
 
   void _handleNext() {
     if (selectedGoal.isEmpty) return;
-
-    print('Selected goal: $selectedGoal');
-
     final args = ModalRoute.of(context)?.settings.arguments as Map?;
     final previousData = args ?? {};
     previousData['goal'] = selectedGoal;
-
-    // Navigate to congratulations screen
     Navigator.pushNamed(context, '/congratulations', arguments: previousData);
   }
 }

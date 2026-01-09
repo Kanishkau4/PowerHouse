@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:powerhouse/models/user_challenge_model.dart';
-import 'package:powerhouse/core/theme/theme_extensions.dart';
 
 class ActiveChallengeCard extends StatelessWidget {
   final UserChallengeModel userChallenge;

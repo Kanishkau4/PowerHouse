@@ -57,8 +57,35 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // Determine screen size category
+    final isSmallScreen = screenHeight < 700;
+    final isMediumScreen = screenHeight >= 700 && screenHeight < 850;
+
+    // Responsive sizes
+    final topPadding = isSmallScreen ? 15.0 : 30.0;
+    final logoHeight = isSmallScreen
+        ? 80.0
+        : isMediumScreen
+        ? 100.0
+        : 120.0;
+    final sectionSpacing = isSmallScreen ? 15.0 : 30.0;
+    final headingFontSize = isSmallScreen
+        ? 32.0
+        : isMediumScreen
+        ? 38.0
+        : 44.0;
+    final subtitleFontSize = isSmallScreen ? 16.0 : 20.0;
+    final iconSize = isSmallScreen
+        ? 200.0
+        : isMediumScreen
+        ? 250.0
+        : 300.0;
+
     return Scaffold(
-      backgroundColor: context.surfaceColor, // ✅ DARK MODE
+      backgroundColor: context.surfaceColor,
       body: SafeArea(
         child: Stack(
           children: [
@@ -66,42 +93,47 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
             _buildConfetti(),
 
             // Main content
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 30.0),
-              child: Column(
-                children: [
-                  const SizedBox(height: 40),
-
-                  _buildOutlineTitle(),
-
-                  const Spacer(),
-
-                  ScaleTransition(
-                    scale: _scaleAnimation,
-                    child: _buildSuccessIcon(),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
+                    child: IntrinsicHeight(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: screenWidth * 0.08,
+                        ),
+                        child: Column(
+                          children: [
+                            SizedBox(height: topPadding),
+                            _buildOutlineTitle(logoHeight),
+                            const Spacer(),
+                            ScaleTransition(
+                              scale: _scaleAnimation,
+                              child: _buildSuccessIcon(iconSize),
+                            ),
+                            SizedBox(height: sectionSpacing),
+                            FadeTransition(
+                              opacity: _fadeAnimation,
+                              child: _buildCongratulationsText(headingFontSize),
+                            ),
+                            const SizedBox(height: 16),
+                            FadeTransition(
+                              opacity: _fadeAnimation,
+                              child: _buildSubtitle(subtitleFontSize),
+                            ),
+                            const Spacer(),
+                            _buildStartButton(),
+                            SizedBox(height: isSmallScreen ? 30 : 60),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
-
-                  const SizedBox(height: 30),
-
-                  FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: _buildCongratulationsText(),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: _buildSubtitle(),
-                  ),
-
-                  const Spacer(),
-
-                  _buildStartButton(),
-
-                  const SizedBox(height: 60),
-                ],
-              ),
+                );
+              },
             ),
 
             // Loading overlay
@@ -109,9 +141,7 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
               Container(
                 color: Colors.black54,
                 child: Center(
-                  child: CircularProgressIndicator(
-                    color: context.primaryColor, // ✅ DARK MODE
-                  ),
+                  child: CircularProgressIndicator(color: context.primaryColor),
                 ),
               ),
           ],
@@ -120,25 +150,25 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
     );
   }
 
-  Widget _buildOutlineTitle() {
+  Widget _buildOutlineTitle(double height) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Center(
       child: Image.asset(
         'assets/images/logo.png',
-        height: 120,
-        width: 280,
+        height: height,
+        width: height * (280 / 120),
         fit: BoxFit.contain,
-        // Optional: Apply color filter for dark mode if logo is dark
         color: isDark ? Colors.white : null,
         colorBlendMode: isDark ? BlendMode.srcIn : null,
         errorBuilder: (context, error, stackTrace) {
+          final fontSize = height * 0.4;
           return Stack(
             children: [
               Text(
                 'PowerHouse',
                 style: TextStyle(
-                  fontSize: 48,
+                  fontSize: fontSize,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -2,
                   foreground: Paint()
@@ -151,7 +181,7 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
                 'PowerHouse',
                 style: TextStyle(
                   color: context.surfaceColor,
-                  fontSize: 48,
+                  fontSize: fontSize,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -2,
                 ),
@@ -163,12 +193,12 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
     );
   }
 
-  Widget _buildSuccessIcon() {
+  Widget _buildSuccessIcon(double size) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return SizedBox(
-      width: 300,
-      height: 300,
+      width: size,
+      height: size,
       child: Lottie.asset(
         'assets/animations/success.json',
         repeat: false,
@@ -176,8 +206,8 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
         errorBuilder: (context, error, stackTrace) {
           // Fallback to the original icon if Lottie file is not found
           return Container(
-            width: 200,
-            height: 200,
+            width: size * 0.66,
+            height: size * 0.66,
             decoration: BoxDecoration(
               color: context.primaryColor.withOpacity(
                 isDark ? 0.2 : 0.1,
@@ -188,15 +218,15 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
               alignment: Alignment.center,
               children: [
                 Container(
-                  width: 160,
-                  height: 160,
+                  width: size * 0.5,
+                  height: size * 0.5,
                   decoration: BoxDecoration(
                     color: context.primaryColor, // ✅ DARK MODE
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.check,
-                    size: 100,
+                    size: size * 0.33,
                     color: Colors.white,
                   ),
                 ),
@@ -208,26 +238,26 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
     );
   }
 
-  Widget _buildCongratulationsText() {
+  Widget _buildCongratulationsText(double fontSize) {
     return Text(
       'Congratulations!',
       textAlign: TextAlign.center,
       style: TextStyle(
         color: context.primaryColor, // ✅ DARK MODE
-        fontSize: 40,
+        fontSize: fontSize,
         fontWeight: FontWeight.w800,
         height: 1.15,
       ),
     );
   }
 
-  Widget _buildSubtitle() {
+  Widget _buildSubtitle(double fontSize) {
     return Text(
       'Your profile is ready!',
       textAlign: TextAlign.center,
       style: TextStyle(
         color: context.primaryText, // ✅ DARK MODE
-        fontSize: 20,
+        fontSize: fontSize,
         fontWeight: FontWeight.w600,
       ),
     );

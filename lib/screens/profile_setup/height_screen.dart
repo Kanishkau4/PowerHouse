@@ -38,58 +38,92 @@ class _HeightScreenState extends State<HeightScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // Determine screen size category
+    final isSmallScreen = screenHeight < 700;
+    final isMediumScreen = screenHeight >= 700 && screenHeight < 850;
+
+    // Responsive sizes
+    final topPadding = isSmallScreen ? 15.0 : 30.0;
+    final logoHeight = isSmallScreen
+        ? 80.0
+        : isMediumScreen
+        ? 100.0
+        : 120.0;
+    final sectionSpacing = isSmallScreen ? 5.0 : 15.0;
+    final headingFontSize = isSmallScreen
+        ? 36.0
+        : isMediumScreen
+        ? 44.0
+        : 54.0;
+    final heightFontSize = isSmallScreen
+        ? 60.0
+        : isMediumScreen
+        ? 75.0
+        : 90.0;
+    final unitFontSize = isSmallScreen ? 24.0 : 36.0;
+
     return Scaffold(
-      backgroundColor: context.surfaceColor, // ✅ DARK MODE
+      backgroundColor: context.surfaceColor,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 30.0),
-          child: Column(
-            children: [
-              const SizedBox(height: 20),
-              _buildOutlineTitle(),
-              const SizedBox(height: 10),
-              _buildHeading(),
-              const SizedBox(height: 10),
-
-              // Height Display
-              _buildHeightDisplay(),
-
-              const SizedBox(height: 20),
-
-              // Vertical Ruler
-              _buildVerticalRuler(),
-
-              const SizedBox(height: 20),
-              _buildUnitToggle(),
-              const SizedBox(height: 20),
-              _buildNextButton(),
-              const SizedBox(height: 20),
-            ],
-          ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: screenWidth * 0.08,
+                    ),
+                    child: Column(
+                      children: [
+                        SizedBox(height: topPadding),
+                        _buildOutlineTitle(logoHeight),
+                        SizedBox(height: sectionSpacing),
+                        _buildHeading(headingFontSize),
+                        SizedBox(height: sectionSpacing),
+                        _buildHeightDisplay(heightFontSize, unitFontSize),
+                        SizedBox(height: sectionSpacing),
+                        _buildVerticalRuler(isSmallScreen),
+                        SizedBox(height: sectionSpacing),
+                        _buildUnitToggle(),
+                        const Spacer(),
+                        _buildNextButton(),
+                        SizedBox(height: isSmallScreen ? 30 : 60),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _buildOutlineTitle() {
+  Widget _buildOutlineTitle(double height) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Center(
       child: Image.asset(
         'assets/images/logo.png',
-        height: 120,
-        width: 280,
+        height: height,
+        width: height * (280 / 120),
         fit: BoxFit.contain,
-        // Optional: Apply color filter for dark mode if logo is dark
         color: isDark ? Colors.white : null,
         colorBlendMode: isDark ? BlendMode.srcIn : null,
         errorBuilder: (context, error, stackTrace) {
+          final fontSize = height * 0.4;
           return Stack(
             children: [
               Text(
                 'PowerHouse',
                 style: TextStyle(
-                  fontSize: 48,
+                  fontSize: fontSize,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -2,
                   foreground: Paint()
@@ -102,7 +136,7 @@ class _HeightScreenState extends State<HeightScreen> {
                 'PowerHouse',
                 style: TextStyle(
                   color: context.surfaceColor,
-                  fontSize: 48,
+                  fontSize: fontSize,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -2,
                 ),
@@ -114,7 +148,7 @@ class _HeightScreenState extends State<HeightScreen> {
     );
   }
 
-  Widget _buildHeading() {
+  Widget _buildHeading(double fontSize) {
     return RichText(
       textAlign: TextAlign.center,
       text: TextSpan(
@@ -122,8 +156,8 @@ class _HeightScreenState extends State<HeightScreen> {
           TextSpan(
             text: 'How much ',
             style: TextStyle(
-              color: context.primaryText, // ✅ DARK MODE
-              fontSize: 48,
+              color: context.primaryText,
+              fontSize: fontSize,
               fontWeight: FontWeight.w800,
               height: 1.1,
             ),
@@ -131,8 +165,8 @@ class _HeightScreenState extends State<HeightScreen> {
           TextSpan(
             text: 'Tall\n',
             style: TextStyle(
-              color: context.primaryColor, // ✅ DARK MODE
-              fontSize: 48,
+              color: context.primaryColor,
+              fontSize: fontSize,
               fontWeight: FontWeight.w800,
               height: 1.1,
             ),
@@ -140,8 +174,8 @@ class _HeightScreenState extends State<HeightScreen> {
           TextSpan(
             text: 'are you?',
             style: TextStyle(
-              color: context.primaryText, // ✅ DARK MODE
-              fontSize: 48,
+              color: context.primaryText,
+              fontSize: fontSize,
               fontWeight: FontWeight.w800,
               height: 1.1,
             ),
@@ -151,7 +185,7 @@ class _HeightScreenState extends State<HeightScreen> {
     );
   }
 
-  Widget _buildHeightDisplay() {
+  Widget _buildHeightDisplay(double heightFontSize, double unitFontSize) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -159,19 +193,19 @@ class _HeightScreenState extends State<HeightScreen> {
         Text(
           selectedHeight.toInt().toString(),
           style: TextStyle(
-            color: context.primaryText, // ✅ DARK MODE
-            fontSize: 90,
+            color: context.primaryText,
+            fontSize: heightFontSize,
             fontWeight: FontWeight.w800,
             letterSpacing: -1.92,
           ),
         ),
         Padding(
-          padding: const EdgeInsets.only(bottom: 20, left: 8),
+          padding: EdgeInsets.only(bottom: heightFontSize * 0.2, left: 8),
           child: Text(
             selectedUnit,
             style: TextStyle(
-              color: context.secondaryText, // ✅ DARK MODE
-              fontSize: 36,
+              color: context.secondaryText,
+              fontSize: unitFontSize,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -180,7 +214,7 @@ class _HeightScreenState extends State<HeightScreen> {
     );
   }
 
-  Widget _buildVerticalRuler() {
+  Widget _buildVerticalRuler(bool isSmall) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Tick colors based on theme
@@ -201,6 +235,9 @@ class _HeightScreenState extends State<HeightScreen> {
               .grey
               .shade400 // ✅ DARK MODE
         : const Color(0xFF676B74);
+
+    final rulerHeight = isSmall ? 150.0 : 200.0;
+    final tickWidth = isSmall ? 40.0 : 56.0;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -239,7 +276,7 @@ class _HeightScreenState extends State<HeightScreen> {
           children: [
             // Center indicator line
             Container(
-              width: 80,
+              width: tickWidth * 1.5,
               height: 4,
               color: context.accentColor, // ✅ DARK MODE (Orange)
             ),
@@ -247,7 +284,7 @@ class _HeightScreenState extends State<HeightScreen> {
             // Scrollable vertical ruler
             SizedBox(
               width: 100,
-              height: 200,
+              height: rulerHeight,
               child: SingleChildScrollView(
                 controller: _scrollController,
                 physics: const BouncingScrollPhysics(),
@@ -266,7 +303,7 @@ class _HeightScreenState extends State<HeightScreen> {
                           children: [
                             Container(
                               height: isMajorTick ? 4 : 2,
-                              width: isMajorTick ? 56 : 24,
+                              width: isMajorTick ? tickWidth : 24,
                               decoration: BoxDecoration(
                                 color: isMajorTick
                                     ? majorTickColor // ✅ DARK MODE

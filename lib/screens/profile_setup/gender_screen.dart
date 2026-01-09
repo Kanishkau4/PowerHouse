@@ -14,49 +14,88 @@ class _GenderScreenState extends State<GenderScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // Determine screen size category
+    final isSmallScreen = screenHeight < 700;
+    final isMediumScreen = screenHeight >= 700 && screenHeight < 850;
+
+    // Responsive sizes
+    final topPadding = isSmallScreen ? 15.0 : 30.0;
+    final logoHeight = isSmallScreen
+        ? 80.0
+        : isMediumScreen
+        ? 100.0
+        : 120.0;
+    final sectionSpacing = isSmallScreen ? 20.0 : 40.0;
+    final headingFontSize = isSmallScreen
+        ? 36.0
+        : isMediumScreen
+        ? 44.0
+        : 54.0;
+    final buttonSize = isSmallScreen
+        ? 110.0
+        : isMediumScreen
+        ? 124.0
+        : 136.0;
+
     return Scaffold(
-      backgroundColor: context.surfaceColor, // ✅ DARK MODE
+      backgroundColor: context.surfaceColor,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 30.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 40),
-              _buildOutlineTitle(),
-              const SizedBox(height: 40),
-              _buildHeading(),
-              const SizedBox(height: 60),
-              _buildGenderButtons(),
-              const Spacer(),
-              _buildNextButton(),
-              const SizedBox(height: 60),
-            ],
-          ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: screenWidth * 0.08,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(height: topPadding),
+                        _buildOutlineTitle(logoHeight),
+                        SizedBox(height: sectionSpacing),
+                        _buildHeading(headingFontSize),
+                        SizedBox(height: sectionSpacing * 1.5),
+                        _buildGenderButtons(buttonSize),
+                        const Spacer(),
+                        _buildNextButton(),
+                        SizedBox(height: isSmallScreen ? 30 : 60),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _buildOutlineTitle() {
+  Widget _buildOutlineTitle(double height) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Center(
       child: Image.asset(
         'assets/images/logo.png',
-        height: 120,
-        width: 280,
+        height: height,
+        width: height * (280 / 120),
         fit: BoxFit.contain,
-        // Optional: Apply color filter for dark mode if logo is dark
         color: isDark ? Colors.white : null,
         colorBlendMode: isDark ? BlendMode.srcIn : null,
         errorBuilder: (context, error, stackTrace) {
+          final fontSize = height * 0.4;
           return Stack(
             children: [
               Text(
                 'PowerHouse',
                 style: TextStyle(
-                  fontSize: 48,
+                  fontSize: fontSize,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -2,
                   foreground: Paint()
@@ -69,7 +108,7 @@ class _GenderScreenState extends State<GenderScreen> {
                 'PowerHouse',
                 style: TextStyle(
                   color: context.surfaceColor,
-                  fontSize: 48,
+                  fontSize: fontSize,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -2,
                 ),
@@ -81,7 +120,7 @@ class _GenderScreenState extends State<GenderScreen> {
     );
   }
 
-  Widget _buildHeading() {
+  Widget _buildHeading(double fontSize) {
     return Center(
       child: RichText(
         textAlign: TextAlign.center,
@@ -90,8 +129,8 @@ class _GenderScreenState extends State<GenderScreen> {
             TextSpan(
               text: 'Tell us\nYour ',
               style: TextStyle(
-                color: context.primaryText, // ✅ DARK MODE
-                fontSize: 48,
+                color: context.primaryText,
+                fontSize: fontSize,
                 fontWeight: FontWeight.w800,
                 height: 1.1,
               ),
@@ -99,8 +138,8 @@ class _GenderScreenState extends State<GenderScreen> {
             TextSpan(
               text: 'gender',
               style: TextStyle(
-                color: context.primaryColor, // ✅ DARK MODE
-                fontSize: 48,
+                color: context.primaryColor,
+                fontSize: fontSize,
                 fontWeight: FontWeight.w800,
                 height: 1.1,
               ),
@@ -111,7 +150,7 @@ class _GenderScreenState extends State<GenderScreen> {
     );
   }
 
-  Widget _buildGenderButtons() {
+  Widget _buildGenderButtons(double size) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Row(
@@ -122,20 +161,22 @@ class _GenderScreenState extends State<GenderScreen> {
           fallbackIcon: Icons.male,
           label: 'Male',
           isSelected: selectedGender == 'male',
-          isDark: isDark, // ✅ Pass dark mode flag
+          isDark: isDark,
+          size: size,
           onTap: () {
             setState(() {
               selectedGender = 'male';
             });
           },
         ),
-        const SizedBox(width: 25),
+        SizedBox(width: size * 0.2),
         GenderButtonWithImage(
           imagePath: 'assets/icons/female_icon.png',
           fallbackIcon: Icons.female,
           label: 'Female',
           isSelected: selectedGender == 'female',
-          isDark: isDark, // ✅ Pass dark mode flag
+          isDark: isDark,
+          size: size,
           onTap: () {
             setState(() {
               selectedGender = 'female';
@@ -174,6 +215,7 @@ class GenderButtonWithImage extends StatelessWidget {
   final String label;
   final bool isSelected;
   final bool isDark; // ✅ Add dark mode flag
+  final double size;
   final VoidCallback onTap;
 
   const GenderButtonWithImage({
@@ -183,6 +225,7 @@ class GenderButtonWithImage extends StatelessWidget {
     required this.label,
     required this.isSelected,
     required this.isDark, // ✅ Required parameter
+    required this.size,
     required this.onTap,
   });
 
@@ -220,11 +263,11 @@ class GenderButtonWithImage extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        width: 136,
-        height: 136,
+        width: size,
+        height: size,
         decoration: BoxDecoration(
           color: bgColor,
-          borderRadius: BorderRadius.circular(30),
+          borderRadius: BorderRadius.circular(size * 0.22),
           border: Border.all(color: borderColor, width: isSelected ? 2 : 1),
           boxShadow: isSelected
               ? [
@@ -251,19 +294,19 @@ class GenderButtonWithImage extends StatelessWidget {
             // Try to load image, fallback to icon
             Image.asset(
               imagePath,
-              width: 60,
-              height: 60,
+              width: size * 0.44,
+              height: size * 0.44,
               color: color, // Tint the icon
               errorBuilder: (context, error, stackTrace) {
-                return Icon(fallbackIcon, size: 60, color: color);
+                return Icon(fallbackIcon, size: size * 0.44, color: color);
               },
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: size * 0.05),
             Text(
               label,
               style: TextStyle(
                 color: color,
-                fontSize: 20,
+                fontSize: size * 0.14,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
               ),
             ),

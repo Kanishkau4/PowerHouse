@@ -40,6 +40,33 @@ class _WeightScreenState extends State<WeightScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // Determine screen size category
+    final isSmallScreen = screenHeight < 700;
+    final isMediumScreen = screenHeight >= 700 && screenHeight < 850;
+
+    // Responsive sizes
+    final topPadding = isSmallScreen ? 15.0 : 30.0;
+    final logoHeight = isSmallScreen
+        ? 80.0
+        : isMediumScreen
+        ? 100.0
+        : 120.0;
+    final sectionSpacing = isSmallScreen ? 5.0 : 15.0;
+    final headingFontSize = isSmallScreen
+        ? 36.0
+        : isMediumScreen
+        ? 44.0
+        : 54.0;
+    final weightFontSize = isSmallScreen
+        ? 60.0
+        : isMediumScreen
+        ? 75.0
+        : 90.0;
+    final unitFontSize = isSmallScreen ? 24.0 : 36.0;
+
     return Scaffold(
       backgroundColor: context.surfaceColor, // ✅ DARK MODE
       body: SafeArea(
@@ -49,40 +76,45 @@ class _WeightScreenState extends State<WeightScreen> {
               child: ConstrainedBox(
                 constraints: BoxConstraints(minHeight: constraints.maxHeight),
                 child: IntrinsicHeight(
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 20),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: screenWidth * 0.08,
+                    ),
+                    child: Column(
+                      children: [
+                        SizedBox(height: topPadding),
 
-                      // Outline Title
-                      _buildOutlineTitle(),
+                        // Outline Title
+                        _buildOutlineTitle(logoHeight),
 
-                      const SizedBox(height: 5),
+                        SizedBox(height: sectionSpacing),
 
-                      // Heading
-                      _buildHeading(),
+                        // Heading
+                        _buildHeading(headingFontSize),
 
-                      const SizedBox(height: 5),
+                        SizedBox(height: sectionSpacing),
 
-                      // Weight Display
-                      _buildWeightDisplay(),
+                        // Weight Display
+                        _buildWeightDisplay(weightFontSize, unitFontSize),
 
-                      const SizedBox(height: 10),
+                        SizedBox(height: sectionSpacing),
 
-                      // Ruler
-                      _buildRuler(),
+                        // Ruler
+                        _buildRuler(isSmallScreen),
 
-                      const SizedBox(height: 20),
+                        SizedBox(height: isSmallScreen ? 15 : 30),
 
-                      // Unit Toggle
-                      _buildUnitToggle(),
+                        // Unit Toggle
+                        _buildUnitToggle(),
 
-                      const SizedBox(height: 30),
+                        const Spacer(),
 
-                      // Next Button
-                      _buildNextButton(),
+                        // Next Button
+                        _buildNextButton(),
 
-                      const SizedBox(height: 60),
-                    ],
+                        SizedBox(height: isSmallScreen ? 30 : 60),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -93,25 +125,26 @@ class _WeightScreenState extends State<WeightScreen> {
     );
   }
 
-  Widget _buildOutlineTitle() {
+  Widget _buildOutlineTitle(double height) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Center(
       child: Image.asset(
         'assets/images/logo.png',
-        height: 120,
-        width: 280,
+        height: height,
+        width: height * (280 / 120),
         fit: BoxFit.contain,
         // Optional: Apply color filter for dark mode if logo is dark
         color: isDark ? Colors.white : null,
         colorBlendMode: isDark ? BlendMode.srcIn : null,
         errorBuilder: (context, error, stackTrace) {
+          final fontSize = height * 0.4;
           return Stack(
             children: [
               Text(
                 'PowerHouse',
                 style: TextStyle(
-                  fontSize: 48,
+                  fontSize: fontSize,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -2,
                   foreground: Paint()
@@ -124,7 +157,7 @@ class _WeightScreenState extends State<WeightScreen> {
                 'PowerHouse',
                 style: TextStyle(
                   color: context.surfaceColor,
-                  fontSize: 48,
+                  fontSize: fontSize,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -2,
                 ),
@@ -136,7 +169,7 @@ class _WeightScreenState extends State<WeightScreen> {
     );
   }
 
-  Widget _buildHeading() {
+  Widget _buildHeading(double fontSize) {
     return RichText(
       textAlign: TextAlign.center,
       text: TextSpan(
@@ -145,7 +178,7 @@ class _WeightScreenState extends State<WeightScreen> {
             text: 'How much\n',
             style: TextStyle(
               color: context.primaryText, // ✅ DARK MODE
-              fontSize: 48,
+              fontSize: fontSize,
               fontWeight: FontWeight.w800,
               height: 1.1,
             ),
@@ -154,7 +187,7 @@ class _WeightScreenState extends State<WeightScreen> {
             text: 'Weight?',
             style: TextStyle(
               color: context.primaryColor, // ✅ DARK MODE
-              fontSize: 48,
+              fontSize: fontSize,
               fontWeight: FontWeight.w800,
               height: 1.1,
             ),
@@ -164,7 +197,7 @@ class _WeightScreenState extends State<WeightScreen> {
     );
   }
 
-  Widget _buildWeightDisplay() {
+  Widget _buildWeightDisplay(double weightFontSize, double unitFontSize) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -173,18 +206,18 @@ class _WeightScreenState extends State<WeightScreen> {
           selectedWeight.toInt().toString(),
           style: TextStyle(
             color: context.primaryText, // ✅ DARK MODE
-            fontSize: 90,
+            fontSize: weightFontSize,
             fontWeight: FontWeight.w800,
             letterSpacing: -1.92,
           ),
         ),
         Padding(
-          padding: const EdgeInsets.only(bottom: 20, left: 8),
+          padding: EdgeInsets.only(bottom: weightFontSize * 0.2, left: 8),
           child: Text(
             selectedUnit,
             style: TextStyle(
               color: context.secondaryText, // ✅ DARK MODE
-              fontSize: 36,
+              fontSize: unitFontSize,
               fontWeight: FontWeight.w500,
               letterSpacing: -0.43,
             ),
@@ -194,7 +227,7 @@ class _WeightScreenState extends State<WeightScreen> {
     );
   }
 
-  Widget _buildRuler() {
+  Widget _buildRuler(bool isSmall) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Tick colors based on theme
@@ -216,15 +249,18 @@ class _WeightScreenState extends State<WeightScreen> {
               .shade400 // ✅ DARK MODE
         : const Color(0xFF676B74);
 
+    final rulerHeight = isSmall ? 120.0 : 160.0;
+    final tickHeight = isSmall ? 40.0 : 56.0;
+
     return SizedBox(
-      height: 160,
+      height: rulerHeight,
       child: Stack(
         alignment: Alignment.center,
         children: [
           // Center indicator line
           Container(
             width: 4,
-            height: 80,
+            height: tickHeight * 1.5,
             color: context.accentColor, // ✅ DARK MODE (Orange)
           ),
 
@@ -248,7 +284,7 @@ class _WeightScreenState extends State<WeightScreen> {
                         // Tick mark
                         Container(
                           width: isMajorTick ? 4 : 2,
-                          height: isMajorTick ? 56 : 24,
+                          height: isMajorTick ? tickHeight : 24,
                           decoration: BoxDecoration(
                             color: isMajorTick
                                 ? majorTickColor // ✅ DARK MODE
@@ -261,12 +297,12 @@ class _WeightScreenState extends State<WeightScreen> {
 
                         // Number label (only for major ticks)
                         if (isMajorTick) ...[
-                          const SizedBox(height: 44),
+                          SizedBox(height: rulerHeight * 0.25),
                           Text(
                             weight.toString(),
                             style: TextStyle(
                               color: labelColor, // ✅ DARK MODE
-                              fontSize: 14,
+                              fontSize: isSmall ? 12 : 14,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -367,8 +403,6 @@ class _WeightScreenState extends State<WeightScreen> {
   }
 
   void _handleNext() {
-    print('Selected weight: ${selectedWeight.toInt()} $selectedUnit');
-
     final args = ModalRoute.of(context)?.settings.arguments as Map?;
     final previousData = args ?? {};
     previousData['weight'] = selectedWeight.toString();

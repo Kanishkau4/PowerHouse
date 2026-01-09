@@ -100,24 +100,24 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
     // Responsive animation size
     final animationContainerHeight = isSmallScreen
-        ? screenHeight * 0.33
+        ? screenHeight * 0.35
         : isMediumScreen
-        ? screenHeight * 0.38
-        : screenHeight * 0.43;
+        ? screenHeight * 0.40
+        : screenHeight * 0.45;
 
-    final circleSize = animationContainerHeight * 0.92;
+    final circleSize = animationContainerHeight * 0.95;
 
     // Responsive font sizes
     final titleFontSize = isSmallScreen
-        ? 22.0
+        ? 28.0
         : isMediumScreen
-        ? 26.0
-        : 28.0;
+        ? 34.0
+        : 40.0;
     final descFontSize = isSmallScreen
-        ? 13.0
-        : isMediumScreen
         ? 14.0
-        : 15.0;
+        : isMediumScreen
+        ? 15.0
+        : 16.0;
 
     // Responsive spacing
     final topSpacing = isSmallScreen ? 12.0 : 24.0;

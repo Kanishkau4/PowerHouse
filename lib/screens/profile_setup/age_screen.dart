@@ -30,62 +30,85 @@ class _AgeScreenState extends State<AgeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // Determine screen size category
+    final isSmallScreen = screenHeight < 700;
+    final isMediumScreen = screenHeight >= 700 && screenHeight < 850;
+
+    // Responsive sizes
+    final topPadding = isSmallScreen ? 15.0 : 30.0;
+    final logoHeight = isSmallScreen
+        ? 80.0
+        : isMediumScreen
+        ? 100.0
+        : 120.0;
+    final sectionSpacing = isSmallScreen ? 15.0 : 30.0;
+    final headingFontSize = isSmallScreen
+        ? 36.0
+        : isMediumScreen
+        ? 44.0
+        : 54.0;
+
     return Scaffold(
-      backgroundColor: context.surfaceColor, // ✅ DARK MODE
+      backgroundColor: context.surfaceColor,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 30.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(height: 40),
-
-              // Title with outline effect
-              _buildOutlineTitle(),
-
-              const SizedBox(height: 15),
-
-              // Main heading
-              _buildHeading(),
-
-              const SizedBox(height: 30),
-
-              // Age Picker
-              Expanded(child: _buildAgePicker()),
-
-              const SizedBox(height: 40),
-
-              // Next button
-              _buildNextButton(),
-
-              const SizedBox(height: 60),
-            ],
-          ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: screenWidth * 0.08,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        SizedBox(height: topPadding),
+                        _buildOutlineTitle(logoHeight),
+                        SizedBox(height: sectionSpacing * 0.5),
+                        _buildHeading(headingFontSize),
+                        SizedBox(height: sectionSpacing),
+                        // Age Picker
+                        Expanded(child: _buildAgePicker(isSmallScreen)),
+                        SizedBox(height: sectionSpacing),
+                        _buildNextButton(),
+                        SizedBox(height: isSmallScreen ? 30 : 60),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
   }
 
   // Outline Title Widget
-  Widget _buildOutlineTitle() {
+  Widget _buildOutlineTitle(double height) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Center(
       child: Image.asset(
         'assets/images/logo.png',
-        height: 120,
-        width: 280,
+        height: height,
+        width: height * (280 / 120),
         fit: BoxFit.contain,
-        // Optional: Apply color filter for dark mode if logo is dark
         color: isDark ? Colors.white : null,
         colorBlendMode: isDark ? BlendMode.srcIn : null,
         errorBuilder: (context, error, stackTrace) {
+          final fontSize = height * 0.4;
           return Stack(
             children: [
               Text(
                 'PowerHouse',
                 style: TextStyle(
-                  fontSize: 48,
+                  fontSize: fontSize,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -2,
                   foreground: Paint()
@@ -98,7 +121,7 @@ class _AgeScreenState extends State<AgeScreen> {
                 'PowerHouse',
                 style: TextStyle(
                   color: context.surfaceColor,
-                  fontSize: 48,
+                  fontSize: fontSize,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -2,
                 ),
@@ -111,7 +134,7 @@ class _AgeScreenState extends State<AgeScreen> {
   }
 
   // Heading Widget
-  Widget _buildHeading() {
+  Widget _buildHeading(double fontSize) {
     return RichText(
       textAlign: TextAlign.center,
       text: TextSpan(
@@ -119,8 +142,8 @@ class _AgeScreenState extends State<AgeScreen> {
           TextSpan(
             text: 'And\nYour ',
             style: TextStyle(
-              color: context.primaryText, // ✅ DARK MODE
-              fontSize: 48,
+              color: context.primaryText,
+              fontSize: fontSize,
               fontWeight: FontWeight.w800,
               height: 1.1,
             ),
@@ -128,8 +151,8 @@ class _AgeScreenState extends State<AgeScreen> {
           TextSpan(
             text: 'age?',
             style: TextStyle(
-              color: context.primaryColor, // ✅ DARK MODE
-              fontSize: 48,
+              color: context.primaryColor,
+              fontSize: fontSize,
               fontWeight: FontWeight.w800,
               height: 1.1,
             ),
@@ -140,8 +163,9 @@ class _AgeScreenState extends State<AgeScreen> {
   }
 
   // Age Picker Widget
-  Widget _buildAgePicker() {
+  Widget _buildAgePicker(bool isSmall) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final screenHeight = MediaQuery.of(context).size.height;
 
     // Colors for non-selected items based on theme
     final nearbyTextColor = isDark
@@ -156,17 +180,21 @@ class _AgeScreenState extends State<AgeScreen> {
               .shade700 // ✅ DARK MODE
         : const Color(0xFFD7D7D8);
 
+    final highlightHeight = isSmall ? 90.0 : 120.0;
+    final highlightWidth = isSmall ? 180.0 : 220.0;
+    final pickerHeight = isSmall ? screenHeight * 0.35 : 400.0;
+
     return Center(
       child: Stack(
         alignment: Alignment.center,
         children: [
           // Selection highlight container
           Container(
-            height: 120,
-            width: 220,
+            height: highlightHeight,
+            width: highlightWidth,
             decoration: BoxDecoration(
               color: context.accentColor, // ✅ DARK MODE (Orange)
-              borderRadius: BorderRadius.circular(48),
+              borderRadius: BorderRadius.circular(highlightHeight * 0.4),
               border: Border.all(
                 color: isDark
                     ? context.accentColor.withOpacity(0.5) // ✅ DARK MODE
@@ -185,10 +213,10 @@ class _AgeScreenState extends State<AgeScreen> {
 
           // Age wheel
           SizedBox(
-            height: 400,
+            height: pickerHeight,
             child: ListWheelScrollView.useDelegate(
               controller: _scrollController,
-              itemExtent: 100,
+              itemExtent: highlightHeight * 0.83,
               diameterRatio: 1.5,
               perspective: 0.001,
               physics: const FixedExtentScrollPhysics(),
@@ -211,15 +239,15 @@ class _AgeScreenState extends State<AgeScreen> {
                   FontWeight fontWeight;
 
                   if (isSelected) {
-                    fontSize = 80;
+                    fontSize = isSmall ? 60 : 80;
                     textColor = Colors.white; // Always white on orange
                     fontWeight = FontWeight.w800;
                   } else if (difference == 1) {
-                    fontSize = 60;
+                    fontSize = isSmall ? 40 : 60;
                     textColor = nearbyTextColor; // ✅ DARK MODE
                     fontWeight = FontWeight.w700;
                   } else {
-                    fontSize = 30;
+                    fontSize = isSmall ? 24 : 30;
                     textColor = farTextColor; // ✅ DARK MODE
                     fontWeight = FontWeight.w700;
                   }
@@ -259,9 +287,6 @@ class _AgeScreenState extends State<AgeScreen> {
 
   // Handle Next Button
   void _handleNext() {
-    print('Selected age: $selectedAge');
-
-    // Get previous data if any
     final args = ModalRoute.of(context)?.settings.arguments as Map?;
     final previousData = args ?? {};
 
