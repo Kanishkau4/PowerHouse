@@ -22,6 +22,8 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
   final _progressService = ProgressService();
 
   bool _isLoading = true;
+  bool _hasError = false;
+  String _errorMessage = '';
   int _totalWorkouts = 0;
   int _totalCalories = 0;
   int _totalFoodLogs = 0;
@@ -38,7 +40,13 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
 
   Future<void> _loadProgressData() async {
     try {
-      setState(() => _isLoading = true);
+      setState(() {
+        _isLoading = true;
+        _hasError = false;
+        _errorMessage = '';
+      });
+
+      print('📊 Loading progress data for ${widget.reportType} report...');
 
       // Fetch all statistics
       final workouts = await _statsService.getTotalWorkoutsCount();
@@ -47,6 +55,10 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
       final challenges = await _statsService.getTotalChallengesCompleted();
       final xp = await _statsService.getTotalXpEarned();
       final progressStats = await _progressService.getUserProgressStats();
+
+      print('✅ Progress data loaded successfully');
+
+      if (!mounted) return;
 
       setState(() {
         _totalWorkouts = workouts;
@@ -57,10 +69,18 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
         _currentLevel = progressStats['current_level'] ?? 1;
         _levelProgress = progressStats['level_progress'] ?? 0.0;
         _isLoading = false;
+        _hasError = false;
       });
     } catch (e) {
-      print('Error loading progress data: $e');
-      setState(() => _isLoading = false);
+      print('❌ Error loading progress data: $e');
+
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+        _hasError = true;
+        _errorMessage = 'Failed to load progress data. Please try again.';
+      });
     }
   }
 
@@ -106,6 +126,52 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
       body: _isLoading
           ? const Center(
               child: CircularProgressIndicator(color: Color(0xFF1DAB87)),
+            )
+          : _hasError
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.error_outline,
+                      size: 64,
+                      color: isDarkMode
+                          ? Colors.white.withOpacity(0.5)
+                          : Colors.black.withOpacity(0.5),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      _errorMessage,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: isDarkMode
+                            ? Colors.white.withOpacity(0.7)
+                            : Colors.black.withOpacity(0.7),
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      onPressed: _loadProgressData,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Retry'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1DAB87),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 32,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             )
           : RefreshIndicator(
               onRefresh: _loadProgressData,

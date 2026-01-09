@@ -95,7 +95,7 @@ class TipModel {
   bool get hasVideo => videoUrl != null && videoUrl!.isNotEmpty;
   bool get hasMedia => hasImage || hasVideo;
 
-  get id => null;
+  String get id => tipId;
 
   // Copy with
   TipModel copyWith({

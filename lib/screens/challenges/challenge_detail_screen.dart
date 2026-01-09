@@ -6,7 +6,10 @@ import 'package:powerhouse/services/challenge_service.dart';
 import 'package:powerhouse/services/health_service.dart';
 import 'package:powerhouse/core/config/supabase_config.dart';
 import 'dart:async';
-import 'package:powerhouse/widgets/challenges/challenge_map_widget.dart';
+import 'package:powerhouse/widgets/challenges/real_challenge_map_widget.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:powerhouse/services/user_service.dart';
+import 'package:powerhouse/models/user_model.dart';
 
 class ChallengeDetailScreen extends StatefulWidget {
   final UserChallengeModel userChallenge;
@@ -22,6 +25,7 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
   final _healthService = HealthService();
 
   late UserChallengeModel _userChallenge;
+  UserModel? _currentUser;
   final bool _isLoading = false;
   bool _isSyncing = false;
   bool _hasHealthPermission = false;
@@ -34,7 +38,17 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
     _userChallenge = widget.userChallenge;
     _checkHealthPermissions();
     _loadLeaderboard();
+    _loadUserProfile();
     _startAutoSync();
+  }
+
+  Future<void> _loadUserProfile() async {
+    final user = await UserService().getCurrentUserProfile();
+    if (mounted) {
+      setState(() {
+        _currentUser = user;
+      });
+    }
   }
 
   @override
@@ -110,16 +124,16 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
 
   Future<void> _loadLeaderboard() async {
     try {
-      print('📊 Loading leaderboard in UI...');
-      final leaderboard = await _challengeService.getGlobalLeaderboard();
-      print('📊 Received ${leaderboard.length} users in UI');
-      print('📊 Leaderboard data: $leaderboard');
-      setState(() {
-        _leaderboard = leaderboard;
-      });
-      print('📊 State updated with ${_leaderboard.length} users');
+      final participants = await _challengeService.getChallengeLeaderboard(
+        _userChallenge.challengeId,
+      );
+      if (mounted) {
+        setState(() {
+          _leaderboard = participants;
+        });
+      }
     } catch (e) {
-      print('Error loading leaderboard: $e');
+      print('Error loading participants: $e');
     }
   }
 
@@ -527,12 +541,13 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
 
   Widget _buildLeaderboardSection() {
     final currentUserId = SupabaseConfig.currentUserId;
+    final unit = _userChallenge.challenge?.unit ?? '';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Leaderboard',
+          'Participants',
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w800,
@@ -549,16 +564,19 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
             ),
             child: const Center(
               child: Text(
-                'No participants yet',
+                'Be the first to join!',
                 style: TextStyle(fontSize: 14, color: Color(0xFF7E7E7E)),
               ),
             ),
           )
         else
           ..._leaderboard.asMap().entries.map((entry) {
-            final index = entry.key;
             final data = entry.value;
             final userId = data['user_id'] as String?;
+            final userInfo = data['users'] as Map<String, dynamic>?;
+            final username = userInfo?['username'] ?? 'Unknown';
+            final profilePic = userInfo?['profile_picture_url'] as String?;
+            final progress = data['progress'] ?? 0;
             final isCurrentUser = userId == currentUserId;
 
             return Container(
@@ -566,46 +584,46 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: isCurrentUser
-                    ? const Color(0xFF1DAB87).withOpacity(0.2)
-                    : index < 3
                     ? const Color(0xFF1DAB87).withOpacity(0.1)
                     : Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   color: isCurrentUser
                       ? const Color(0xFF1DAB87)
-                      : index < 3
-                      ? const Color(0xFF1DAB87)
                       : const Color(0xFFE0E0E0),
-                  width: isCurrentUser || index < 3 ? 2 : 1,
+                  width: isCurrentUser ? 1.5 : 1,
                 ),
               ),
               child: Row(
                 children: [
-                  // Rank
+                  // Avatar
                   Container(
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: isCurrentUser
-                          ? const Color(0xFF1DAB87)
-                          : index < 3
-                          ? const Color(0xFF1DAB87)
-                          : const Color(0xFFE0E0E0),
+                      color: const Color(0xFFE0E0E0),
                       shape: BoxShape.circle,
+                      image: profilePic != null
+                          ? DecorationImage(
+                              image: NetworkImage(profilePic),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
                     ),
-                    child: Center(
-                      child: Text(
-                        '${index + 1}',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: isCurrentUser || index < 3
-                              ? Colors.white
-                              : context.primaryText,
-                        ),
-                      ),
-                    ),
+                    child: profilePic == null
+                        ? Center(
+                            child: Text(
+                              username.isNotEmpty
+                                  ? username[0].toUpperCase()
+                                  : '?',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF757575),
+                              ),
+                            ),
+                          )
+                        : null,
                   ),
                   const SizedBox(width: 16),
                   // Name
@@ -614,7 +632,7 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
                       children: [
                         Flexible(
                           child: Text(
-                            data['username'] ?? 'Unknown',
+                            username,
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -649,14 +667,28 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
                       ],
                     ),
                   ),
-                  // XP Points
-                  Text(
-                    '${data['xp_points']} XP',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1DAB87),
-                    ),
+                  // Progress
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        '$progress',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1DAB87),
+                        ),
+                      ),
+                      if (unit.isNotEmpty)
+                        Text(
+                          unit,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                    ],
                   ),
                 ],
               ),
@@ -765,18 +797,25 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
   }
 
   Widget _buildMapSection(ChallengeModel challenge, double progressPercentage) {
-    final metaData = challenge.metaData;
-    if (!metaData.containsKey('map_image_url')) {
-      return const SizedBox.shrink();
-    }
+    // If we have a map_image_url, we might still want to show the virtual one,
+    // but the user asked for a REAL map.
+    // For now, let's prioritize the Real Map as requested.
 
-    final String? mapImageUrl = metaData['map_image_url'];
+    final metaData = challenge.metaData;
+    LatLng center = const LatLng(6.9271, 79.8612); // Default
+
+    if (metaData.containsKey('latitude') && metaData.containsKey('longitude')) {
+      center = LatLng(
+        (metaData['latitude'] as num).toDouble(),
+        (metaData['longitude'] as num).toDouble(),
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Virtual Map',
+          'Challenge Location',
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w800,
@@ -784,11 +823,12 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        ChallengeMapWidget(
+        RealChallengeMapWidget(
           progress: progressPercentage,
-          mapImageUrl: mapImageUrl,
+          initialCenter: center,
+          height: 350,
+          avatarUrl: _currentUser?.profilePictureUrl,
         ),
-        const SizedBox(height: 32),
       ],
     );
   }
