@@ -53,5 +53,10 @@
 	<string>We need access to your health data to track your challenge progress.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>We need access to your health data to update your challenge progress.</string>
+	<!-- Location permissions for geolocator -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>We need your location to track your challenge progress on the map.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>We need your location to track your challenge progress even when the app is in the background.</string>
 </dict>
 </plist>

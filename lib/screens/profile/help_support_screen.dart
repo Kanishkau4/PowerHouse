@@ -146,7 +146,7 @@ class HelpSupportScreen extends StatelessWidget {
             ),
             child: Column(
               children: [
-                _buildInfoRow('Version', '1.0.0', isFirst: true),
+                _buildInfoRow('Version', '1.0.2', isFirst: true),
                 const Divider(height: 1, indent: 20, endIndent: 20),
                 _buildInfoRow('Privacy Policy', '', onTap: () {}),
                 const Divider(height: 1, indent: 20, endIndent: 20),
