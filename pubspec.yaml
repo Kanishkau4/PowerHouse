@@ -1,5 +1,5 @@
 name: powerhouse
-description: "A new Flutter project."
+description: "PowerHouse is your ultimate fitness and nutrition companion, offering workout tracking, meal plans, and challenges to help you achieve your goals."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -75,6 +75,7 @@ dependencies:
   flutter_map: ^8.2.2
   latlong2: ^0.9.1
   geolocator: ^10.1.1
+  package_info_plus: ^9.0.0
 
 dev_dependencies:
   flutter_test:

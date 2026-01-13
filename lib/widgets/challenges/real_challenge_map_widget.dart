@@ -30,7 +30,7 @@ class _RealChallengeMapWidgetState extends State<RealChallengeMapWidget> {
 
   // Location tracking
   LatLng? _currentLocation;
-  List<LatLng> _routePoints = [];
+  final List<LatLng> _routePoints = [];
   StreamSubscription<Position>? _positionStreamSubscription;
   bool _isTrackingLocation = false;
 

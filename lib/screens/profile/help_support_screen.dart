@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class HelpSupportScreen extends StatelessWidget {
   const HelpSupportScreen({super.key});
@@ -146,7 +147,15 @@ class HelpSupportScreen extends StatelessWidget {
             ),
             child: Column(
               children: [
-                _buildInfoRow('Version', '1.0.2', isFirst: true),
+                FutureBuilder<PackageInfo>(
+                  future: PackageInfo.fromPlatform(),
+                  builder: (context, snapshot) {
+                    final versionText = snapshot.hasData
+                        ? '${snapshot.data!.version} (Build ${snapshot.data!.buildNumber})'
+                        : 'Loading...';
+                    return _buildInfoRow('Version', versionText, isFirst: true);
+                  },
+                ),
                 const Divider(height: 1, indent: 20, endIndent: 20),
                 _buildInfoRow('Privacy Policy', '', onTap: () {}),
                 const Divider(height: 1, indent: 20, endIndent: 20),
