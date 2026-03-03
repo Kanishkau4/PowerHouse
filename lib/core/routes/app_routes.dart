@@ -13,4 +13,5 @@ class AppRoutes {
   static const String congratulations = '/congratulations';
   static const String MainNavigation = '/home';
   static const String progressReport = '/progress-report';
+  static const String offline = '/offline';
 }

@@ -20,7 +20,9 @@ import 'package:powerhouse/screens/profile_setup/weight_screen.dart';
 import 'package:powerhouse/screens/profile_setup/height_screen.dart';
 import 'package:powerhouse/screens/profile_setup/goal_screen.dart';
 import 'package:powerhouse/screens/profile_setup/congratulations_screen.dart';
+import 'package:powerhouse/screens/common/offline_screen.dart';
 import 'package:powerhouse/screens/profile/progress_report_screen.dart';
+import 'package:powerhouse/services/connectivity_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
@@ -53,6 +55,7 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => ConnectivityService()),
         // Add more providers here as needed
         // ChangeNotifierProvider(create: (_) => UserProvider()),
         // ChangeNotifierProvider(create: (_) => WorkoutProvider()),
@@ -80,6 +83,35 @@ class _PowerHouseAppState extends State<PowerHouseApp> {
     // Pass navigator key to notification service for navigation
     NotificationService().setNavigatorKey(_navigatorKey);
     _setupAuthListener();
+    _setupConnectivityListener();
+  }
+
+  void _setupConnectivityListener() {
+    // We use WidgetsBinding to ensure the first frame is drawn before we might navigate
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final connectivityService = Provider.of<ConnectivityService>(
+        context,
+        listen: false,
+      );
+      connectivityService.addListener(() {
+        if (!connectivityService.isOnline) {
+          _navigatorKey.currentState?.pushNamed(AppRoutes.offline);
+        } else {
+          // If we are on the offline screen and connection returns, pop it
+          final currentRoute = ModalRoute.of(
+            _navigatorKey.currentContext!,
+          )?.settings.name;
+          if (currentRoute == AppRoutes.offline) {
+            _navigatorKey.currentState?.pop();
+          }
+        }
+      });
+
+      // Initial check
+      if (!connectivityService.isOnline) {
+        _navigatorKey.currentState?.pushNamed(AppRoutes.offline);
+      }
+    });
   }
 
   void _setupAuthListener() {
@@ -188,6 +220,7 @@ class _PowerHouseAppState extends State<PowerHouseApp> {
                 reportType: args['reportType'] as String,
               );
             },
+            AppRoutes.offline: (context) => const OfflineScreen(),
           },
         );
       },
