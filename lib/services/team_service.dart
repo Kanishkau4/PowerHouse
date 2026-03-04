@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:path/path.dart' as path;
 import 'package:powerhouse/core/config/supabase_config.dart';
 import 'package:powerhouse/models/team_model.dart';
 import 'package:uuid/uuid.dart';
@@ -125,7 +127,7 @@ class TeamService {
 
       final response = await _supabase
           .from('team_members')
-          .select('team_id, teams(*)')
+          .select('team_id, teams(*, team_members(count))')
           .eq('user_id', userId);
 
       return (response as List)
@@ -142,7 +144,7 @@ class TeamService {
     try {
       final response = await _supabase
           .from('teams')
-          .select()
+          .select('*, team_members(count)')
           .order('created_at', ascending: false);
 
       return (response as List)
@@ -177,11 +179,24 @@ class TeamService {
     try {
       final response = await _supabase
           .from('teams')
-          .select('team_id, team_name, image_url, total_xp, member_count')
+          .select(
+            'team_id, team_name, image_url, total_xp, member_count, team_members(count)',
+          )
           .order('total_xp', ascending: false)
           .limit(10);
 
-      return (response as List).map((e) => e as Map<String, dynamic>).toList();
+      return (response as List).map((e) {
+        final map = Map<String, dynamic>.from(e as Map);
+        if (map['team_members'] != null && map['team_members'] is List) {
+          final tmList = map['team_members'] as List;
+          if (tmList.isNotEmpty &&
+              tmList[0] is Map &&
+              tmList[0].containsKey('count')) {
+            map['member_count'] = tmList[0]['count'];
+          }
+        }
+        return map;
+      }).toList();
     } catch (e) {
       print('Error getting team leaderboard: $e');
       return [];
@@ -228,6 +243,16 @@ class TeamService {
     }
   }
 
+  // ========== ADD MULTIPLE CHALLENGES TO TEAM ==========
+  Future<void> addChallengesToTeam({
+    required String teamId,
+    required List<String> challengeIds,
+  }) async {
+    for (final id in challengeIds) {
+      await startTeamChallenge(teamId: teamId, challengeId: id);
+    }
+  }
+
   // ========== UPDATE TEAM CHALLENGE PROGRESS ==========
   Future<void> updateTeamChallengeProgress({
     required String teamChallengeId,
@@ -240,6 +265,99 @@ class TeamService {
           .eq('team_challenge_id', teamChallengeId);
     } catch (e) {
       print('Error updating team challenge progress: $e');
+      rethrow;
+    }
+  }
+
+  // ========== GET TEAM WITH CHALLENGE DETAILS ==========
+  Future<Map<String, dynamic>> getTeamWithChallenges(String teamId) async {
+    try {
+      final teamData = await _supabase
+          .from('teams')
+          .select('*, team_members(count)')
+          .eq('team_id', teamId)
+          .single();
+
+      final challengesData = await _supabase
+          .from('team_challenges')
+          .select('*, challenges(*)')
+          .eq('team_id', teamId)
+          .eq('status', 'In-Progress');
+
+      final membersData = await _supabase
+          .from('team_members')
+          .select('*, users(username, profile_picture_url, xp_points)')
+          .eq('team_id', teamId)
+          .order('joined_at', ascending: true);
+
+      return {
+        'team': TeamModel.fromJson(teamData),
+        'challenges': (challengesData as List)
+            .map((j) => TeamChallengeModel.fromJson(j))
+            .toList(),
+        'members': (membersData as List)
+            .map((j) => TeamMemberModel.fromJson(j))
+            .toList(),
+      };
+    } catch (e) {
+      print('Error getting team details: $e');
+      rethrow;
+    }
+  }
+
+  // ========== UPDATE TEAM ==========
+  Future<void> updateTeam({
+    required String teamId,
+    required String teamName,
+    String? description,
+    String? imageUrl,
+  }) async {
+    try {
+      final updates = <String, dynamic>{
+        'team_name': teamName,
+        'description': description,
+      };
+      if (imageUrl != null) updates['image_url'] = imageUrl;
+
+      await _supabase.from('teams').update(updates).eq('team_id', teamId);
+    } catch (e) {
+      print('Error updating team: $e');
+      rethrow;
+    }
+  }
+
+  // ========== REMOVE TEAM CHALLENGE ==========
+  Future<void> removeTeamChallenge(String teamChallengeId) async {
+    try {
+      await _supabase
+          .from('team_challenges')
+          .delete()
+          .eq('team_challenge_id', teamChallengeId);
+    } catch (e) {
+      print('Error removing team challenge: $e');
+      rethrow;
+    }
+  }
+
+  // ========== UPLOAD TEAM IMAGE ==========
+  Future<String> uploadTeamImage(String teamId, File imageFile) async {
+    try {
+      final ext = path.extension(imageFile.path);
+      final fileName =
+          'team_${teamId}_${DateTime.now().millisecondsSinceEpoch}$ext';
+      final filePath = 'team_images/$fileName';
+
+      await _supabase.storage
+          .from('avatars')
+          .upload(
+            filePath,
+            imageFile,
+            fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
+          );
+
+      return _supabase.storage.from('avatars').getPublicUrl(filePath);
+    } catch (e) {
+      print('Error uploading team image: $e');
       rethrow;
     }
   }

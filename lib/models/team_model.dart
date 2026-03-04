@@ -1,3 +1,5 @@
+import 'package:powerhouse/models/challenge_model.dart';
+
 class TeamModel {
   final String teamId;
   final String teamName;
@@ -20,13 +22,23 @@ class TeamModel {
   });
 
   factory TeamModel.fromJson(Map<String, dynamic> json) {
+    int parsedMemberCount = json['member_count'] as int? ?? 0;
+    if (json['team_members'] != null && json['team_members'] is List) {
+      final tmList = json['team_members'] as List;
+      if (tmList.isNotEmpty &&
+          tmList[0] is Map &&
+          tmList[0].containsKey('count')) {
+        parsedMemberCount = tmList[0]['count'] as int;
+      }
+    }
+
     return TeamModel(
       teamId: json['team_id'] as String,
       teamName: json['team_name'] as String,
       description: json['description'] as String?,
       imageUrl: json['image_url'] as String?,
       createdBy: json['created_by'] as String,
-      memberCount: json['member_count'] as int? ?? 0,
+      memberCount: parsedMemberCount,
       totalXp: json['total_xp'] as int? ?? 0,
       createdAt: DateTime.parse(json['created_at']),
     );
@@ -43,6 +55,23 @@ class TeamModel {
       'total_xp': totalXp,
       'created_at': createdAt.toIso8601String(),
     };
+  }
+
+  TeamModel copyWith({
+    String? teamName,
+    String? description,
+    String? imageUrl,
+  }) {
+    return TeamModel(
+      teamId: teamId,
+      teamName: teamName ?? this.teamName,
+      description: description ?? this.description,
+      imageUrl: imageUrl ?? this.imageUrl,
+      createdBy: createdBy,
+      memberCount: memberCount,
+      totalXp: totalXp,
+      createdAt: createdAt,
+    );
   }
 }
 
@@ -98,6 +127,9 @@ class TeamChallengeModel {
   final DateTime startedAt;
   final DateTime? completedAt;
 
+  // Populated from join with challenges(*)
+  final ChallengeModel? challenge;
+
   TeamChallengeModel({
     required this.teamChallengeId,
     required this.teamId,
@@ -106,6 +138,7 @@ class TeamChallengeModel {
     this.status = 'In-Progress',
     required this.startedAt,
     this.completedAt,
+    this.challenge,
   });
 
   factory TeamChallengeModel.fromJson(Map<String, dynamic> json) {
@@ -118,6 +151,9 @@ class TeamChallengeModel {
       startedAt: DateTime.parse(json['started_at']),
       completedAt: json['completed_at'] != null
           ? DateTime.parse(json['completed_at'])
+          : null,
+      challenge: json['challenges'] != null
+          ? ChallengeModel.fromJson(json['challenges'] as Map<String, dynamic>)
           : null,
     );
   }
