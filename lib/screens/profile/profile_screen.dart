@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:powerhouse/screens/profile/edit_profile_screen.dart';
 import 'package:powerhouse/screens/profile/help_support_screen.dart';
 import 'package:powerhouse/screens/profile/notifications_screen.dart';
+import 'package:powerhouse/screens/workouts/workout_history_screen.dart';
 import 'package:powerhouse/services/user_service.dart';
 import 'package:powerhouse/services/badge_service.dart';
 import 'package:powerhouse/services/weight_history_service.dart';
@@ -1180,6 +1181,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 16),
           _buildSettingsItem(
+            title: 'Workout History',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const WorkoutHistoryScreen(),
+                ),
+              );
+            },
+            leadingIcon: Icons.history,
+            trailing: const Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: Color(0xFF979797),
+            ),
+            isDarkMode: isDarkMode,
+          ),
+          const SizedBox(height: 16),
+          _buildSettingsItem(
             title: 'Notifications',
             onTap: () => _onNotifications(),
             trailing: const Icon(
@@ -1267,6 +1287,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return 'assets/icons/Edit Profile.png';
       case 'My Achievements / Badges':
         return 'assets/icons/Trophy.png';
+      case 'Workout History':
+        return 'assets/icons/History.png';
       case 'Notifications':
         return 'assets/icons/Notification.png';
       case 'Bookmark':
@@ -1291,6 +1313,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     Widget? trailing,
     Color? titleColor,
     required bool isDarkMode,
+    IconData? leadingIcon,
   }) {
     final iconAsset = _getIconAsset(title);
 
@@ -1311,7 +1334,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         titleColor ??
                         (isDarkMode ? Colors.white : Colors.black),
                   )
-                : const Icon(Icons.help_outline, size: 24, color: Colors.grey),
+                : Icon(
+                    leadingIcon ?? Icons.help_outline,
+                    size: 24,
+                    color:
+                        titleColor ?? (isDarkMode ? Colors.white : Colors.grey),
+                  ),
           ),
           const SizedBox(width: 18),
           Expanded(

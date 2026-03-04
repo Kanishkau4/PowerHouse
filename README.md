@@ -22,7 +22,9 @@
 ### 🏋️ **Workout Tracking**
 - Browse and search from a comprehensive workout library
 - Log workouts with sets, reps, and weights
-- Track workout history and progress over time
+- **Detailed Workout History**: View all past sessions with date, duration, and calories burned
+- **Interactive Progress Charts**: Visualize calorie burn trends over time with dynamic line charts
+- **Summary Statistics**: Quick view of total workout sessions, total calories burned, and total time spent
 - Video tutorials for proper form
 - Goal-based workout recommendations
 
