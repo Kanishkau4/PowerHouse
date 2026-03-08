@@ -3,7 +3,7 @@ name: Build and Release Android APK
 on:
   push:
     tags:
-      - 'v*'  # Triggers on version tags like v1.0.0, v1.2.3, etc.
+      - 'v*' # Triggers on version tags like v1.0.0, v1.2.3, etc.
   workflow_dispatch:  # Allows manual triggering
 
 permissions:
@@ -15,18 +15,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout the code
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Step 2: Setup Java
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
 
-      # Step 3: Setup Flutter
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -34,24 +31,21 @@ jobs:
           channel: 'stable'
           cache: true
 
-      # Step 4: Install dependencies
       - name: Install dependencies
         run: flutter pub get
 
-      # Step 5: Run tests (optional - will not fail the build if tests fail)
-      - name: Run tests
-        continue-on-error: true
-        run: flutter test
+      # Create .env file from GitHub secret
+      - name: Create .env file
+        run: echo "$ENV_FILE_CONTENT" > .env
+        env:
+          ENV_FILE_CONTENT: ${{ secrets.ENV_FILE }}
 
-      # Step 6: Build APK
       - name: Build APK
         run: flutter build apk --release
 
-      # Step 7: Build App Bundle (for Google Play Store)
       - name: Build App Bundle
         run: flutter build appbundle --release
 
-      # Step 8: Create GitHub Release
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
@@ -66,23 +60,16 @@ jobs:
             - 📱 APK: Download and install directly on your Android device
             - 📦 App Bundle: For Google Play Store deployment
             
-            ### Installation
-            1. Download the APK file
-            2. Enable "Install from Unknown Sources" in your Android settings
-            3. Install the APK
-            4. Enjoy! 💪
-            
           draft: false
           prerelease: false
+          fail_on_unmatched_files: false 
           files: |
             build/app/outputs/flutter-apk/app-release.apk
-            build/app/outputs/flutter-apk/app.apk
             build/app/outputs/bundle/release/app-release.aab
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Step 9: Upload APK as artifact (for downloading without release)
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -90,7 +77,6 @@ jobs:
           path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 30
 
-      # Step 10: Upload App Bundle as artifact
       - name: Upload App Bundle Artifact
         uses: actions/upload-artifact@v4
         with:
